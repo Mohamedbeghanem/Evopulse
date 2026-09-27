@@ -29,7 +29,7 @@ import {
 } from "../lib/connectors";
 import { syncImap, testImap } from "../lib/connectors/imap";
 import { previewImport } from "../lib/connectors/import";
-import { assertPublicUrl } from "../lib/connectors/mcp-client";
+import { assertPublicUrl } from "../lib/connectors/mcp";
 import { ingestWhatsappWebhook, verifySignature, verifyWebhookHandshake } from "../lib/connectors/whatsapp";
 import type { ActionRow } from "../lib/types";
 

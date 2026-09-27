@@ -50,3 +50,14 @@ export async function readUpload(req: Request): Promise<{ fileName: string; byte
     skipInvalid: form.get("skipInvalid") === "true",
   };
 }
+
+/** Origin for OAuth redirect URIs. EVOPULSE_PUBLIC_URL wins (behind proxies); else forwarded headers; else request URL. */
+export function publicOrigin(req: Request): string {
+  const configured = (process.env.EVOPULSE_PUBLIC_URL || "").trim().replace(/\/$/, "");
+  if (configured) return configured;
+  const url = new URL(req.url);
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  const proto = req.headers.get("x-forwarded-proto") || url.protocol.replace(":", "");
+  const clean = host.replace(/^0\.0\.0\.0(?=:|$)/, "localhost");
+  return `${proto}://${clean}`;
+}

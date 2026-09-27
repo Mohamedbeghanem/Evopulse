@@ -1,22 +1,29 @@
 import Link from "next/link";
-import { ConnectorsBoard } from "@/components/connectors/ConnectorsBoard";
+import { ConnectorsAdmin } from "@/components/connectors/ConnectorsAdmin";
 import { PageHeader } from "@/components/ui/chrome";
 import { resolveRequestContext } from "@/lib/auth";
+import { CATALOG } from "@/lib/connectors/catalog";
 import { pendingConnectorActions } from "@/lib/connectors/governance";
-import { ConnectorRegistry } from "@/lib/connectors/registry";
+import { canManageConnectors, roleAllows, visibleConnectors } from "@/lib/connectors/permissions";
 import { ConnectorService } from "@/lib/connectors/service";
-import { getDb } from "@/lib/db";
 import { toPlain } from "@/lib/plain";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConnectorsPage() {
+const OAUTH_NOTICE: Record<string, string> = {
+  denied: "The provider sign-in was cancelled or denied. Nothing was stored.",
+  invalid: "The sign-in response was incomplete. Try connecting again.",
+  failed: "Sign-in could not be completed. The link may have expired; try again.",
+};
+
+export default async function ConnectorsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const oauth = typeof params.oauth === "string" ? params.oauth : "";
   const ctx = await resolveRequestContext();
   const isUser = ctx.mode === "user" && ctx.user && ctx.workspace;
 
   if (!isUser) {
     // Demo / anonymous: catalog only. The canonical Atlas database is never written by a connector.
-    const connectors = ConnectorRegistry.for(getDb(), "ws_demo").list();
     return (
       <div className="px-4 py-8 lg:px-8">
         <PageHeader kicker="Workspace" title="Connectors & Plugins">
@@ -25,17 +32,19 @@ export default async function ConnectorsPage() {
             <Link href="/signup" className="text-need underline">
               Create your workspace
             </Link>{" "}
-            to import your data, connect email or WhatsApp, and register MCP servers.
+            to import data, connect email or WhatsApp, and add MCP servers.
           </p>
         </PageHeader>
         <div className="mt-8">
-          <ConnectorsBoard connectors={toPlain(connectors)} pending={[]} readOnly canAdmin={false} />
+          <ConnectorsAdmin catalog={toPlain(CATALOG.map((entry) => ({ ...entry, installs: [] })))} connectors={[]} pending={[]} canAdmin={false} canDecide={false} readOnly />
         </div>
       </div>
     );
   }
 
   const service = ConnectorService.for(ctx.db, ctx.workspace!.id);
+  const role = ctx.role;
+  const canAdmin = canManageConnectors(role);
   const pending = pendingConnectorActions(ctx.db).map(({ id, type, title, policy_outcome, policy_reason, status }) => ({
     id,
     type,
@@ -44,21 +53,23 @@ export default async function ConnectorsPage() {
     policy_reason,
     status,
   }));
-  const role = ctx.role;
   return (
     <div className="px-4 py-8 lg:px-8">
-      <PageHeader kicker="Workspace" title="Connectors & Plugins">
+      <PageHeader kicker="Workspace · admin" title="Connectors & Plugins">
         <p>
-          Real sources only. Anything a connector brings in is data, never instructions. Anything that writes or sends goes through Policy and,
-          when required, your approval.
+          Connect apps and MCP servers. Anything they bring in is data, never instructions. Read-only tools run for the agent; every other tool becomes an
+          action that Policy checks and a human approves.
         </p>
       </PageHeader>
       <div className="mt-8">
-        <ConnectorsBoard
-          connectors={toPlain(service.list())}
+        <ConnectorsAdmin
+          catalog={toPlain(service.catalog(role))}
+          connectors={toPlain(visibleConnectors(service.list(), role))}
           pending={toPlain(pending)}
+          canAdmin={canAdmin}
+          canDecide={roleAllows(role, "write")}
           readOnly={role === "viewer"}
-          canAdmin={role === "owner" || role === "admin"}
+          notice={OAUTH_NOTICE[oauth] || null}
         />
       </div>
     </div>

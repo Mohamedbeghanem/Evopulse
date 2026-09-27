@@ -2,7 +2,10 @@ import type { DatabaseSync } from "node:sqlite";
 import { getMeta, runWithDb, setMeta } from "../db";
 import { commitImport, previewImport, type ImportInput } from "./import";
 import { syncImap, testImap } from "./imap";
-import { refreshMcpTools } from "./mcp";
+import { toolCallLog } from "./activity";
+import { CATALOG, catalogEntry, catalogFor } from "./catalog";
+import { completeMcpOAuth, refreshMcpTools, startMcpOAuth, stdioPolicy, validateMcpConfig } from "./mcp";
+import { visibleConnector, visibleConnectors } from "./permissions";
 import { ConnectorError, ConnectorRegistry } from "./registry";
 import { whatsappConfig } from "./whatsapp";
 
@@ -73,13 +76,68 @@ export class ConnectorService {
     return result;
   }
 
-  addMcpServer(input: Record<string, unknown>, actor: string) {
+  addMcpServer(input: Record<string, unknown>, actor: string, catalogId = "custom-mcp") {
+    try {
+      validateMcpConfig(input);
+    } catch (error) {
+      throw new ConnectorError(error instanceof Error ? error.message : "Invalid MCP server.", 400);
+    }
     const installId = this.registry.ensureInstall("mcp", String(input.label || "MCP server"));
     try {
-      return this.registry.configure(installId, input, actor);
+      this.registry.configure(installId, input, actor);
+      this.registry.setCatalogId(installId, catalogId);
+      return this.registry.view(installId);
     } catch (error) {
       this.registry.remove(installId, actor);
       throw error;
     }
+  }
+
+  /** Install from the admin catalog. Built-ins return their singleton; presets create an MCP install. */
+  installFromCatalog(entryId: string, actor: string) {
+    const entry = catalogEntry(entryId);
+    if (!entry) throw new ConnectorError("Unknown catalog entry.", 404);
+    if (entry.connectorId !== "mcp") {
+      const installId = this.registry.ensureInstall(entry.connectorId);
+      return this.registry.view(installId);
+    }
+    if (!entry.preset) throw new ConnectorError("Use the custom MCP server form.", 400);
+    return this.addMcpServer(
+      { label: entry.name, url: entry.preset.url, transport: entry.preset.transport, authType: entry.preset.authType },
+      actor,
+      entry.id,
+    );
+  }
+
+  catalog(role: string | null | undefined) {
+    const installs = this.registry.list();
+    return CATALOG.map((entry) => {
+      const matches = installs.filter((view) => (entry.connectorId === "mcp" ? view.catalogId === entry.id : view.connectorId === entry.connectorId));
+      const visible = visibleConnectors(matches, role);
+      return {
+        ...entry,
+        installs: visible.map((view) => ({ installId: view.installId, label: view.label, state: view.state, enabled: view.enabled })),
+      };
+    });
+  }
+
+  detail(installId: string, role: string | null | undefined) {
+    const view = this.registry.view(installId);
+    const visible = visibleConnector(view, role);
+    return {
+      connector: visible,
+      catalog: catalogFor(view.connectorId, view.catalogId) || null,
+      activity: toolCallLog(this.db, installId, 50),
+      runs: this.registry.recentRuns(installId, 10),
+      stdio: view.connectorId === "mcp" ? { allowed: stdioPolicy().allowed, reason: stdioPolicy().reason } : null,
+    };
+  }
+
+  startOAuth(installId: string, redirectUri: string) {
+    return startMcpOAuth(this.db, this.workspaceId, installId, redirectUri);
+  }
+
+  completeOAuth(state: string, code: string) {
+    return completeMcpOAuth(this.db, this.workspaceId, state, code);
   }
 }
