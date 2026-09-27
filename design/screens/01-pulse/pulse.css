@@ -55,8 +55,9 @@ body.pulse-page {
   font-family: var(--font-serif);
   font-size: 40px;
   font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  letter-spacing: -0.02em;
+  word-spacing: 0.06em;
+  line-height: 1.12;
 }
 
 .pulse-summary {
@@ -235,33 +236,30 @@ body.pulse-page {
 
 .impact {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
+  flex-direction: column;
+  gap: 6px;
   margin: 16px 0 0;
 }
 
-.impact-item {
-  min-width: 0;
-}
-
-.impact-item dt {
+.impact-money {
   margin: 0;
-  color: var(--aurora-subtle);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  word-spacing: 0.04em;
+  line-height: 1.2;
 }
 
-.impact-item dd {
-  margin: 4px 0 0;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+.impact-line {
+  margin: 0;
+  color: var(--aurora-muted);
+  font-size: 14px;
 }
 
 .money {
   color: inherit;
+  font: inherit;
   font-variant-numeric: tabular-nums;
   background: none;
   border: 0;
@@ -489,10 +487,8 @@ body.pulse-page {
     font-size: 24px;
   }
 
-  .impact {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 16px;
+  .impact-money {
+    font-size: 22px;
   }
 
   .situation time {

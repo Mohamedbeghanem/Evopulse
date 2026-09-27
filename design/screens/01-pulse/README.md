@@ -14,6 +14,8 @@ Target: `/`
 
 Artifact: `pulse.html`
 
+Captured still: `pulse-reference.jpg` (live 1440 render of this artifact — not a generated mock). Prompt leftover: `pulse-image-prompt.md`.
+
 Open via `file://` from the repo, or serve the repo / `design/` root so `../../AURORA_TOKENS.css` and `../00-shell/os.css` resolve. Do not serve only this folder.
 
 ## PURPOSE

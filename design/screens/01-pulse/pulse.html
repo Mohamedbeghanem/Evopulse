@@ -151,28 +151,15 @@
                 <h3 class="situation-title" id="atlas-title">Atlas Supply</h3>
                 <p class="explain">Atlas Supply is putting 3 customer orders at risk.</p>
 
-                <dl class="impact">
-                  <div class="impact-item">
-                    <dt>Orders</dt>
-                    <dd>3</dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>Customers</dt>
-                    <dd>3</dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>Associated revenue</dt>
-                    <dd>
-                      <button class="money" type="button" data-open="impact-atlas">850,000 DZD associated</button>
-                    </dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>Expected cash timing</dt>
-                    <dd>
-                      <button class="money" type="button" data-open="impact-atlas">540,000 DZD</button>
-                    </dd>
-                  </div>
-                </dl>
+                <div class="impact">
+                  <p class="impact-money">
+                    <button class="money" type="button" data-open="impact-atlas">850,000 DZD associated</button>
+                  </p>
+                  <p class="impact-line">
+                    3 orders · 3 customers ·
+                    <button class="money" type="button" data-open="impact-atlas">540,000 DZD expected cash timing</button>
+                  </p>
+                </div>
 
                 <p class="causal" aria-label="Causal preview">
                   <span>Atlas Supply</span><i aria-hidden="true">→</i>
@@ -202,24 +189,10 @@
                   A customer-facing send still needs you.
                 </p>
 
-                <dl class="impact">
-                  <div class="impact-item">
-                    <dt>Associated</dt>
-                    <dd>320,000 DZD</dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>What happened</dt>
-                    <dd>Thursday send missed</dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>Prepared</dt>
-                    <dd>Proposal · follow-up · Monday checkpoint</dd>
-                  </div>
-                  <div class="impact-item">
-                    <dt>Why you</dt>
-                    <dd>External message requires approval</dd>
-                  </div>
-                </dl>
+                <div class="impact">
+                  <p class="impact-money">320,000 DZD associated</p>
+                  <p class="impact-line">Thursday send missed · proposal, follow-up, and Monday checkpoint prepared</p>
+                </div>
 
                 <p class="causal">
                   <span>Amine Khelifi</span><i aria-hidden="true">→</i>
@@ -245,9 +218,8 @@
               <span class="band-count">0 situations</span>
             </div>
             <p class="empty">
-              No separate watch items on this projection. The Order A buffer
-              (−23h available · 18h required · −41h shortfall) belongs to Atlas Supply —
-              still at risk, not missed. Executed work would appear here only while verification is pending.
+              No separate watch items. Order A’s buffer (−23h available · 18h required)
+              lives under Atlas Supply — at risk, not missed.
             </p>
           </section>
 
@@ -257,8 +229,7 @@
               <span class="band-count">0 situations</span>
             </div>
             <p class="empty">
-              Nothing is handled yet. An action being executed does not close a situation.
-              Only successful verification produces Handled.
+              Nothing verified yet. Executed work is not Handled until verification succeeds.
             </p>
           </section>
         </main>
