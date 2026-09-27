@@ -12,11 +12,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     actor?: string;
   };
   const runtime = getAgentRuntime(getDb());
-  const run = await runtime.resumeAfterApproval(id, {
-    approvalId: body.approvalId,
-    actionId: body.actionId,
-    decision: body.decision || "approve",
-    actor: body.actor || "operator",
-  });
-  return NextResponse.json(toAskResponse(run, run.command));
+  try {
+    const run = await runtime.resumeAfterApproval(id, {
+      approvalId: body.approvalId,
+      actionId: body.actionId,
+      decision: body.decision || "approve",
+      actor: body.actor || "operator",
+    });
+    return NextResponse.json(toAskResponse(run, run.command));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "failed";
+    const status = /not found/i.test(message) ? 404 : /no longer pending/.test(message) ? 409 : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
 }
