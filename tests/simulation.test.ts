@@ -128,6 +128,22 @@ describe("Simulation engine (pure)", () => {
     assert.equal(result.delta.cash.movedToNextPeriod, 0);
   });
 
+  it("keeps other upstream inputs of affected nodes (a second, later shipment)", () => {
+    const snapshot = structuredClone(ATLAS_SUPPLY_FIXTURE);
+    snapshot.nodes.push(
+      { id: "ship_2", type: "shipment", label: "Shipment SH-205", attrs: { expectedAt: "2026-10-03T09:00:00+01:00" } },
+      { id: "prod_2", type: "product", label: "Brackets BR-2", attrs: {} },
+    );
+    snapshot.edges.push(
+      { id: "e_s2_p2", from: "ship_2", to: "prod_2", relationship: "contains" },
+      { id: "e_p2_ob", from: "prod_2", to: IDS.orderB, relationship: "required_by" },
+    );
+    const result = simulateSnapshot(snapshot, { ...PLUS_3, days: 1 });
+    // Order B already waits on SH-205 (Saturday) in the baseline, so it is late before the scenario.
+    assert.ok(result.baseline.ordersLate.some((o) => o.id === IDS.orderB));
+    assert.equal(result.delta.customersAffected.delta, 0);
+  });
+
   it("never mutates the snapshot it was given", () => {
     const before = structuredClone(ATLAS_SUPPLY_FIXTURE);
     simulateSnapshot(ATLAS_SUPPLY_FIXTURE, PLUS_3);

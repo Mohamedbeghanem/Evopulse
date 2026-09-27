@@ -64,21 +64,12 @@ function attrsFromMetadata(type: string, meta: Record<string, unknown>): SimAttr
 
 /**
  * "Clone relevant state": the scenario target, everything downstream of it,
- * and its direct upstream (e.g. the supplier). Returned as a deep copy.
+ * and every upstream input of those nodes (e.g. the supplier, or a second
+ * shipment the same order also waits on). Returned as a deep copy.
  */
 export function relevantSlice(snapshot: BusinessSnapshot, targetId: string): BusinessSnapshot {
-  const keep = new Set<string>([targetId]);
-  const queue = [targetId];
-  while (queue.length) {
-    const current = queue.shift()!;
-    for (const edge of snapshot.edges) {
-      if (edge.from === current && !keep.has(edge.to)) {
-        keep.add(edge.to);
-        queue.push(edge.to);
-      }
-    }
-  }
-  for (const edge of snapshot.edges) if (edge.to === targetId) keep.add(edge.from);
+  const downstream = closure(snapshot, [targetId], "down");
+  const keep = closure(snapshot, [...downstream], "up");
 
   return structuredClone({
     source: snapshot.source,
@@ -86,4 +77,20 @@ export function relevantSlice(snapshot: BusinessSnapshot, targetId: string): Bus
     nodes: snapshot.nodes.filter((n) => keep.has(n.id)),
     edges: snapshot.edges.filter((e) => keep.has(e.from) && keep.has(e.to)),
   });
+}
+
+function closure(snapshot: BusinessSnapshot, start: string[], direction: "down" | "up"): Set<string> {
+  const seen = new Set(start);
+  const queue = [...start];
+  while (queue.length) {
+    const current = queue.shift()!;
+    for (const edge of snapshot.edges) {
+      const [from, to] = direction === "down" ? [edge.from, edge.to] : [edge.to, edge.from];
+      if (from === current && !seen.has(to)) {
+        seen.add(to);
+        queue.push(to);
+      }
+    }
+  }
+  return seen;
 }
