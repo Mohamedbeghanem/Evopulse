@@ -1,9 +1,11 @@
 import type { CommandResult } from "../command/types";
 import { id } from "../ids";
+import { describeConfiguredProvider } from "./provider";
 import type { AgentRun } from "./types";
 
 export function toAskResponse(run: AgentRun, message: string) {
   const command = projectCommand(run, message);
+  const observed = describeConfiguredProvider();
   return {
     ...command,
     question: message,
@@ -15,6 +17,9 @@ export function toAskResponse(run: AgentRun, message: string) {
       status: run.status,
       phase: run.phase,
       runtime: run.runtime,
+      provider: observed?.provider ?? null,
+      model: observed?.model ?? null,
+      duration: runDurationMs(run),
       fallbackUsed: run.fallbackUsed,
       summary: run.summary,
       report: run.report,
@@ -31,6 +36,13 @@ export function toAskResponse(run: AgentRun, message: string) {
       approvals: run.approvals,
     },
   };
+}
+
+function runDurationMs(run: AgentRun): number {
+  const start = Date.parse(run.startedAt);
+  const end = Date.parse(run.finishedAt || run.cancelledAt || "") || Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
+  return Math.max(0, end - start);
 }
 
 function projectCommand(run: AgentRun, message: string): CommandResult {

@@ -76,9 +76,26 @@ EVOPULSE_AGENT_RUNTIME=deterministic   # default
 EVOPULSE_AGENT_RUNTIME=deepseek        # optional provider loop
 ```
 
-Default is deterministic. DeepSeek mode uses a separable provider (`DEEPSEEK_*`, `EVOPULSE_LLM_*`, or existing OpenAI / Groq keys). Secrets stay in the environment. No model brand is hardcoded into product identity.
+Default is deterministic. DeepSeek mode uses a separable provider (`OPENROUTER_*` first when set, then `DEEPSEEK_*`, `EVOPULSE_LLM_*`, or existing OpenAI / Groq keys). Secrets stay in the environment. No model brand is hardcoded into product identity.
 
 On provider miss, timeout, or throw: fall back to `DeterministicRuntime`. The Command Router remains a last-resort API fallback.
+
+## OpenRouter
+
+OpenRouter is an optional **server-side inference gateway**. It is not business truth. EvoPulse engines remain the source of what is true; policy, verification, and money stay with the existing engines.
+
+When `OPENROUTER_API_KEY` is set, `resolveConfiguredProvider()` prefers OpenRouter, then DeepSeek / `EVOPULSE_LLM_*`, then Groq, then OpenAI.
+
+```bash
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+# Optional. Tried only after the primary model fails.
+OPENROUTER_FALLBACK_MODEL=
+```
+
+The key stays on the server. It is never sent to the client and must not be prefixed `NEXT_PUBLIC_`. Requests go to `https://openrouter.ai/api/v1/chat/completions` using the existing OpenAI-compatible JSON tool protocol: `{"toolCalls":[...],"stop":false}`.
+
+If the primary model fails, the gateway tries `OPENROUTER_FALLBACK_MODEL` when configured, then throws. `DeepSeekHarnessRuntime` still falls back to `DeterministicRuntime`. Observability may include runtime, provider, model, duration, and tool names — never API keys or hidden chain-of-thought.
 
 ## Tools
 
@@ -131,6 +148,10 @@ The Command Center trace is product language: inspecting business, tracing depen
 
 ```bash
 EVOPULSE_AGENT_RUNTIME=deterministic
+# Optional inference gateway (server-side only)
+# OPENROUTER_API_KEY=
+# OPENROUTER_MODEL=
+# OPENROUTER_FALLBACK_MODEL=
 # Optional when EVOPULSE_AGENT_RUNTIME=deepseek
 # DEEPSEEK_API_KEY=
 # DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions
