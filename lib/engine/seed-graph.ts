@@ -202,6 +202,12 @@ export function seedSupplierGraph(db: DatabaseSync) {
     confidence: 0.91,
     condition: { event_type: "order.delivered" },
   });
+  // Order A delivery depends on SH-204 arriving, so Pulse re-derives "at risk" when SH-204 is due after Tuesday.
+  run(
+    db,
+    `INSERT OR REPLACE INTO dependencies (id, from_id, from_type, to_id, to_type, description) VALUES (?, ?, ?, ?, ?, ?)`,
+    ["dep_deliver_a_on_ship", IDS.expectDeliverA, "expectation", IDS.expectShip, "expectation", "Order A delivery depends on shipment SH-204 arriving"],
+  );
 
   eventsFor(db).append({
     id: IDS.evtShipExpected,

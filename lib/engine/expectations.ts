@@ -170,30 +170,42 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
   const commitments = new Map(
     all<CommitmentRow>(db, "SELECT * FROM commitments").map((c) => [c.id, c]),
   );
-  const blockedPrereqs = new Set(
-    all<{ to_id: string; from_id: string }>(
-      db,
-      "SELECT to_id, from_id FROM dependencies WHERE from_type = 'expectation' OR from_type = 'commitment'",
-    ).flatMap((d) => {
-      const prereq =
-        one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ? OR commitment_id = ?", [d.to_id, d.to_id]);
-      if (prereq && (prereq.status === "MISSED" || prereq.status === "BLOCKED")) return [d.from_id];
-      return [];
-    }),
-  );
+  // Per dependent (expectation id or commitment id): a MISSED/BLOCKED prerequisite blocks it;
+  // an open prerequisite expected after the dependent's own deadline puts it at risk.
+  const blockedPrereqs = new Set<string>();
+  const latestPrereqDue = new Map<string, string>();
+  for (const d of all<{ to_id: string; from_id: string }>(
+    db,
+    "SELECT to_id, from_id FROM dependencies WHERE from_type = 'expectation' OR from_type = 'commitment'",
+  )) {
+    const prereq =
+      one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ? OR commitment_id = ?", [d.to_id, d.to_id]);
+    if (!prereq) continue;
+    if (prereq.status === "MISSED" || prereq.status === "BLOCKED") blockedPrereqs.add(d.from_id);
+    else if (prereq.status !== "FULFILLED" && prereq.status !== "CANCELLED") {
+      const current = latestPrereqDue.get(d.from_id);
+      if (!current || parseIso(expectedAtOf(prereq)) > parseIso(current)) latestPrereqDue.set(d.from_id, expectedAtOf(prereq));
+    }
+  }
 
   for (const row of rows) {
     const commitment = commitments.get(row.commitment_id);
     const fulfilled = row.status === "FULFILLED";
     const cancelled = commitment?.status === "cancelled" || row.status === "CANCELLED";
     const blocked = blockedPrereqs.has(row.id) || blockedPrereqs.has(row.commitment_id);
-    const next = deriveExpectationStatus({
+    const derived = deriveExpectationStatus({
       dueAt: expectedAtOf(row),
       now,
       fulfilled,
       blocked: blocked && !fulfilled,
       cancelled,
     });
+    // A revised deadline, or a prerequisite expected after this deadline, is a risk signal. It raises
+    // ON_TRACK/UPCOMING to AT_RISK but never masks MISSED/BLOCKED — the revised date still follows the clock.
+    const revised = Boolean(one(db, "SELECT id FROM expectation_changes WHERE expectation_id = ?", [row.id]));
+    const prereqDue = latestPrereqDue.get(row.id) ?? latestPrereqDue.get(row.commitment_id);
+    const prereqLate = Boolean(prereqDue && parseIso(prereqDue) > parseIso(expectedAtOf(row)));
+    const next = (revised || prereqLate) && (derived === "ON_TRACK" || derived === "UPCOMING") ? "AT_RISK" : derived;
     if (next !== row.status) {
       const actual =
         next === "MISSED"
