@@ -52,7 +52,10 @@ export default async function UserPulsePage() {
             handled.
           </p>
         </div>
-        <PulseBoard pulse={toPlain({ headline: pulse.headline, attention: pulse.attention })} />
+        <PulseBoard
+          pulse={toPlain({ headline: pulse.headline, attention: pulse.attention })}
+          companyName={ctx.workspace.name}
+        />
       </div>
     );
   });
