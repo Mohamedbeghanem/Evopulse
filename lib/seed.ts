@@ -11,6 +11,7 @@ import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
+import { ensureWarningScenario, seedWarningScenario } from "./engine/warnings/seed";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -22,7 +23,10 @@ function one<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T 
 
 export function seedIfEmpty(db: DatabaseSync) {
   const existing = one<{ c: number }>(db, "SELECT COUNT(*) as c FROM entities");
-  if (existing && existing.c > 0) return;
+  if (existing && existing.c > 0) {
+    ensureWarningScenario(db);
+    return;
+  }
   seedWorld(db);
   seedSyntheticLearningData(db);
 }
@@ -323,11 +327,14 @@ export function seedWorld(db: DatabaseSync) {
     confidence: 1,
     idempotent: true,
   });
+
+  seedWarningScenario(db);
 }
 
 export function wipeAndSeed(db: DatabaseSync) {
   wipeLearningTables(db);
   const tables = [
+    "warnings",
     "audit_logs",
     "approvals",
     "actions",

@@ -4,6 +4,7 @@ import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import { calculateImpact } from "./impact";
 import { refreshExpectations } from "./expectations";
+import { comingNext, evaluateEarlyWarnings } from "./warnings";
 import type {
   Attention,
   CommitmentRow,
@@ -84,6 +85,7 @@ export function detectExceptions(db: DatabaseSync, now: string) {
 
 export function pulseSummary(db: DatabaseSync, now: string) {
   detectExceptions(db, now);
+  const warnings = evaluateEarlyWarnings(db, now);
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions ORDER BY created_at DESC");
   const counts = {
     NEEDS_YOU: exceptions.filter((e) => e.attention === "NEEDS_YOU").length,
@@ -109,6 +111,7 @@ export function pulseSummary(db: DatabaseSync, now: string) {
     opportunity,
     contact,
     company,
+    comingNext: comingNext(warnings),
   };
 }
 

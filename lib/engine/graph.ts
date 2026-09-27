@@ -2,6 +2,59 @@ import type { DatabaseSync } from "node:sqlite";
 import { all } from "../db";
 import type { CommitmentRow, DependencyRow, EntityRow, ExceptionRow, ExpectationRow } from "../types";
 
+/** How far a single event may walk. Hackathon graphs are shallow; this stops cycles. */
+export const DEFAULT_MAX_DEPTH = 6;
+
+export type DependencyEdge = { from_id: string; to_id: string };
+
+export type TraversalNode = {
+  id: string;
+  depth: number;
+  path: string[];
+};
+
+export function dependencyEdges(db: DatabaseSync): DependencyEdge[] {
+  return all<DependencyEdge>(db, "SELECT from_id, to_id FROM dependencies");
+}
+
+/**
+ * Walk the relational dependency table from one node.
+ * Downstream: `from` depends on `to`, so a delay at `to` reaches `from`.
+ * Upstream walks back to prerequisites. Visited ids are never queued twice.
+ */
+export function traverseDependencies(
+  edges: DependencyEdge[],
+  startId: string,
+  options?: { maxDepth?: number; direction?: "downstream" | "upstream" },
+): TraversalNode[] {
+  const maxDepth = options?.maxDepth ?? DEFAULT_MAX_DEPTH;
+  const direction = options?.direction ?? "downstream";
+  const visited = new Set<string>([startId]);
+  const queue: TraversalNode[] = [{ id: startId, depth: 0, path: [startId] }];
+  const out: TraversalNode[] = [];
+
+  while (queue.length) {
+    const current = queue.shift()!;
+    out.push(current);
+    if (current.depth >= maxDepth) continue;
+    for (const edge of edges) {
+      const next =
+        direction === "downstream"
+          ? edge.to_id === current.id
+            ? edge.from_id
+            : null
+          : edge.from_id === current.id
+            ? edge.to_id
+            : null;
+      if (!next || visited.has(next)) continue;
+      visited.add(next);
+      queue.push({ id: next, depth: current.depth + 1, path: [...current.path, next] });
+    }
+  }
+
+  return out;
+}
+
 export function businessGraph(db: DatabaseSync) {
   const entities = all<EntityRow>(db, "SELECT * FROM entities");
   const commitments = all<CommitmentRow>(db, "SELECT * FROM commitments");

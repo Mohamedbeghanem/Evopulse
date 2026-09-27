@@ -91,6 +91,7 @@ export type ExceptionRow = {
   confidence: number;
   status: string;
   created_at: string;
+  warning_id?: string | null;
 };
 
 export type PlanRow = {

@@ -17,6 +17,7 @@ export const EVENT_TYPES = {
   POLICY_BLOCKED: "policy.blocked",
   ACTION_EXECUTED: "action.executed",
   TIME_ADVANCED: "time.advanced",
+  EXPECTATION_UPDATED: "expectation.updated",
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];

@@ -1,0 +1,1002 @@
+<!doctype html>
+<!--
+  EvoPulse · Business Operating System · hackathon demo UI
+  Single self-contained file: HTML + CSS + vanilla JS, no build step, no dependencies
+  (fonts: IBM Plex Sans / IBM Plex Mono from Google Fonts).
+
+  STRUCTURE
+  - .app                       fixed 1440×900 frame (designed for a 16:10 screen recording)
+  - nav (left rail)            hash links: #twin #causal #time #actions
+  - header                     breadcrumb (#crumb), ask bar, LIVE pill, live clock (#clock)
+  - main.screen#s-twin         01 Business Twin: counter strip, 5 domains, needs-you, auto log
+  - main.screen#s-causal       02 Causal Explorer: vertical cascade (absolute-positioned nodes
+                               over one SVG of edges), node inspector (#inspector), replay
+  - main.screen#s-time         03 Time Machine: cash chart (SVG), past / now / future, next-steps
+  - main.screen#s-actions      04 Goal → Plan → Policy → Action feed with approve / decline
+
+  DESIGN TOKENS
+  bg #07090C · panel #0E1217 · line #1F2630 · text #E8ECF1 / #A3ADBA / #7C8796
+  at-risk (accent) #FF5A1F / text #FF7A45 · watch #F0B44C · auto/handled #7FB2E0 · normal #5E6B7A
+
+  All demo data (nodes, evidence, scenarios, plan, log) sits in constants in the <script>.
+  Swap them for API data; each render*() function redraws one dynamic region.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>EvoPulse · Business OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---- base / shell ---- */
+html, body { margin: 0; background: #07090C; }
+.app { width: 1440px; height: 900px; margin: 0 auto; display: flex; background: #07090C; overflow: hidden; }
+.shell { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+.screen[hidden] { display: none !important; }
+#s-causal .node.is-selected::after { content: ''; position: absolute; inset: -6px; border: 2px solid #E8ECF1; border-radius: 12px; pointer-events: none; }
+body{margin:0;background:#07090C;color:#E8ECF1;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#FF7A45}a:hover{color:#FFA07A}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.rail{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7C8796;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em}
+.rail:hover{background:#141A22;color:#E8ECF1}
+.rail.on{background:#1A212B;color:#FF6A2B}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.row{text-decoration:none;color:#E8ECF1}
+.row:hover{background:#121821;color:#E8ECF1}
+.btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;height:32px;padding:0 14px;border-radius:6px;border:1px solid #2A333F;background:#141A22;color:#E8ECF1;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{background:#1C2430;color:#fff}
+.btn.pri{background:#FF5A1F;border-color:#FF5A1F;color:#0A0C0F}
+.btn.pri:hover{background:#FF7A45;color:#0A0C0F}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,31,.6)}70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
+.pulse{animation:pulse 1.8s infinite}
+
+/* ---- causal ---- */
+#s-causal a { color: rgb(255, 122, 69); }
+#s-causal a:hover { color: rgb(255, 160, 122); }
+#s-causal .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+#s-causal .rail { width: 52px; height: 52px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: rgb(124, 135, 150); text-decoration: none; font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: 0.08em; }
+#s-causal .rail:hover { background: rgb(20, 26, 34); color: rgb(232, 236, 241); }
+#s-causal .rail.on { background: rgb(26, 33, 43); color: rgb(255, 106, 43); }
+#s-causal .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); }
+#s-causal .btn { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; height: 36px; padding: 0px 14px; border-radius: 6px; border: 1px solid rgb(42, 51, 63); background: rgb(20, 26, 34); color: rgb(232, 236, 241); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+#s-causal .btn:hover { background: rgb(28, 36, 48); color: rgb(255, 255, 255); }
+#s-causal .btn.pri { background: rgb(255, 90, 31); border-color: rgb(255, 90, 31); color: rgb(10, 12, 15); }
+#s-causal .btn.pri:hover { background: rgb(255, 122, 69); color: rgb(10, 12, 15); }
+#s-causal .node { position: absolute; box-sizing: border-box; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; text-align: left; cursor: pointer; color: rgb(232, 236, 241); font-family: "IBM Plex Sans", sans-serif; pointer-events: auto; transition: transform 0.15s; }
+#s-causal .node:hover { transform: translateY(-1px); filter: brightness(1.2); }
+#s-causal .ring { position: absolute; inset: -6px; border: 2px solid rgb(232, 236, 241); border-radius: 12px; pointer-events: none; }
+#s-causal .k { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.08em; color: rgb(143, 154, 168); }
+#s-causal .chip { font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px; }
+#s-causal .cr { background: rgba(255, 90, 31, 0.16); color: rgb(255, 122, 69); }
+#s-causal .cw { background: rgba(240, 180, 76, 0.14); color: rgb(240, 180, 76); }
+#s-causal .flow { stroke-dasharray: 5, 6; animation: 0.9s linear 0s infinite normal none running flow; }
+@keyframes flow { 
+  100% { stroke-dashoffset: -22; }
+}
+@keyframes pulse { 
+  0% { box-shadow: rgba(255, 90, 31, 0.6) 0px 0px 0px 0px; }
+  70% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 8px; }
+  100% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 0px; }
+}
+#s-causal .pulse { animation: 1.8s ease 0s infinite normal none running pulse; }
+#s-causal .lvl { position: absolute; left: 0px; width: 84px; display: flex; flex-direction: column; gap: 2px; font-family: "IBM Plex Mono", monospace; }
+
+/* ---- time ---- */
+#s-time a { color: rgb(255, 122, 69); }
+#s-time a:hover { color: rgb(255, 160, 122); }
+#s-time .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+#s-time .rail { width: 52px; height: 52px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: rgb(124, 135, 150); text-decoration: none; font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: 0.08em; }
+#s-time .rail:hover { background: rgb(20, 26, 34); color: rgb(232, 236, 241); }
+#s-time .rail.on { background: rgb(26, 33, 43); color: rgb(255, 106, 43); }
+#s-time .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); }
+#s-time .btn { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; height: 34px; padding: 0px 14px; border-radius: 6px; border: 1px solid rgb(42, 51, 63); background: rgb(20, 26, 34); color: rgb(232, 236, 241); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+#s-time .btn:hover { background: rgb(28, 36, 48); color: rgb(255, 255, 255); }
+#s-time .btn.pri { background: rgb(255, 90, 31); border-color: rgb(255, 90, 31); color: rgb(10, 12, 15); }
+#s-time .btn.pri:hover { background: rgb(255, 122, 69); color: rgb(10, 12, 15); }
+#s-time .seg { font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; height: 30px; padding: 0px 12px; border: 0px; border-radius: 5px; background: transparent; color: rgb(143, 154, 168); cursor: pointer; }
+#s-time .seg:hover { color: rgb(232, 236, 241); }
+#s-time .seg.on { background: rgb(31, 39, 49); color: rgb(232, 236, 241); }
+#s-time .tick { position: absolute; top: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.06em; color: rgb(124, 135, 150); transform: translateX(-50%); }
+#s-time .ev { display: flex; gap: 12px; align-items: center; padding: 0px 16px; border-bottom: 1px solid rgb(26, 32, 41); }
+#s-time .tag { font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px; background: rgb(22, 28, 36); color: rgb(163, 173, 186); }
+#s-time .tr { background: rgba(255, 90, 31, 0.16); color: rgb(255, 122, 69); }
+#s-time .tw { background: rgba(240, 180, 76, 0.14); color: rgb(240, 180, 76); }
+#s-time .ta { background: rgba(127, 178, 224, 0.14); color: rgb(127, 178, 224); }
+@keyframes pulse { 
+  0% { box-shadow: rgba(255, 90, 31, 0.6) 0px 0px 0px 0px; }
+  70% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 8px; }
+  100% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 0px; }
+}
+#s-time .pulse { animation: 1.8s ease 0s infinite normal none running pulse; }
+
+/* ---- actions ---- */
+#s-actions a { color: rgb(255, 122, 69); }
+#s-actions a:hover { color: rgb(255, 160, 122); }
+#s-actions .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+#s-actions .rail { width: 52px; height: 52px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: rgb(124, 135, 150); text-decoration: none; font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: 0.08em; }
+#s-actions .rail:hover { background: rgb(20, 26, 34); color: rgb(232, 236, 241); }
+#s-actions .rail.on { background: rgb(26, 33, 43); color: rgb(255, 106, 43); }
+#s-actions .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); }
+#s-actions .btn { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; height: 34px; padding: 0px 14px; border-radius: 6px; border: 1px solid rgb(42, 51, 63); background: rgb(20, 26, 34); color: rgb(232, 236, 241); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+#s-actions .btn:hover { background: rgb(28, 36, 48); color: rgb(255, 255, 255); }
+#s-actions .btn.pri { background: rgb(255, 90, 31); border-color: rgb(255, 90, 31); color: rgb(10, 12, 15); }
+#s-actions .btn.pri:hover { background: rgb(255, 122, 69); color: rgb(10, 12, 15); }
+#s-actions .tag { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+#s-actions .t-auto { background: rgba(127, 178, 224, 0.12); color: rgb(127, 178, 224); border: 1px solid rgba(127, 178, 224, 0.3); }
+#s-actions .t-appr { background: rgba(255, 90, 31, 0.14); color: rgb(255, 122, 69); border: 1px solid rgba(255, 90, 31, 0.45); }
+#s-actions .t-blk { background: rgb(20, 25, 32); color: rgb(143, 154, 168); border: 1px solid rgb(42, 51, 63); }
+#s-actions .chip { font-family: "IBM Plex Mono", monospace; font-size: 11px; padding: 4px 8px; border-radius: 4px; background: rgb(20, 26, 34); border: 1px solid rgb(35, 43, 53); color: rgb(201, 209, 219); }
+@keyframes pulse { 
+  0% { box-shadow: rgba(255, 90, 31, 0.6) 0px 0px 0px 0px; }
+  70% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 8px; }
+  100% { box-shadow: rgba(255, 90, 31, 0) 0px 0px 0px 0px; }
+}
+#s-actions .pulse { animation: 1.8s ease 0s infinite normal none running pulse; }
+@keyframes blink { 
+  50% { opacity: 0.35; }
+}
+#s-actions .blink { animation: 1.2s ease 0s infinite normal none running blink; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav aria-label="Primary" style="width: 64px; height: 900px; box-sizing: border-box; background: #090C10; border-right: 1px solid #1C232C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; flex-shrink: 0">
+<div style="width: 36px; height: 36px; border-radius: 8px; background: #FF5A1F; display: flex; align-items: center; justify-content: center; margin-bottom: 14px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0C0F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-7 4 14 3-7h6"></path></svg>
+</div>
+<a href="#twin" aria-label="Business Twin" class="rail" data-screen="twin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>TWIN</a>
+<a href="#causal" aria-label="Causal Explorer" class="rail" data-screen="causal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4" r="2"></circle><circle cx="5" cy="20" r="2"></circle><circle cx="12" cy="20" r="2"></circle><circle cx="19" cy="20" r="2"></circle><path d="M12 6v12M12 11c0 3-7 3-7 7M12 11c0 3 7 3 7 7"></path></svg>CAUSE</a>
+<a href="#time" aria-label="Time Machine" class="rail" data-screen="time"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>TIME</a>
+<a href="#actions" aria-label="Actions" class="rail" data-screen="actions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h6"></path><path d="m14 17 2.5 2.5L21 15"></path></svg>ACT</a>
+</nav>
+<div class="shell">
+<header style="height: 56px; box-sizing: border-box; border-bottom: 1px solid #1C232C; display: flex; align-items: center; gap: 16px; padding: 0 24px; background: #090C10; flex-shrink: 0">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-weight: 700; font-size: 16px; letter-spacing: -0.01em">EvoPulse</span>
+<span class="mono" style="font-size: 12px; color: #7C8796">/ Atlas Steel Distribution / <span style="color: #C9D1DB" id="crumb">Business Twin</span></span>
+</div>
+<div style="flex-grow: 1"></div>
+<label for="ask" class="sr">Ask your business</label>
+<input id="ask" placeholder="Ask your business… e.g. why is Friday's cash at risk?" style="width: 380px; height: 34px; box-sizing: border-box; background: #0E1217; border: 1px solid #232B35; border-radius: 6px; color: #E8ECF1; padding: 0 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px">
+<div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border: 1px solid #2A333F; border-radius: 14px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .1em">LIVE</span>
+</div>
+<span class="mono" style="font-size: 12px; color: #A3ADBA">SUN 27 SEP · <span id="clock">14:32:08</span> CET</span>
+<button aria-label="Account" style="width: 32px; height: 32px; border-radius: 16px; background: #1A212B; border: 1px solid #2A333F; color: #E8ECF1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer">MO</button>
+</header>
+
+<!-- ================= 01 BUSINESS TWIN ================= -->
+<main style="flex-grow: 1; box-sizing: border-box; padding: 22px 28px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 0" id="s-twin" class="screen">
+<div style="display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">BUSINESS TWIN · LIVE STATE</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.015em">Good afternoon. <span style="color: #FF7A45">2 decisions</span> need you today.</h1>
+</div>
+<div class="mono" style="display: flex; gap: 20px; font-size: 12px; color: #A3ADBA">
+<span>TWIN SYNC <span style="color: #E8ECF1">0.4s</span> AGO</span>
+<span>SOURCES <span style="color: #E8ECF1">38</span> CONNECTED</span>
+<span>MODEL <span style="color: #E8ECF1">v4.2</span></span>
+</div>
+</div>
+
+<section aria-label="Event summary" style="height: 112px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; overflow: hidden">
+<div style="width: 210px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">EVENTS · 24H</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1" id="ev-events">184</span>
+</div>
+<div style="width: 210px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">NORMAL</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: #A3ADBA" id="ev-normal">171</span>
+</div>
+<div style="width: 250px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">HANDLED AUTOMATICALLY</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: #7FB2E0">9</span>
+</div>
+<a href="#actions" class="row" style="width: 230px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,90,31,0.08)">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #FF7A45">NEED YOU →</span>
+<span class="mono" style="font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #FF6A2B">2</span>
+</a>
+<div style="flex-grow: 1; box-sizing: border-box; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">EVENT RATE · LAST 60 MIN</span>
+<span class="mono" style="font-size: 11px; color: #A3ADBA">3.1 / min</span>
+</div>
+<div style="flex-grow: 1; display: flex; align-items: flex-end; gap: 3px">
+
+<div style="flex-grow: 1; height: 14px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 12px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 13px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 26px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 23px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 28px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 25px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 27px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 23px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 25px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 44px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 52px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 38px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 30px; background: #7FB2E0; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 26px; background: #7FB2E0; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+</div>
+</div>
+</section>
+
+<div style="flex-grow: 1; display: flex; gap: 18px; min-height: 0">
+<section aria-label="Domains" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">DOMAINS · 5</span>
+<div class="mono" style="display: flex; gap: 16px; font-size: 11px; color: #A3ADBA">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #5E6B7A"></span>NORMAL</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #F0B44C"></span>WATCH</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>AT RISK</span>
+</div>
+</div>
+
+<a href="#causal" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span class="pulse" style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A1F"></span><span style="font-size: 16px; font-weight: 600">Sales</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">3 commitments at risk</span><span style="font-size: 12.5px; color: #8F9AA8">2 likely to miss deadline after supplier delay, 1 on watch</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500; color: #FF7A45">300K DZD</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">EXPOSED</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,22 12,20 24,21 36,18 48,19 60,17 72,18 84,22 96,26 110,29" stroke="#FF6A2B" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(255,90,31,0.14); color: #FF7A45; border: 1px solid rgba(255,90,31,0.4)">AT RISK</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="#time" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F0B44C"></span><span style="font-size: 16px; font-weight: 600">Cash</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">540K expected this week</span><span style="font-size: 12.5px; color: #8F9AA8">300K of it depends on orders at risk · payment due Fri 2 Oct</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">540K DZD</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">INFLOW · 7D</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,24 12,22 24,23 36,20 48,21 60,19 72,20 84,18 96,12 110,8" stroke="#F0B44C" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(240,180,76,0.12); color: #F0B44C; border: 1px solid rgba(240,180,76,0.35)">WATCH</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="#causal" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F0B44C"></span><span style="font-size: 16px; font-weight: 600">Operations</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">Shipment SHP-2291 delayed +2 days</span><span style="font-size: 12.5px; color: #8F9AA8">14t stock reserved at Rouiba depot, handled automatically</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">94.2%</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">ON-TIME · 30D</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,10 12,9 24,11 36,10 48,8 60,9 72,10 84,9 96,14 110,17" stroke="#F0B44C" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(240,180,76,0.12); color: #F0B44C; border: 1px solid rgba(240,180,76,0.35)">WATCH</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="#time" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #5E6B7A"></span><span style="font-size: 16px; font-weight: 600">Customers</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">42 active accounts, no escalations</span><span style="font-size: 12.5px; color: #8F9AA8">BatiCo and Oran Structures notified of revised ETAs (auto)</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">0</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">OPEN COMPLAINTS</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,16 12,15 24,17 36,16 48,15 60,16 72,14 84,15 96,16 110,15" stroke="#5E6B7A" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: #161C24; color: #A3ADBA; border: 1px solid #2A333F">NORMAL</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="#causal" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span class="pulse" style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A1F"></span><span style="font-size: 16px; font-weight: 600">Suppliers</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">Sider Métal delay +2 days on HR coils</span><span style="font-size: 12.5px; color: #8F9AA8">Root cause of today's cascade · port congestion at Annaba</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500; color: #FF7A45">+2.0d</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">LEAD-TIME DRIFT</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,26 12,25 24,26 36,24 48,25 60,23 72,24 84,18 96,10 110,5" stroke="#FF6A2B" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(255,90,31,0.14); color: #FF7A45; border: 1px solid rgba(255,90,31,0.4)">AT RISK</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+</section>
+
+<aside style="width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px">
+<section aria-label="Needs you" style="box-sizing: border-box; background: #0E1217; border: 1px solid rgba(255,90,31,0.45); border-radius: 10px; display: flex; flex-direction: column">
+<div style="height: 44px; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #FF7A45">NEEDS YOU · 2</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">300K DZD ON THE LINE</span>
+</div>
+<div style="padding: 16px 18px; border-bottom: 1px solid #1A2029; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Expedite SHP-2291 customs clearance</span><span class="mono" style="font-size: 12px; color: #FF7A45">+180K</span></div>
+<span class="mono" style="font-size: 12px; color: #8F9AA8">Broker fee 38,000 DZD · needs approval (FIN-02)</span>
+<div style="display: flex; gap: 8px"><a href="#actions" class="btn pri">Review</a><a href="#causal" class="btn">Why?</a></div>
+</div>
+<div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Ship 80% of Order C on Thursday</span><span class="mono" style="font-size: 12px; color: #FF7A45">+96K</span></div>
+<span class="mono" style="font-size: 12px; color: #8F9AA8">Changes confirmed order terms · needs sign-off (OPS-05)</span>
+<div style="display: flex; gap: 8px"><a href="#actions" class="btn pri">Review</a><a href="#causal" class="btn">Why?</a></div>
+</div>
+</section>
+
+<section aria-label="Handled automatically" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7FB2E0">HANDLED AUTOMATICALLY · 9</span>
+<a href="#actions" class="mono" style="font-size: 11px">VIEW ALL</a>
+</div>
+<div class="mono" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 12px">
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">14:21</span><span style="color: #C9D1DB">Re-forecast weekly cash · 3 scenarios</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">09:17</span><span style="color: #C9D1DB">Delay notice sent to BatiCo, Oran Str.</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">09:16</span><span style="color: #C9D1DB">Reserved 14t HR coil at Rouiba depot</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">08:40</span><span style="color: #C9D1DB">Matched 6 bank receipts to invoices</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">07:55</span><span style="color: #8F9AA8">+5 more routine actions</span></div>
+</div>
+</section>
+</aside>
+</div>
+</main>
+
+<!-- ================= 02 CAUSAL EXPLORER ================= -->
+<main style="flex-grow: 1; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 0" id="s-causal" class="screen" hidden="">
+<div style="height: 52px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">CAUSAL EXPLORER · CASCADE SUP-EVT-0927</span>
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em">Supplier delay +2 days <span style="color: #7C8796">→</span> <span style="color: #FF7A45">300K DZD</span> of Friday's cash at risk</h1>
+</div>
+<div style="display: flex; align-items: center; gap: 22px">
+<div class="mono" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">NODES</span><span style="font-size: 16px">9</span></div>
+<div class="mono" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">DEPTH</span><span style="font-size: 16px">4</span></div>
+<div class="mono" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">EXPOSED</span><span style="font-size: 16px; color: #FF7A45">300,000 DZD</span></div>
+<div class="mono" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">COMPUTED</span><span style="font-size: 16px">1.2s ago</span></div>
+<button class="btn" id="replay-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>Replay cascade</button>
+</div>
+</div>
+
+<div style="flex-grow: 1; display: flex; gap: 18px; min-height: 0">
+<section aria-label="Cascade diagram" style="width: 918px; flex-shrink: 0; box-sizing: border-box; background: #0B0F14; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; background-image: radial-gradient(#18202A 1px, transparent 1px); background-size: 22px 22px">
+<div style="height: 40px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1F2630; background: #0E1217; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">PROPAGATION · TOP → DOWN · CLICK A NODE FOR EVIDENCE</span>
+<div class="mono" style="display: flex; gap: 14px; font-size: 10.5px; color: #A3ADBA">
+<span style="display: flex; align-items: center; gap: 6px"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="5 4"></line></svg>AT-RISK PATH</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#F0B44C" stroke-width="1.5" stroke-dasharray="2 3"></line></svg>WATCH</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#3A4552" stroke-width="1.5"></line></svg>NORMAL</span>
+</div>
+</div>
+
+<div style="position: relative; width: 900px; height: 672px; margin: 4px auto 0">
+<div class="lvl" style="top: 38px"><span style="font-size: 10px; color: #FF7A45">L0</span><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">TRIGGER</span></div>
+<div class="lvl" style="top: 160px"><span style="font-size: 10px; color: #7C8796">L1</span><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">LOGISTICS</span></div>
+<div class="lvl" style="top: 291px"><span style="font-size: 10px; color: #7C8796">L2</span><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">ORDERS</span></div>
+<div class="lvl" style="top: 423px"><span style="font-size: 10px; color: #7C8796">L3</span><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">DEADLINES</span></div>
+<div class="lvl" style="top: 576px"><span style="font-size: 10px; color: #7C8796">L4</span><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">CASH</span></div>
+
+<svg width="900" height="672" viewBox="0 0 900 672" fill="none" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+<g style="opacity: 1; transition: opacity .35s" data-level="1">
+<path d="M498 96 L498 138" stroke="#FF5A1F" stroke-width="2.5" class="flow"></path>
+</g>
+<g style="opacity: 1; transition: opacity .35s" data-level="2">
+<path d="M498 214 C498 240 234 236 234 262" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+<path d="M498 214 L498 262" stroke="#F0B44C" stroke-width="1.5" stroke-dasharray="2 4" opacity="0.8"></path>
+<path d="M498 214 C498 240 762 236 762 262" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+</g>
+<g style="opacity: 1; transition: opacity .35s" data-level="3">
+<path d="M234 352 L234 400" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+<path d="M498 352 L498 400" stroke="#F0B44C" stroke-width="1.5" stroke-dasharray="2 4" opacity="0.8"></path>
+<path d="M762 352 L762 400" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+</g>
+<g style="opacity: 1; transition: opacity .35s" data-level="4">
+<path d="M234 478 C234 508 498 500 498 530" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+<path d="M498 478 L498 530" stroke="#3A4552" stroke-width="1.5"></path>
+<path d="M762 478 C762 508 498 500 498 530" stroke="#FF5A1F" stroke-width="2" class="flow"></path>
+<circle cx="498" cy="530" r="3.5" fill="#FF5A1F"></circle>
+</g>
+</svg>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="1">
+<span class="mono" style="position: absolute; left: 510px; top: 108px; font-size: 10.5px; color: #FF7A45; background: #0B0F14; padding: 1px 4px">+2d · p 0.96</span>
+</div>
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="4">
+<span class="mono" style="position: absolute; left: 300px; top: 496px; font-size: 11px; font-weight: 600; color: #FF7A45; background: #0B0F14; padding: 1px 5px; border: 1px solid rgba(255,90,31,.4); border-radius: 3px">−180K</span>
+<span class="mono" style="position: absolute; left: 506px; top: 494px; font-size: 10.5px; color: #8F9AA8; background: #0B0F14; padding: 1px 4px">+240K safe</span>
+<span class="mono" style="position: absolute; left: 648px; top: 496px; font-size: 11px; font-weight: 600; color: #FF7A45; background: #0B0F14; padding: 1px 5px; border: 1px solid rgba(255,90,31,.4); border-radius: 3px">−120K</span>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="0">
+<button class="node pulse" aria-label="Trigger: supplier delay plus 2 days" style="left: 348px; top: 12px; width: 300px; height: 84px; background: #2A140B; border: 1.5px solid #FF5A1F" data-node="trig">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k" style="color: #FF9B70">TRIGGER · SUP-EVT-0927</span><span class="chip cr">ROOT</span></span>
+<span style="font-size: 16px; font-weight: 600">Supplier delay +2 days</span>
+<span class="mono" style="font-size: 11.5px; color: #C9D1DB">Sider Métal · HR coils · Annaba port</span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="1">
+<button class="node" aria-label="Shipment SHP-2291" style="left: 348px; top: 138px; width: 300px; height: 76px; background: #16100D; border: 1px solid rgba(255,90,31,0.7)" data-node="ship">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k">SHIPMENT · SHP-2291</span><span class="chip cr">AT RISK</span></span>
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">42t HR steel coils</span><span class="mono" style="font-size: 12px; color: #FF7A45">ETA Tue → Thu</span></span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="2">
+<button class="node" aria-label="Order A, BatiCo" style="left: 114px; top: 262px; width: 240px; height: 90px; background: #16100D; border: 1px solid rgba(255,90,31,0.7)" data-node="a">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k">ORDER A · ORD-1184</span><span class="chip cr">AT RISK</span></span>
+<span style="font-size: 15px; font-weight: 600">BatiCo · 18t beams</span>
+<span class="mono" style="font-size: 17px; font-weight: 500">180,000 <span style="font-size: 11px; color: #8F9AA8">DZD</span></span>
+</button>
+<button class="node" aria-label="Order B, Hydra Build" style="left: 378px; top: 262px; width: 240px; height: 90px; background: #13130F; border: 1px solid rgba(240,180,76,0.55)" data-node="b">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k">ORDER B · ORD-1191</span><span class="chip cw">WATCH</span></span>
+<span style="font-size: 15px; font-weight: 600">Hydra Build · 24t tubes</span>
+<span class="mono" style="font-size: 17px; font-weight: 500">240,000 <span style="font-size: 11px; color: #8F9AA8">DZD</span></span>
+</button>
+<button class="node" aria-label="Order C, Oran Structures" style="left: 642px; top: 262px; width: 240px; height: 90px; background: #16100D; border: 1px solid rgba(255,90,31,0.7)" data-node="c">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k">ORDER C · ORD-1203</span><span class="chip cr">AT RISK</span></span>
+<span style="font-size: 15px; font-weight: 600">Oran Structures · 12t sheet</span>
+<span class="mono" style="font-size: 17px; font-weight: 500">120,000 <span style="font-size: 11px; color: #8F9AA8">DZD</span></span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="3">
+<button class="node" aria-label="Deadline BatiCo" style="left: 114px; top: 400px; width: 240px; height: 78px; background: #16100D; border: 1px solid rgba(255,90,31,0.7)" data-node="da">
+
+<span class="k">DEADLINE · WED 30 SEP 17:00</span>
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 600">Miss by ~15h</span><span class="mono" style="font-size: 12px; color: #FF7A45">p 0.91</span></span>
+</button>
+<button class="node" aria-label="Deadline Hydra Build" style="left: 378px; top: 400px; width: 240px; height: 78px; background: #13130F; border: 1px solid rgba(240,180,76,0.55)" data-node="db">
+
+<span class="k">DEADLINE · MON 5 OCT 12:00</span>
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 600">Slack 4 days left</span><span class="mono" style="font-size: 12px; color: #F0B44C">p 0.18</span></span>
+</button>
+<button class="node" aria-label="Deadline Oran Structures" style="left: 642px; top: 400px; width: 240px; height: 78px; background: #16100D; border: 1px solid rgba(255,90,31,0.7)" data-node="dc">
+
+<span class="k">DEADLINE · THU 1 OCT 16:00</span>
+<span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14px; font-weight: 600">Slack 8h, tight</span><span class="mono" style="font-size: 12px; color: #FF7A45">p 0.83</span></span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 900px; height: 672px; pointer-events: none; opacity: 1; transition: opacity .35s" data-level="4">
+<button class="node" aria-label="Expected cash Friday" style="left: 308px; top: 530px; width: 380px; height: 124px; background: #1E120C; border: 1.5px solid #FF5A1F; padding: 12px 14px; gap: 7px" data-node="cash">
+
+<span style="display: flex; justify-content: space-between; align-items: center"><span class="k" style="color: #FF9B70">EXPECTED CASH · FRI 2 OCT</span><span class="chip cr">300K AT RISK</span></span>
+<span style="display: flex; align-items: baseline; gap: 8px"><span class="mono" style="font-size: 26px; font-weight: 500; letter-spacing: -0.02em">540,000</span><span class="mono" style="font-size: 12px; color: #8F9AA8">DZD EXPECTED</span></span>
+<span style="display: flex; gap: 3px; width: 352px; height: 8px"><span style="width: 156px; height: 8px; border-radius: 2px; background: #4A5664"></span><span style="width: 193px; height: 8px; border-radius: 2px; background: #FF5A1F"></span></span>
+<span class="mono" style="display: flex; justify-content: space-between; font-size: 10.5px; color: #8F9AA8"><span>240K SAFE · ORDER B</span><span style="color: #FF7A45">300K AT RISK · A + C</span></span>
+</button>
+</div>
+</div>
+</section>
+
+<aside aria-label="Node inspector" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden" id="inspector"></aside>
+</div>
+</main>
+
+<!-- ================= 03 BUSINESS TIME MACHINE ================= -->
+<main style="flex-grow: 1; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 0" id="s-time" class="screen" hidden="">
+<div style="height: 48px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">BUSINESS TIME MACHINE · WED 23 SEP → MON 5 OCT</span>
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em">What changed, what needs you now, and what comes next</h1>
+</div>
+<div style="display: flex; gap: 4px; padding: 3px; background: #0E1217; border: 1px solid #1F2630; border-radius: 8px">
+<button class="seg">−7D</button><button class="seg">−24H</button><button class="seg on">NOW</button><button class="seg">+24H</button><button class="seg">+7D</button>
+</div>
+</div>
+
+<section aria-label="Cash position chart" style="height: 214px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 36px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">CASH POSITION · ACTUAL + PROJECTED</span>
+<div class="mono" style="display: flex; gap: 16px; font-size: 10.5px; color: #A3ADBA">
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#C9D1DB" stroke-width="2"></line></svg>ACTUAL</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#8F9AA8" stroke-width="2" stroke-dasharray="4 3"></line></svg>EXPECTED</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="4 3"></line></svg>LIKELY IF NOTHING CHANGES</span>
+</div>
+</div>
+<svg width="1318" height="150" viewBox="0 0 1320 150" fill="none" aria-hidden="true" style="display: block">
+<line x1="0" y1="86" x2="1320" y2="86" stroke="#3A4552" stroke-dasharray="2 4"></line>
+<text x="10" y="80" fill="#7C8796" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1">CASH FLOOR 1.2M DZD</text>
+<rect x="520" y="0" width="12" height="150" fill="#07090C"></rect>
+<rect x="772" y="0" width="12" height="150" fill="#07090C"></rect>
+<polygon points="0,104 65,100 195,92 325,96 455,88 652,84 652,150 0,150" fill="#C9D1DB" fill-opacity="0.05"></polygon>
+<polyline points="0,104 65,100 195,92 325,96 455,88 652,84" stroke="#C9D1DB" stroke-width="2"></polyline>
+<polygon points="1097,94 1186,40 1275,60 1320,62 1320,98 1275,96 1186,82 1097,98" fill="#FF5A1F" fill-opacity="0.12"></polygon>
+<polyline points="652,84 829,88 918,90 1008,92 1097,94 1186,40 1275,60 1320,62" stroke="#8F9AA8" stroke-width="2" stroke-dasharray="5 4"></polyline>
+<polyline points="652,84 829,88 918,90 1008,94 1097,98 1186,82 1275,96 1320,98" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="5 4"></polyline>
+<circle cx="1186" cy="40" r="4" fill="#E8ECF1"></circle>
+<text x="1176" y="28" text-anchor="end" fill="#E8ECF1" font-family="IBM Plex Mono, monospace" font-size="11">+540K expected</text>
+<circle cx="1186" cy="82" r="4" fill="#FF5A1F"></circle>
+<text x="1176" y="116" text-anchor="end" fill="#FF7A45" font-family="IBM Plex Mono, monospace" font-size="11">+240K likely</text>
+<circle cx="1275" cy="96" r="4" fill="#FF5A1F"></circle>
+<text x="1275" y="122" text-anchor="middle" fill="#FF7A45" font-family="IBM Plex Mono, monospace" font-size="10">FLOOR BREACH</text>
+<line x1="652" y1="0" x2="652" y2="150" stroke="#FF5A1F" stroke-width="1.5"></line>
+<rect x="612" y="6" width="80" height="18" rx="3" fill="#FF5A1F"></rect>
+<text x="652" y="19" text-anchor="middle" fill="#0A0C0F" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" id="now-label">NOW 14:32</text>
+<circle cx="652" cy="84" r="4.5" fill="#FF5A1F" stroke="#0E1217" stroke-width="2"></circle>
+</svg>
+<div style="position: relative; height: 26px; border-top: 1px solid #1A2029">
+<span class="tick" style="left: 65px">WED 23</span><span class="tick" style="left: 195px">THU 24</span><span class="tick" style="left: 325px">FRI 25</span><span class="tick" style="left: 455px">SAT 26</span>
+<span class="tick" style="left: 652px; color: #FF7A45; font-weight: 600">SUN 27</span>
+<span class="tick" style="left: 829px">MON 28</span><span class="tick" style="left: 918px">TUE 29</span><span class="tick" style="left: 1008px">WED 30</span><span class="tick" style="left: 1097px">THU 1</span><span class="tick" style="left: 1186px; color: #E8ECF1">FRI 2</span><span class="tick" style="left: 1275px">MON 5</span>
+</div>
+</section>
+
+<div style="flex-grow: 1; display: flex; gap: 12px; min-height: 0">
+<section aria-label="Past" style="width: 520px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA">◀ PAST · WHAT CHANGED</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">4 SIGNIFICANT · 312 ROUTINE</span>
+</div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">WED 23 10:40</span><span style="flex-grow: 1; font-size: 14px">HR coil price index +4% at supplier</span><span class="tag">PRICE</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">THU 24 15:12</span><span style="flex-grow: 1; font-size: 14px">Order B confirmed, 240K DZD, 50% prepaid</span><span class="tag">SALES</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">SAT 26 18:05</span><span style="flex-grow: 1; font-size: 14px">Sider Métal flags congestion at Annaba</span><span class="tag tw">SIGNAL</span></div>
+<div class="ev" style="flex-grow: 1; border-bottom: 0"><span class="mono" style="width: 92px; font-size: 11px; color: #FF7A45">SUN 27 09:02</span><span style="flex-grow: 1; font-size: 14px; font-weight: 600">Delay confirmed: SHP-2291 +2 days</span><span class="tag tr">TRIGGER</span></div>
+</section>
+
+<section aria-label="Now" style="width: 240px; flex-shrink: 0; box-sizing: border-box; background: #1A0F0A; border: 1.5px solid #FF5A1F; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 14px; border-bottom: 1px solid rgba(255,90,31,0.35); display: flex; align-items: center; gap: 8px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #FF7A45">NOW · NEEDS YOU</span>
+</div>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1">
+<div style="display: flex; align-items: baseline; gap: 8px"><span class="mono" style="font-size: 44px; font-weight: 500; line-height: 1; color: #FF6A2B">2</span><span style="font-size: 13px; color: #C9D1DB; line-height: 1.3">decisions<br>awaiting you</span></div>
+<div class="mono" style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">EXPOSED</span><span style="font-size: 18px; color: #FF7A45">300,000 DZD</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Expedite customs</span><span class="mono" style="color: #FF7A45">+180K</span></div>
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Ship 80% of Order C</span><span class="mono" style="color: #FF7A45">+96K</span></div>
+</div>
+<div style="flex-grow: 1"></div>
+<a href="#actions" class="btn pri">Open plan</a>
+</div>
+</section>
+
+<section aria-label="Future" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA">FUTURE · WHAT'S EXPECTED ▶</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">PROBABILITY</span>
+</div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">MON 28</span><span style="flex-grow: 1; font-size: 13.5px">Rouiba stock staged for Oran run</span><span class="tag ta">AUTO</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px">0.97</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">TUE 29</span><span style="flex-grow: 1; font-size: 13.5px; color: #7C8796; text-decoration: line-through">Original SHP-2291 arrival</span><span class="tag">MOVED</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #7C8796">0.00</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">WED 30</span><span style="flex-grow: 1; font-size: 13.5px">BatiCo deadline 17:00, likely missed</span><span class="tag tr">AT RISK</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #FF7A45">0.91</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">THU 1</span><span style="flex-grow: 1; font-size: 13.5px">SHP-2291 lands 08:00 · Oran due 16:00</span><span class="tag tr">AT RISK</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #FF7A45">0.83</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #E8ECF1">FRI 2</span><span style="flex-grow: 1; font-size: 13.5px; font-weight: 600">540K payment expected</span><span class="tag tw">WATCH</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #F0B44C">0.44</span></div>
+<div class="ev" style="flex-grow: 1; border-bottom: 0"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">MON 5</span><span style="flex-grow: 1; font-size: 13.5px">Supplier payment 410K · floor check</span><span class="tag tw">WATCH</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #F0B44C">0.56</span></div>
+</section>
+</div>
+
+<section aria-label="What happens next" style="height: 128px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px 0 16px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">WHAT HAPPENS NEXT</span>
+<div style="display: flex; gap: 2px">
+<button class="seg on" data-sc="a">IF YOU APPROVE BOTH</button>
+<button class="seg" data-sc="b">IF NOTHING CHANGES</button>
+</div>
+</div>
+<div style="flex-grow: 1; display: flex; align-items: stretch; padding: 12px 16px; gap: 8px" id="next-steps"></div>
+</section>
+</main>
+
+<!-- ================= 04 GOAL → PLAN → POLICY → ACTION ================= -->
+<main style="flex-grow: 1; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 0" id="s-actions" class="screen" hidden="">
+<div style="height: 48px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">GOAL → PLAN → POLICY → ACTION</span>
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em">EvoPulse is executing your plan. <span style="color: #FF7A45" id="pending-text">2 steps wait on you.</span></h1>
+</div>
+<div class="mono" style="display: flex; gap: 22px">
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">AUTO</span><span style="font-size: 16px; color: #7FB2E0">3</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">NEED YOU</span><span style="font-size: 16px; color: #FF7A45" id="pending-count">2</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">BLOCKED</span><span style="font-size: 16px; color: #A3ADBA">1</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">POLICIES CHECKED</span><span style="font-size: 16px">14</span></div>
+</div>
+</div>
+
+<div style="flex-grow: 1; display: flex; gap: 18px; min-height: 0">
+<div style="width: 860px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px">
+<section aria-label="Goal" style="height: 104px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; padding: 16px 20px; display: flex; gap: 18px; align-items: center">
+<div class="mono" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 8px; border: 1px solid #2A333F; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span style="font-size: 18px; font-weight: 500">01</span><span style="font-size: 9px; letter-spacing: .12em; color: #8F9AA8">GOAL</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 22px; font-weight: 600; letter-spacing: -0.01em">“Protect this week's revenue”</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">SET BY MOHAMED · VOICE · 09:14</span>
+</div>
+<div style="display: flex; gap: 8px">
+<span class="chip"><span style="color: #7C8796">TARGET</span> ≥ 500K of 540K by Fri 2 Oct</span>
+<span class="chip"><span style="color: #7C8796">HORIZON</span> Mon 28 → Fri 2</span>
+<span class="chip"><span style="color: #7C8796">SCOPE</span> sales · ops · cash</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Plan" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">02 PLAN</span> · 6 ACTIONS · GENERATED IN 1.8s FROM CASCADE SUP-EVT-0927</span>
+<a href="#causal" class="mono" style="font-size: 11px">VIEW CAUSE</a>
+</div>
+<div class="mono" style="height: 28px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; font-size: 10px; letter-spacing: .12em; color: #7C8796">
+<span style="width: 28px">#</span><span style="flex-grow: 1">ACTION · POLICY REASON</span><span style="width: 138px">DECISION</span><span style="width: 196px">EXECUTION</span>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="plan-rows" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0"></div></section>
+</div>
+
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<section aria-label="Outcome" style="flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid rgba(255,90,31,0.45); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px" id="outcome"></section>
+
+<section aria-label="Execution log" style="flex-grow: 1; box-sizing: border-box; background: #0A0D11; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; min-height: 0">
+<div style="height: 40px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">04 EXECUTION LOG</span></span>
+<span class="mono blink" style="font-size: 10.5px; color: #7FB2E0">● STREAMING</span>
+</div>
+<div class="mono" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 9px; font-size: 11.5px; overflow: hidden" id="log"></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+<script>
+/* ==========================================================================
+   EvoPulse demo app logic (vanilla JS, no dependencies)
+   Screens are <main class="screen" id="s-*"> elements; routing is hash based.
+   All demo data lives in the constants below: swap them for API data.
+   ========================================================================== */
+(function () {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const pad = (n) => String(n).padStart(2, '0');
+  const hms = (d) => pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+
+  /* ---------------------------------------------------------------- router */
+  const SCREENS = { twin: 'Business Twin', causal: 'Causal Explorer', time: 'Business Time Machine', actions: 'Goal → Action' };
+  function route() {
+    const h = location.hash.slice(1);
+    const id = SCREENS[h] ? h : 'twin';
+    $$('.screen').forEach((s) => { s.hidden = s.id !== 's-' + id; });
+    $$('.rail[data-screen]').forEach((a) => a.classList.toggle('on', a.dataset.screen === id));
+    $('#crumb').textContent = SCREENS[id];
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ------------------------------------------------------------ live clock */
+  function tickClock() {
+    const d = new Date();
+    $('#clock').textContent = hms(d);
+    const now = $('#now-label');
+    if (now) now.textContent = 'NOW ' + hms(d).slice(0, 5);
+  }
+
+  /* ======================================================= 01 BUSINESS TWIN */
+  const twin = { events: 184, normal: 171 };
+  function tickTwin() {
+    if (Math.random() < 0.3) { twin.events++; twin.normal++; }
+    $('#ev-events').textContent = twin.events;
+    $('#ev-normal').textContent = twin.normal;
+  }
+
+  /* ===================================================== 02 CAUSAL EXPLORER */
+  const RISK = '#FF7A45', WATCH = '#F0B44C';
+  const NODES = {
+    trig: { id: 'SUP-EVT-0927', kind: 'TRIGGER EVENT', title: 'Sider Métal delays HR coil dispatch by 2 days', sev: 'risk', when: 'DETECTED 09:02', impactLabel: 'DOWNSTREAM EXPOSURE', impact: '300,000 DZD', conf: 96, up: 'Port congestion, Annaba', down: 'SHP-2291 → 3 orders → Friday cash', ev: [
+      ['EDI', 'Advance ship notice revised: dispatch moved Sat 26 → Mon 28.'],
+      ['MAIL', 'Supplier email 27 Sep 09:02 cites congestion at Annaba port.'],
+      ['HIST', 'Same lane slipped 2.1 days on average across the last 4 delays.']] },
+    ship: { id: 'SHP-2291', kind: 'SHIPMENT · INBOUND', title: '42t HR steel coils, ETA moves Tue 29 → Thu 1 Oct 08:00', sev: 'risk', when: 'ETA THU 08:00', impactLabel: 'ORDERS DEPENDENT', impact: '3 · 540K DZD', conf: 94, up: 'SUP-EVT-0927 (+2d)', down: 'ORD-1184, ORD-1191, ORD-1203', ev: [
+      ['TMS', 'Carrier booking re-slotted to Thursday first slot.'],
+      ['ERP', '42t allocated across 3 open orders, no spare stock in same grade.'],
+      ['MODEL', 'Customs clearance adds 0.5 to 1 day at current backlog.']] },
+    a: { id: 'ORD-1184', kind: 'ORDER A · CUSTOMER COMMITMENT', title: 'BatiCo · 18t IPE beams', sev: 'risk', when: 'DUE WED 30 SEP', impactLabel: 'REVENUE AT RISK', impact: '180,000 DZD', conf: 91, up: 'SHP-2291 arrives after deadline', down: 'Deadline Wed 17:00 → Friday cash', ev: [
+      ['ERP', '100% of the order depends on SHP-2291 material.'],
+      ['CRM', 'Contract clause: payment on delivery, 2% penalty per late day.'],
+      ['HIST', 'BatiCo paid on time on 11 of the last 12 orders.']] },
+    b: { id: 'ORD-1191', kind: 'ORDER B · CUSTOMER COMMITMENT', title: 'Hydra Build · 24t square tubes', sev: 'watch', when: 'DUE MON 5 OCT', impactLabel: 'REVENUE ON WATCH', impact: '240,000 DZD', conf: 74, up: 'SHP-2291 (+2d)', down: 'Deadline Mon 5 Oct → Friday cash', ev: [
+      ['ERP', 'Deadline leaves 4 days of slack after the new ETA.'],
+      ['CRM', 'Hydra Build prepaid 50%; balance expected Friday.'],
+      ['MODEL', 'Becomes at risk only if the delay grows past +4 days.']] },
+    c: { id: 'ORD-1203', kind: 'ORDER C · CUSTOMER COMMITMENT', title: 'Oran Structures · 12t steel sheet', sev: 'risk', when: 'DUE THU 1 OCT', impactLabel: 'REVENUE AT RISK', impact: '120,000 DZD', conf: 88, up: 'SHP-2291 arrives same day as deadline', down: 'Deadline Thu 16:00 → Friday cash', ev: [
+      ['TMS', 'Oran is 430 km away: 7h transit leaves a 1h margin.'],
+      ['ERP', '14t of compatible sheet available at Rouiba depot.'],
+      ['MAIL', 'Buyer asked on 24 Sep for confirmation of Thursday delivery.']] },
+    da: { id: 'DL-1184', kind: 'DEADLINE · BATICO', title: 'Will miss Wed 30 Sep 17:00 by about 15 hours', sev: 'risk', when: 'WED 17:00', impactLabel: 'PENALTY + DEFERRAL', impact: '−180,000 DZD', conf: 91, up: 'ORD-1184', down: 'Friday cash inflow', ev: [
+      ['MODEL', 'Earliest dispatch Thu 09:30 once SHP-2291 is unloaded.'],
+      ['CRM', 'Late delivery shifts payment to next weekly run (Fri 9 Oct).']] },
+    db: { id: 'DL-1191', kind: 'DEADLINE · HYDRA BUILD', title: 'Mon 5 Oct 12:00, 4 days of slack remain', sev: 'watch', when: 'MON 12:00', impactLabel: 'PROBABILITY OF MISS', impact: '18%', conf: 70, up: 'ORD-1191', down: 'Friday cash inflow (balance)', ev: [
+      ['MODEL', 'Miss only if supplier slips a further 3+ days.'],
+      ['HIST', 'Second slips on this lane happened 1 time in 9.']] },
+    dc: { id: 'DL-1203', kind: 'DEADLINE · ORAN STRUCTURES', title: 'Thu 1 Oct 16:00, only 8 hours of slack', sev: 'risk', when: 'THU 16:00', impactLabel: 'PROBABILITY OF MISS', impact: '83%', conf: 83, up: 'ORD-1203', down: 'Friday cash inflow', ev: [
+      ['TMS', 'Any customs delay over 1h pushes arrival past 16:00.'],
+      ['ERP', 'Partial shipment from Rouiba stock would de-risk 80%.']] },
+    cash: { id: 'CF-W40', kind: 'EXPECTED CASH · FRI 2 OCT', title: '540K DZD expected, 300K depends on late orders', sev: 'risk', when: 'FRI 2 OCT', impactLabel: 'AT RISK OF SLIPPING', impact: '300,000 DZD', conf: 89, up: 'DL-1184 (−180K), DL-1203 (−120K)', down: 'Supplier payment Mon 5 Oct · payroll buffer', ev: [
+      ['BANK', 'Current balance covers payroll; supplier payment Mon needs Friday inflow.'],
+      ['MODEL', '3 scenarios run: base 540K, likely 240K, worst 160K.'],
+      ['POLICY', 'Cash floor 1.2M DZD breached in likely scenario on Mon 5 Oct.']] }
+  };
+  const causal = { sel: 'cash', level: 4, timer: null };
+
+  function renderInspector() {
+    const n = NODES[causal.sel];
+    const chip = n.sev === 'risk'
+      ? '<span class="chip cr" style="font-size: 10.5px; padding: 3px 8px">AT RISK</span>'
+      : '<span class="chip cw" style="font-size: 10.5px; padding: 3px 8px">WATCH</span>';
+    const evid = n.ev.map(([src, t]) =>
+      `<div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: #0A0D11; border: 1px solid #1A2029; border-radius: 6px">
+        <span class="mono" style="font-size: 9.5px; font-weight: 600; letter-spacing: .06em; padding: 2px 5px; border-radius: 3px; background: #1A212B; color: #7FB2E0; flex-shrink: 0">${src}</span>
+        <span style="font-size: 13px; line-height: 1.4; color: #C9D1DB">${t}</span></div>`).join('');
+    $('#inspector').innerHTML = `
+      <div style="height: 40px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+        <span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">NODE INSPECTOR</span>
+        <span class="mono" style="font-size: 11px; color: #A3ADBA">${n.id}</span>
+      </div>
+      <div style="padding: 18px; display: flex; flex-direction: column; gap: 16px; flex-grow: 1; min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span class="mono" style="font-size: 10.5px; letter-spacing: .1em; color: #8F9AA8">${n.kind}</span>
+          <span style="font-size: 21px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2">${n.title}</span>
+          <span style="display: flex; gap: 8px">${chip}<span class="chip" style="font-size: 10.5px; padding: 3px 8px; background: #161C24; color: #A3ADBA">${n.when}</span></span>
+        </div>
+        <div style="display: flex; gap: 12px">
+          <div style="flex-grow: 1; box-sizing: border-box; padding: 12px; background: #0A0D11; border: 1px solid #1F2630; border-radius: 8px; display: flex; flex-direction: column; gap: 4px">
+            <span class="mono" style="font-size: 10px; letter-spacing: .1em; color: #7C8796">${n.impactLabel}</span>
+            <span class="mono" style="font-size: 22px; font-weight: 500; color: ${n.sev === 'risk' ? RISK : WATCH}">${n.impact}</span>
+          </div>
+          <div style="width: 130px; box-sizing: border-box; padding: 12px; background: #0A0D11; border: 1px solid #1F2630; border-radius: 8px; display: flex; flex-direction: column; gap: 6px">
+            <span class="mono" style="font-size: 10px; letter-spacing: .1em; color: #7C8796">CONFIDENCE</span>
+            <span class="mono" style="font-size: 22px; font-weight: 500">${n.conf}%</span>
+            <span style="height: 4px; background: #1F2630; border-radius: 2px; display: flex"><span style="width: ${n.conf}%; height: 4px; background: #E8ECF1; border-radius: 2px"></span></span>
+          </div>
+        </div>
+        <div class="mono" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px">
+          <div style="display: flex; gap: 10px"><span style="width: 76px; flex-shrink: 0; color: #7C8796">CAUSED BY</span><span style="color: #C9D1DB">${n.up}</span></div>
+          <div style="display: flex; gap: 10px"><span style="width: 76px; flex-shrink: 0; color: #7C8796">AFFECTS</span><span style="color: #C9D1DB">${n.down}</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span class="mono" style="font-size: 10.5px; letter-spacing: .12em; color: #7C8796">EVIDENCE</span>${evid}
+        </div>
+        <div style="flex-grow: 1"></div>
+        <div style="display: flex; gap: 10px">
+          <a href="#actions" class="btn pri" style="flex-grow: 1">Generate plan</a>
+          <a href="#time" class="btn" style="flex-grow: 1">See on timeline</a>
+        </div>
+      </div>`;
+    $$('#s-causal .node').forEach((b) => b.classList.toggle('is-selected', b.dataset.node === causal.sel));
+  }
+  function setLevel(L) {
+    causal.level = L;
+    $$('#s-causal [data-level]').forEach((el) => { el.style.opacity = Number(el.dataset.level) <= L ? 1 : 0.06; });
+  }
+  function replayCascade() {
+    clearInterval(causal.timer);
+    const order = ['trig', 'ship', 'a', 'dc', 'cash'];
+    setLevel(0); causal.sel = 'trig'; renderInspector();
+    causal.timer = setInterval(() => {
+      const nx = causal.level + 1;
+      if (nx > 4) { clearInterval(causal.timer); return; }
+      setLevel(nx); causal.sel = order[nx]; renderInspector();
+    }, 900);
+  }
+
+  /* ================================================== 03 TIME MACHINE */
+  const STEP_N = { bg: '#0A0D11', bd: '#1F2630', vc: '#A3ADBA' };
+  const STEP_G = { bg: '#0A0D11', bd: '#1F2630', vc: '#E8ECF1' };
+  const STEP_R = { bg: '#1A0F0A', bd: 'rgba(255,90,31,0.5)', vc: '#FF7A45' };
+  const SCENARIOS = {
+    a: [['MON 09:00', 'IF APPROVED', 'Broker files SHP-2291 customs docs', STEP_N], ['WED 14:00', 'p 0.78', 'SHP-2291 cleared a day early', STEP_N], ['WED 17:00', '+180K', 'Order A reaches BatiCo on time', STEP_G], ['THU 09:00', '+96K', '80% of Order C ships from Rouiba', STEP_G], ['FRI 2 OCT', 'TARGET MET', '516K of 540K collected', STEP_G]],
+    b: [['TUE 29', 'p 1.00', 'Original SHP-2291 ETA passes', STEP_N], ['WED 17:00', '−180K', 'BatiCo deadline missed, payment deferred', STEP_R], ['THU 08:00', 'p 0.94', 'SHP-2291 lands, customs backlog', STEP_N], ['THU 16:00', '−120K', 'Oran Structures delivery likely late', STEP_R], ['MON 5 OCT', 'BREACH', 'Cash floor breached after supplier payment', STEP_R]]
+  };
+  let scenario = 'a';
+  function renderSteps() {
+    $$('#s-time [data-sc]').forEach((b) => b.classList.toggle('on', b.dataset.sc === scenario));
+    $('#next-steps').innerHTML = SCENARIOS[scenario].map(([t, v, x, s]) =>
+      `<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: ${s.bg}; border: 1px solid ${s.bd}; display: flex; flex-direction: column; justify-content: space-between">
+        <span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">${t}</span><span class="mono" style="font-size: 11px; font-weight: 600; color: ${s.vc}">${v}</span></span>
+        <span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">${x}</span></div>`).join('');
+  }
+
+  /* ============================================ 04 GOAL → PLAN → ACTION */
+  const ICON_SHIELD = '<svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg>';
+  const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FB2E0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg>';
+  const ICON_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+
+  const plan = {
+    s3: 'pending', s4: 'pending', p3: 0, p4: 0, prog: 42,
+    log: [
+      ['14:31:52', 'AUTO', '#7FB2E0', 'Cash re-forecast #7 · likely 240K, base 540K'],
+      ['14:21:08', 'WAIT', '#FF7A45', 'Action 4 queued for owner sign-off (OPS-05)'],
+      ['14:21:08', 'WAIT', '#FF7A45', 'Action 3 queued for owner approval (FIN-02)'],
+      ['09:18:40', 'DENY', '#8F9AA8', 'Action 5 blocked by FIN-07 · discount 2% > 1.5%'],
+      ['09:17:02', 'DONE', '#7FB2E0', 'Delay notices sent · BatiCo, Oran Structures'],
+      ['09:16:31', 'DONE', '#7FB2E0', 'Reserved 14t HR sheet · Rouiba depot'],
+      ['09:16:29', 'CHECK', '#A3ADBA', '14 policies evaluated across 6 actions'],
+      ['09:16:27', 'PLAN', '#E8ECF1', 'Plan generated from SUP-EVT-0927 in 1.8s'],
+      ['09:14:10', 'GOAL', '#E8ECF1', 'Owner: “Protect this week’s revenue”']
+    ]
+  };
+
+  function buildRows() {
+    const base = { bg: 'transparent', tc: '#E8ECF1', val: '', status: '', mode: '' };
+    const appr = (n, key, pkey, title, val, pid, policy, okMsg) => {
+      const st = plan[key], pr = plan[pkey];
+      const r = Object.assign({}, base, { n, key, pkey, title, val, pid, policy, tag: 'NEEDS APPROVAL', tagc: 't-appr' });
+      if (st === 'pending') { r.mode = 'pending'; r.bg = 'rgba(255,90,31,0.05)'; }
+      else if (st === 'approved') {
+        r.tag = 'APPROVED'; r.tagc = 't-auto';
+        if (pr >= 100) { r.mode = 'done'; r.status = okMsg; } else { r.mode = 'run'; r.status = 'EXECUTING'; r.barc = '#FF6A2B'; }
+      } else { r.mode = 'off'; r.status = 'DECLINED BY YOU'; r.tc = '#7C8796'; r.tag = 'DECLINED'; r.tagc = 't-blk'; }
+      return r;
+    };
+    return [
+      Object.assign({}, base, { n: '1', title: 'Reserve 14t of HR sheet at Rouiba depot for Order C', pid: 'OPS-01 · ', policy: 'Stock reservations under 25t are pre-approved', tag: 'AUTO', tagc: 't-auto', mode: 'done', status: 'DONE · 09:16' }),
+      Object.assign({}, base, { n: '2', title: 'Notify BatiCo and Oran Structures of revised ETAs', pid: 'CUS-02 · ', policy: 'Delay notices up to 2 days go out automatically', tag: 'AUTO', tagc: 't-auto', mode: 'done', status: 'SENT · 09:17' }),
+      appr('3', 's3', 'p3', 'Expedite SHP-2291 customs via broker, fee 38,000 DZD', '+180K', 'FIN-02 · ', 'Spend above 25,000 DZD needs owner approval', 'CLEARED · BROKER FILED'),
+      appr('4', 's4', 'p4', 'Ship 80% of Order C on Thursday from reserved stock', '+96K', 'OPS-05 · ', 'Changing confirmed order terms needs sign-off', 'DISPATCH BOOKED THU 09:00'),
+      Object.assign({}, base, { n: '5', title: 'Offer Oran Structures 2% early-payment discount', tc: '#8F9AA8', pid: 'FIN-07 · ', policy: 'Discounts above 1.5% are disabled by finance', tag: 'BLOCKED', tagc: 't-blk', mode: 'off', status: 'BLOCKED BY POLICY' }),
+      Object.assign({}, base, { n: '6', title: 'Re-forecast cash hourly and watch Order B slack', pid: 'MON-00 · ', policy: 'Monitoring actions are always allowed', tag: 'AUTO', tagc: 't-auto', mode: 'run', status: 'RUNNING', pkey: 'prog', barc: '#7FB2E0' })
+    ];
+  }
+  function statusHTML(r) {
+    if (r.mode === 'done') return `<span class="mono" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C9D1DB">${ICON_CHECK}${r.status}</span>`;
+    if (r.mode === 'off') return `<span class="mono" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8F9AA8">${ICON_LOCK}${r.status}</span>`;
+    if (r.mode === 'pending') return `<span style="display: flex; gap: 8px"><button class="btn pri" data-approve="${r.key}" data-n="${r.n}">Approve</button><button class="btn" data-decline="${r.key}" data-n="${r.n}">Decline</button></span>`;
+    const pct = plan[r.pkey];
+    return `<span class="mono" style="display: flex; justify-content: space-between; font-size: 12px; color: #C9D1DB"><span class="blink">● ${r.status}</span><span data-prog-text="${r.pkey}">${pct}%</span></span>
+      <span style="height: 4px; background: #1F2630; border-radius: 2px; display: flex"><span data-prog-bar="${r.pkey}" style="width: ${pct}%; height: 4px; background: ${r.barc}; border-radius: 2px; transition: width .6s"></span></span>`;
+  }
+  function renderPlan() {
+    $('#plan-rows').innerHTML = buildRows().map((r) =>
+      `<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: ${r.bg}">
+        <span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">${r.n}</span>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+          <span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: ${r.tc}">${r.title}</span><span class="mono" style="font-size: 12px; color: #FF7A45">${r.val}</span></span>
+          <span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap">${ICON_SHIELD}<span style="color: #C9D1DB">${r.pid}</span>${r.policy}</span>
+        </div>
+        <span style="width: 138px; flex-shrink: 0"><span class="tag ${r.tagc}">${r.tag}</span></span>
+        <div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">${statusHTML(r)}</div>
+      </div>`).join('');
+
+    const pending = (plan.s3 === 'pending' ? 1 : 0) + (plan.s4 === 'pending' ? 1 : 0);
+    $('#pending-count').textContent = pending;
+    $('#pending-text').textContent = pending === 0 ? 'Nothing waits on you.' : pending === 1 ? '1 step waits on you.' : pending + ' steps wait on you.';
+
+    const a = plan.s3 === 'approved', c = plan.s4 === 'approved';
+    const secured = 240 + (a ? 180 : 0) + (c ? 96 : 0);
+    const met = secured >= 500;
+    const pct = (v) => (v / 540 * 100).toFixed(1);
+    const out = $('#outcome');
+    out.style.borderColor = met ? 'rgba(127,178,224,0.45)' : 'rgba(255,90,31,0.45)';
+    out.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">03 OUTCOME</span> · FRIDAY REVENUE</span>
+        <span class="mono" style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; padding: 3px 8px; border-radius: 3px; background: ${met ? 'rgba(127,178,224,0.14)' : 'rgba(255,90,31,0.16)'}; color: ${met ? '#7FB2E0' : '#FF7A45'}">${met ? 'TARGET MET' : 'SHORT BY ' + (500 - secured) + 'K'}</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <span class="mono" style="font-size: 44px; font-weight: 500; letter-spacing: -0.03em; line-height: 1">${secured}K</span>
+        <span class="mono" style="font-size: 14px; color: #8F9AA8">/ 540K DZD secured</span>
+      </div>
+      <div style="position: relative; height: 12px; background: #1A2029; border-radius: 3px; display: flex; gap: 2px">
+        <span style="width: ${pct(240)}%; height: 12px; background: #5E6B7A; border-radius: 3px 0 0 3px"></span>
+        <span style="width: ${a ? pct(180) : 0}%; height: 12px; background: #7FB2E0"></span>
+        <span style="width: ${c ? pct(96) : 0}%; height: 12px; background: #7FB2E0"></span>
+        <span style="position: absolute; left: 92.6%; top: -5px; width: 2px; height: 22px; background: #E8ECF1"></span>
+      </div>
+      <div class="mono" style="display: flex; justify-content: space-between; font-size: 10.5px; color: #7C8796"><span>0</span><span style="margin-left: auto; margin-right: 14px; color: #E8ECF1">TARGET 500K</span><span>540K</span></div>
+      <div class="mono" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; border-top: 1px solid #1A2029; padding-top: 12px">
+        <div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order B · already safe</span><span>240K</span></div>
+        <div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order A · via action 3</span><span style="color: ${a ? '#7FB2E0' : '#FF7A45'}">${a ? '+180K' : '0 · pending'}</span></div>
+        <div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order C · via action 4</span><span style="color: ${c ? '#7FB2E0' : '#FF7A45'}">${c ? '+96K' : '0 · pending'}</span></div>
+        <div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Cost of plan</span><span>−38K</span></div>
+      </div>`;
+
+    $('#log').innerHTML = plan.log.map(([t, k, col, m]) =>
+      `<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">${t}</span><span style="color: ${col}; flex-shrink: 0; width: 44px">${k}</span><span style="color: #C9D1DB">${m}</span></div>`).join('');
+  }
+  function logLine(kind, color, msg) { plan.log = [[hms(new Date()), kind, color, msg]].concat(plan.log).slice(0, 12); }
+  function tickPlan() {
+    let rerender = false;
+    plan.prog = plan.prog >= 97 ? 38 : plan.prog + 1;
+    [['s3', 'p3', 7], ['s4', 'p4', 9]].forEach(([s, p, step]) => {
+      if (plan[s] === 'approved' && plan[p] < 100) {
+        plan[p] = Math.min(100, plan[p] + step);
+        if (plan[p] === 100) { rerender = true; logLine('DONE', '#7FB2E0', 'Action ' + (s === 's3' ? 3 : 4) + ' completed'); }
+      }
+    });
+    if (rerender) return renderPlan();
+    ['prog', 'p3', 'p4'].forEach((k) => {
+      $$(`[data-prog-text="${k}"]`).forEach((el) => { el.textContent = plan[k] + '%'; });
+      $$(`[data-prog-bar="${k}"]`).forEach((el) => { el.style.width = plan[k] + '%'; });
+    });
+  }
+
+  /* ------------------------------------------------------------- wiring */
+  document.addEventListener('click', (e) => {
+    const node = e.target.closest('#s-causal .node');
+    if (node) { causal.sel = node.dataset.node; renderInspector(); return; }
+    if (e.target.closest('#replay-btn')) { replayCascade(); return; }
+    const sc = e.target.closest('#s-time [data-sc]');
+    if (sc) { scenario = sc.dataset.sc; renderSteps(); return; }
+    const ap = e.target.closest('[data-approve]');
+    if (ap) { plan[ap.dataset.approve] = 'approved'; logLine('OK', '#FF7A45', 'Owner approved action ' + ap.dataset.n + ' · executing'); renderPlan(); return; }
+    const de = e.target.closest('[data-decline]');
+    if (de) { plan[de.dataset.decline] = 'declined'; logLine('DENY', '#8F9AA8', 'Owner declined action ' + de.dataset.n); renderPlan(); }
+  });
+
+  route(); tickClock(); renderInspector(); setLevel(4); renderSteps(); renderPlan();
+  setInterval(() => { tickClock(); tickTwin(); tickPlan(); }, 1000);
+})();
+
+</script>
+</body>
+</html>

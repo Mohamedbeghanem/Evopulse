@@ -85,6 +85,31 @@ export default function PulsePage() {
         </div>
       </section>
 
+      {pulse.comingNext.length ? (
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="font-serif text-3xl">Coming next</h2>
+            <Link href="/warnings" className="font-mono text-xs uppercase tracking-[0.16em] text-mute">
+              {pulse.comingNext.length} early {pulse.comingNext.length === 1 ? "warning" : "warnings"}
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {pulse.comingNext.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-white/10 bg-ink-800/40 p-4">
+                <h3 className="font-serif text-2xl">{item.headline}</h3>
+                <p className="mt-1 text-sm text-sand">{item.line}</p>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="font-mono text-sm text-need">{item.valueLabel}</p>
+                  <Link href={item.href} className="text-sm text-ice">
+                    Why?
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 p-4">
           <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Contact</p>

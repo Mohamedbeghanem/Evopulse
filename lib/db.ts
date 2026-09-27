@@ -158,6 +158,8 @@ function migrate(db: DatabaseSync) {
   migrateEventsTable(db);
   const { migrateLearningTables } = require("./learning/schema") as typeof import("./learning/schema");
   migrateLearningTables(db);
+  const { migrateWarningTables } = require("./engine/warnings/schema") as typeof import("./engine/warnings/schema");
+  migrateWarningTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
@@ -180,15 +182,26 @@ function migrateEventsTable(db: DatabaseSync) {
   if (!cols.has("metadata")) add("ALTER TABLE events ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'");
 }
 
+function prepareDb(db: DatabaseSync) {
+  migrate(db);
+  const { ensureWarningHooks } = require("./engine/warnings/triggers") as typeof import("./engine/warnings/triggers");
+  ensureWarningHooks(db);
+  // Lazy import avoids a db ↔ seed cycle. Safe to repeat: seed and the warning
+  // scenario both no-op once their rows exist. Repeating migrate lets a process
+  // that opened the file before this schema pick up new tables.
+  const { seedIfEmpty } = require("./seed") as typeof import("./seed");
+  seedIfEmpty(db);
+}
+
 export function getDb(): DatabaseSync {
-  if (globalForDb.evopulseDb) return globalForDb.evopulseDb;
+  if (globalForDb.evopulseDb) {
+    prepareDb(globalForDb.evopulseDb);
+    return globalForDb.evopulseDb;
+  }
   const path = dbPath();
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
-  migrate(db);
-  // Lazy import avoids a db ↔ seed cycle.
-  const { seedIfEmpty } = require("./seed") as typeof import("./seed");
-  seedIfEmpty(db);
+  prepareDb(db);
   globalForDb.evopulseDb = db;
   return db;
 }
