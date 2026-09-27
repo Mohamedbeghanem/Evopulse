@@ -164,6 +164,8 @@ export type AgentRunReport = {
   policyBlocked?: boolean;
   allowedAlternative?: string;
   fallbackUsed?: boolean;
+  /** Model id that answered (live provider response metadata). Absent on deterministic runs. */
+  modelUsed?: string;
 };
 
 export type AgentRun = {
