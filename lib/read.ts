@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { all, getMeta, one } from "./db";
 import { getPlanBundle } from "./engine/recovery";
 import { serializeException } from "./engine/pulse";
+import { HumanFeedbackService, VerificationService, type VerificationRow } from "./learning";
 import type {
   ActionRow,
   CommitmentRow,
@@ -28,7 +29,14 @@ export function exceptionDetail(db: DatabaseSync, exceptionId: string) {
     ? one<EntityRow>(db, "SELECT * FROM entities WHERE id = ?", [row.opportunity_id])
     : undefined;
   const events = all<EventRow>(db, "SELECT * FROM events ORDER BY occurred_at");
-  const { plan, actions } = getPlanBundle(db, exceptionId);
+  const { plan, actions, historicalEvidence } = getPlanBundle(db, exceptionId);
+  const verifications = VerificationService.for(db).getPendingVerifications(exceptionId);
+  const allVerifications = all<VerificationRow>(
+    db,
+    "SELECT * FROM verifications WHERE exception_id = ? ORDER BY created_at",
+    [exceptionId],
+  );
+  const feedback = actions.flatMap((action) => HumanFeedbackService.for(db).listForAction(action.id));
   return {
     exception: serializeException(row),
     expectation,
@@ -39,6 +47,9 @@ export function exceptionDetail(db: DatabaseSync, exceptionId: string) {
     events,
     plan,
     actions,
+    historicalEvidence,
+    verifications: allVerifications.length ? allVerifications : verifications,
+    feedback,
     now: getMeta(db, "demo_now"),
     phase: getMeta(db, "demo_phase", "seeded"),
   };

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { ApproveButton } from "@/components/ApproveButton";
 import { Badge } from "@/components/Badge";
 import { getDb, getMeta } from "@/lib/db";
@@ -19,9 +20,16 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   }
   const detail = exceptionDetail(db, id);
   if (!detail) notFound();
-  const { exception, plan, actions } = detail;
+  const { exception, plan, actions, historicalEvidence, verifications } = detail;
   const rules = policies(db);
   const blocked = actions.some((a) => a.policy_outcome === "BLOCKED");
+  const pendingVerification = (verifications || []).find((v) => v.status === "PENDING");
+  const primaryAction = actions.find((a) => a.type === "draft_message") || actions[0];
+  const payload =
+    primaryAction && typeof primaryAction.payload === "object" && primaryAction.payload
+      ? (primaryAction.payload as { strategy?: string })
+      : {};
+  const originalStrategy = payload.strategy || "personalized_followup";
 
   return (
     <div className="space-y-8">
@@ -65,12 +73,42 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
         </ul>
       </section>
 
+      {historicalEvidence && historicalEvidence.strategies.length > 0 ? (
+        <section className="rounded-2xl border border-white/10 p-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Historical strategy evidence</p>
+          <p className="mt-2 text-sm text-sand">
+            Aggregated from stored outcome rows. Synthetic historical seed is marked. Not a prediction.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {historicalEvidence.strategies.map((item) => (
+              <li key={item.strategy} className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {item.label} · {item.successes}/{item.observations} observed successes (
+                  {Math.round(item.success_rate * 100)}%)
+                </span>
+                <Badge>{item.pattern_status}</Badge>
+              </li>
+            ))}
+          </ul>
+          {historicalEvidence.historically_stronger_strategy ? (
+            <p className="mt-4 text-sm text-paper">
+              {historicalEvidence.historically_stronger_strategy.wording}
+            </p>
+          ) : null}
+          <p className="mt-3 text-xs text-mute">{historicalEvidence.note}</p>
+        </section>
+      ) : null}
+
       {plan && plan.status !== "executed" && !blocked ? <ApproveButton planId={plan.id} /> : null}
       {plan?.status === "executed" ? (
         <p className="rounded-2xl border border-ok/30 bg-ok/10 p-4 text-sm text-ok">
-          Recovery executed. Commitments and expectations updated. Use the demo bar to ingest
-          “I&apos;ll sign today if you give me 10%.”
+          Recovery executed. Verification {pendingVerification ? "pending — customer response expected" : "recorded"}.
+          Send alone does not mark the exception solved. Use the demo bar to ingest “I&apos;ll sign today if you
+          give me 10%.”
         </p>
+      ) : null}
+      {primaryAction && !blocked ? (
+        <ActionFeedback actionId={primaryAction.id} originalStrategy={originalStrategy} />
       ) : null}
       {blocked ? (
         <p className="rounded-2xl border border-miss/30 bg-miss/10 p-4 text-sm text-miss">

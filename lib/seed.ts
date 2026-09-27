@@ -10,6 +10,7 @@ import { EVENT_TYPES, eventsFor } from "./events";
 import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
+import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -23,6 +24,7 @@ export function seedIfEmpty(db: DatabaseSync) {
   const existing = one<{ c: number }>(db, "SELECT COUNT(*) as c FROM entities");
   if (existing && existing.c > 0) return;
   seedWorld(db);
+  seedSyntheticLearningData(db);
 }
 
 export function seedWorld(db: DatabaseSync) {
@@ -324,6 +326,7 @@ export function seedWorld(db: DatabaseSync) {
 }
 
 export function wipeAndSeed(db: DatabaseSync) {
+  wipeLearningTables(db);
   const tables = [
     "audit_logs",
     "approvals",
@@ -341,4 +344,5 @@ export function wipeAndSeed(db: DatabaseSync) {
   ];
   for (const table of tables) db.exec(`DELETE FROM ${table}`);
   seedWorld(db);
+  seedSyntheticLearningData(db);
 }

@@ -30,7 +30,7 @@ export function answerQuestion(db: DatabaseSync, question: string) {
       answer: first
         ? `${formatMoney(320000)} needs you. ${first.title}. Evidence is the Wednesday Atlas message. Our proposal was due ${formatDay(expectations.find((e) => e.id === IDS.expectOurs)?.due_at || now)} and was not sent, so the Friday decision is blocked.`
         : phase === "recovered"
-          ? "The 320K miss is handled. Proposal prepared, follow-up drafted, Monday checkpoint planted. Nothing else is NEEDS YOU."
+          ? "The 320K recovery was executed. A customer-response verification is pending — send alone does not mark the exception solved. Nothing else is NEEDS YOU."
           : phase === "discount_blocked"
             ? "10% discount is BLOCKED by policy discount_max=5%. An alternative recovery (5% or Net-14) is waiting."
             : "No open NEEDS YOU items.",

@@ -4,6 +4,7 @@ import { all, audit, one, run, setMeta } from "../db";
 import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import type { ActionRow, PlanRow } from "../types";
+import { markExceptionAwaitingVerification, VerificationService } from "../learning";
 
 export function approvePlan(db: DatabaseSync, planId: string, now: string, actor = "operator") {
   const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]);
@@ -61,15 +62,13 @@ export function executeAction(db: DatabaseSync, actionId: string, now: string, a
   );
   if (remaining.length === 0 && action.plan_id) {
     run(db, "UPDATE plans SET status = ? WHERE id = ?", ["executed", action.plan_id]);
-    run(db, "UPDATE exceptions SET status = ?, attention = ? WHERE id = ?", [
-      "resolved",
-      "HANDLED",
-      action.exception_id,
-    ]);
+    markExceptionAwaitingVerification(db, action.exception_id);
     if (action.exception_id === IDS.excMissed) setMeta(db, "demo_phase", "recovered");
   }
 
-  return one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
+  const executed = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
+  if (executed) VerificationService.for(db).afterActionExecuted(executed, now);
+  return executed;
 }
 
 export function executePlan(db: DatabaseSync, planId: string, now: string, actor = "operator") {
@@ -82,7 +81,14 @@ export function executePlan(db: DatabaseSync, planId: string, now: string, actor
   for (const action of actions) {
     if (action.status !== "executed") executeAction(db, action.id, now, actor);
   }
-  return { plan: one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]), actions };
+  return {
+    plan: one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]),
+    actions: all<ActionRow>(
+      db,
+      "SELECT * FROM actions WHERE plan_id = ? AND policy_outcome != 'BLOCKED'",
+      [planId],
+    ),
+  };
 }
 
 function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {

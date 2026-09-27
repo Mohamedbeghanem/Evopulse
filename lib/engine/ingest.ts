@@ -8,6 +8,7 @@ import { detectExceptions } from "./pulse";
 import { buildDiscountAlternative } from "./recovery";
 import { calculateImpact } from "./impact";
 import type { CommitmentRow, EvidencePack } from "../types";
+import { handleLearningEvent } from "../learning";
 
 export async function ingestMessage(
   db: DatabaseSync,
@@ -48,6 +49,8 @@ export async function ingestMessage(
       confidence: 0.93,
       idempotent: true,
     });
+    const replied = events.getById(IDS.evtCustomerReplied);
+    if (replied) handleLearningEvent(db, replied);
   }
   audit(db, "ingest", "message.received", "event", eventId, { text });
 

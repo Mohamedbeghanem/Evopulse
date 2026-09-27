@@ -4,6 +4,7 @@ import { all, one, run } from "../db";
 import { IDS } from "../ids";
 import { evaluatePolicy, loadPolicies, planOutcome } from "./policy";
 import type { ActionRow, ExceptionRow, PlanRow } from "../types";
+import { evidenceForCompatibleKind } from "../learning";
 
 export function buildRecoveryPlan(db: DatabaseSync, exceptionId: string, now: string): PlanRow {
   const exception = one<ExceptionRow>(db, "SELECT * FROM exceptions WHERE id = ?", [exceptionId]);
@@ -46,7 +47,7 @@ export function buildRecoveryPlan(db: DatabaseSync, exceptionId: string, now: st
       type: "prepare_proposal",
       title: "Prepare revised proposal",
       description: "Assemble the 320,000 DZD revised proposal for Atlas Retail (warehouse fit-out Q4).",
-      payload: { document: "proposal_v2", amount: 320000, currency: "DZD" },
+      payload: { document: "proposal_v2", amount: 320000, currency: "DZD", strategy: "personalized_followup" },
       policy: prepare,
     },
     {
@@ -59,6 +60,7 @@ export function buildRecoveryPlan(db: DatabaseSync, exceptionId: string, now: st
         to: "Amine Khelifi",
         subject: "Revised Atlas proposal — 320,000 DZD",
         body: "Amine — you asked for the revised 320,000 DZD proposal and promised a Friday decision. We missed our Thursday send. The revision is ready now. If useful I can walk you through the changes today so your decision is unblocked.",
+        strategy: "personalized_followup",
       },
       policy: draft,
     },
@@ -194,5 +196,11 @@ export function buildDiscountAlternative(db: DatabaseSync, exceptionId: string, 
 export function getPlanBundle(db: DatabaseSync, exceptionId: string) {
   const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE exception_id = ?", [exceptionId]);
   const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE exception_id = ? ORDER BY created_at", [exceptionId]);
-  return { plan, actions: actions.map((a) => ({ ...a, payload: JSON.parse(a.payload) })) };
+  const exception = one<ExceptionRow>(db, "SELECT * FROM exceptions WHERE id = ?", [exceptionId]);
+  const historicalEvidence = exception ? evidenceForCompatibleKind(db, exception.kind) : null;
+  return {
+    plan,
+    actions: actions.map((a) => ({ ...a, payload: JSON.parse(a.payload) })),
+    historicalEvidence,
+  };
 }
