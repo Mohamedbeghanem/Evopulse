@@ -4,7 +4,11 @@ AI-native **Business Control System**. Other tools tell you what happened. EvoPu
 
 Tagline: **Nothing falls through.**
 
-Hackathon MVP for **GOMYCODE Come Build with AI — Algeria — 27 Sep 2026**. One closed loop, not the full OS. Product authority: [PLAN.md](./PLAN.md).
+Hackathon MVP for **GOMYCODE Come Build with AI — Algeria — 27 Sep 2026**. One closed loop, not the full OS.
+
+**Product authority:** [PLAN.md](./PLAN.md) — sections 0–34, including PR #2–#26 architecture, hackathon cut (§28), demo story (§29), and moat (§34).
+
+**PR #1 on `main`** (320K proposal miss loop) remains the hackathon submit baseline. §28 / §29 are the next vertical expansion, not already shipped.
 
 **Team size:** 2–5. **Final Team Confirmation:** already done. Confirmed names only — remaining slots stay placeholders on [PROJECT_CARD.md](./PROJECT_CARD.md).
 
@@ -68,7 +72,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 ## Stack
 
 - Next.js 15 + React 19 + TypeScript + Tailwind
-- SQLite via Node 22 `node:sqlite` (tables in PLAN §24)
+- SQLite via Node 22 `node:sqlite` (tables in `lib/db.ts`; architecture in PLAN.md)
 - Extractor: OpenAI / Groq / Gemini JSON, **hard fallback** to deterministic heuristics for the seed messages
 - No auth beyond an implicit operator stub
 - **NVIDIA Brev: not used** (optional window closed — we did not request Brev compute)
@@ -84,7 +88,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | `/command` | Ask EvoPulse (grounded) |
 | `/graph` | Commitment graph |
 
-## API (PLAN §25)
+## API
 
 `POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask`
 
@@ -116,4 +120,4 @@ Copy-paste version lives in [DEMO.md](./DEMO.md#ai-disclosure-template).
 
 ## Non-goals (kept)
 
-Full CRM, WhatsApp, multi-agent meshes, real auth, polish beyond usable. See PLAN §27.
+Full CRM, WhatsApp, multi-agent meshes, real auth, polish beyond usable. Next vertical slice is PLAN §28 / §29; later phases are §30.
