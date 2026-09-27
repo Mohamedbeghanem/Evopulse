@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DEMO_COMMANDS } from "@/lib/prompts";
+import { Inspector } from "@/components/shell/Inspector";
+import { Workspace } from "@/components/shell/Workspace";
+import { CommandComposer } from "@/components/ui/CommandComposer";
+import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
+import { ActionBar, PageHeader } from "@/components/ui/chrome";
+import { Button } from "@/components/ui/primitives";
+import { COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {
   id: string;
@@ -68,6 +74,8 @@ export default function CommandPage() {
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [turns, setTurns] = useState<{ message: string; result: CommandResponse }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const latest = turns[turns.length - 1];
 
   async function ask(text: string) {
     const trimmed = text.trim();
@@ -83,6 +91,7 @@ export default function CommandPage() {
     setTurns((current) => [...current, { message: trimmed, result }]);
     setMessage("");
     setBusy(false);
+    setInspectorOpen(true);
   }
 
   async function decide(runId: string, approval: Approval, decision: "approve" | "reject" | "edit") {
@@ -101,47 +110,39 @@ export default function CommandPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Operating console</p>
-        <h1 className="mt-2 font-serif text-5xl">Command</h1>
-        <p className="mt-3 max-w-2xl text-sand">
-          Ask the business to inspect, simulate, plan, and act. Engines decide what is true. Policy decides what is allowed.
-        </p>
-      </div>
+    <Workspace
+      mode="focused"
+      inspector={
+        <Inspector title="Operation" open={inspectorOpen} onClose={() => setInspectorOpen(false)}>
+          {latest?.result.agent ? (
+            <div className="space-y-3">
+              <StatusBadge value={latest.result.agent.phase} />
+              <p>Runtime: {latest.result.agent.runtime}</p>
+              {latest.result.agent.fallbackUsed ? <p>Governed fallback is active. The demo continues.</p> : null}
+              <p>Policy still owns permission. The model does not calculate money.</p>
+            </div>
+          ) : (
+            <p>Ask the business. Visible steps only — no hidden chain-of-thought.</p>
+          )}
+        </Inspector>
+      }
+    >
+      <PageHeader kicker="Command · Operating console" title="Ask your business.">
+        <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
+      </PageHeader>
 
-      <div className="flex flex-wrap gap-2">
-        {DEMO_COMMANDS.map((prompt) => (
-          <button
-            key={prompt}
-            type="button"
-            onClick={() => void ask(prompt)}
-            className="rounded-full border border-white/15 px-3 py-1.5 text-left text-sm text-sand hover:border-need hover:text-paper"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void ask(message);
-        }}
-        className="flex flex-col gap-3 sm:flex-row"
-      >
-        <input
+      <div className="mt-8">
+        <CommandComposer
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="Protect everything at risk this week."
-          className="flex-1 rounded-full border border-white/15 bg-ink-800 px-4 py-3 text-paper outline-none focus:border-need"
+          onChange={setMessage}
+          onSubmit={(value) => void ask(value)}
+          busy={busy}
+          suggestions={COMMAND_PROMPTS}
+          onSuggestion={(value) => void ask(value)}
         />
-        <button disabled={busy} className="rounded-full bg-paper px-5 py-3 text-sm font-medium text-ink-950 disabled:opacity-50">
-          {busy ? "Operating…" : "Run"}
-        </button>
-      </form>
+      </div>
 
-      <div className="space-y-4">
+      <div className="mt-8 space-y-6">
         {turns.map((turn) => (
           <AgentTurn
             key={turn.result.commandId}
@@ -152,7 +153,7 @@ export default function CommandPage() {
           />
         ))}
       </div>
-    </div>
+    </Workspace>
   );
 }
 
@@ -170,18 +171,18 @@ function AgentTurn({
   const agent = result.agent;
   const report = agent?.report || {};
   return (
-    <article className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
+    <article className="border-t border-hairline pt-6">
       <p className="text-sm text-mute">{message}</p>
-      <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-need">
-        {phaseLabel(agent?.phase || result.status)} · {agent?.runtime || "command"}
-        {agent?.fallbackUsed ? " · fallback" : ""}
-      </p>
-      <h2 className="mt-2 font-serif text-3xl">{agent?.summary || result.summary}</h2>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <StatusBadge value={phaseLabel(agent?.phase || result.status)} />
+        {agent?.fallbackUsed ? <PolicyBadge outcome="FALLBACK" /> : null}
+      </div>
+      <h2 className="mt-3 text-2xl text-paper">{agent?.summary || result.summary}</h2>
 
       {agent?.steps?.length ? (
         <ol className="mt-5 space-y-3">
           {agent.steps.map((step) => (
-            <li key={step.id} className="border-l border-white/15 pl-4">
+            <li key={step.id} className="border-l border-hairline pl-4">
               <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">{step.label}</p>
               <p className="mt-1 text-sand">{step.detail}</p>
               {step.policy ? <p className="mt-1 text-xs text-mute">{step.policy}</p> : null}
@@ -192,79 +193,68 @@ function AgentTurn({
 
       {typeof report.associatedRevenue === "number" ? (
         <p className="mt-4 text-sand">
-          {report.orders} orders · {report.customers} customers · {report.associatedRevenue.toLocaleString("en-US")} associated ·{" "}
-          {Number(report.expectedCash || 0).toLocaleString("en-US")} expected cash timing
+          {report.orders} orders · {report.customers} customers · {report.associatedRevenue.toLocaleString("en-US")} DZD
+          associated · {Number(report.expectedCash || 0).toLocaleString("en-US")} DZD expected cash timing
         </p>
       ) : null}
 
-      {typeof report.safe === "number" && (report.safe + (report.approval || 0) + (report.blocked || 0) > 0) ? (
+      {typeof report.safe === "number" && report.safe + (report.approval || 0) + (report.blocked || 0) > 0 ? (
         <p className="mt-3 text-sand">
           {report.safe} safe · {report.approval || 0} approval · {report.blocked || 0} blocked
           {report.executed ? ` · ${report.executed} executed` : ""}
-          {report.verificationPending ? ` · ${report.verificationPending} verification pending` : ""}
+          {report.verificationPending ? ` · ${report.verificationPending} verifying` : ""}
         </p>
       ) : null}
 
       {report.simulationUnchanged ? (
-        <p className="mt-3 font-mono text-xs uppercase text-need">Simulation — reality unchanged</p>
+        <p className="sim-banner mt-3 rounded-md px-3 py-2 font-mono text-xs uppercase">Simulation — reality unchanged</p>
       ) : null}
 
       {report.allowedAlternative ? <p className="mt-3 text-sand">{report.allowedAlternative}</p> : null}
 
-      {agent?.approvals?.filter((item) => item.status === "pending" || item.status === "edited").map((approval) => (
-        <section key={approval.id} className="mt-5 rounded-xl border border-need/40 p-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">Approval required</p>
-          <p className="mt-2 font-serif text-2xl">{approval.title}</p>
-          <p className="mt-2 text-sand">{approval.why}</p>
-          {approval.impact ? <p className="mt-1 text-sm text-mute">Impact: {approval.impact}</p> : null}
-          {approval.policy ? <p className="mt-1 text-sm text-mute">Policy: {approval.policy}</p> : null}
-          {approval.evidence ? <p className="mt-1 text-sm text-mute">Evidence: {approval.evidence}</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onDecide(agent.runId, approval, "approve")}
-              className="rounded-full bg-paper px-4 py-2 text-sm text-ink-950 disabled:opacity-50"
-            >
-              Approve
-            </button>
-            <Link href="/goals" className="rounded-full border border-white/15 px-4 py-2 text-sm">
-              Edit
-            </Link>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onDecide(agent.runId, approval, "reject")}
-              className="rounded-full border border-white/15 px-4 py-2 text-sm disabled:opacity-50"
-            >
-              Reject
-            </button>
-          </div>
-        </section>
-      ))}
+      {agent?.approvals
+        ?.filter((item) => item.status === "pending" || item.status === "edited")
+        .map((approval) => (
+          <section key={approval.id} className="mt-5 rounded-md border border-need/40 p-4">
+            <PolicyBadge outcome="APPROVAL REQUIRED" />
+            <p className="mt-2 text-xl text-paper">{approval.title}</p>
+            <p className="mt-2 text-sand">{approval.why}</p>
+            {approval.policy ? <p className="mt-1 text-sm text-mute">Policy: {approval.policy}</p> : null}
+            <div className="mt-4">
+              <ActionBar>
+                <Button type="button" disabled={busy} onClick={() => onDecide(agent.runId, approval, "approve")}>
+                  Approve
+                </Button>
+                <Link href="/goals">
+                  <Button variant="ghost">Edit</Button>
+                </Link>
+                <Button type="button" variant="quiet" disabled={busy} onClick={() => onDecide(agent.runId, approval, "reject")}>
+                  Reject
+                </Button>
+              </ActionBar>
+            </div>
+          </section>
+        ))}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {result.links.map((link) => (
-          <Link key={link.href + link.label} href={link.href} className="rounded-full border border-white/15 px-3 py-1.5 text-sm">
+          <Link key={link.href + link.label} href={link.href} className="text-sm text-need">
             {link.label}
           </Link>
         ))}
       </div>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">
-        {(agent?.toolCalls || []).map((call) => call.tool).join(" → ") || result.sourceSystems.join(" · ") || "no engine"}
-      </p>
     </article>
   );
 }
 
 function phaseLabel(phase: string) {
-  if (phase === "INTERPRETING") return "Understanding request";
+  if (phase === "INTERPRETING") return "Inspecting business";
   if (phase === "RUNNING_TOOL" || phase === "WAITING_FOR_TOOL") return "Inspecting business";
-  if (phase === "EXECUTING") return "Executing";
+  if (phase === "EXECUTING") return "Executing safe action";
   if (phase === "VERIFYING") return "Verifying";
-  if (phase === "WAITING_FOR_APPROVAL") return "Waiting for your approval";
-  if (phase === "COMPLETE") return "Complete";
-  if (phase === "FAILED") return "Failed";
-  if (phase === "CANCELLED") return "Cancelled";
+  if (phase === "WAITING_FOR_APPROVAL") return "Waiting for approval";
+  if (phase === "COMPLETE") return "COMPLETE";
+  if (phase === "FAILED") return "FAILED";
+  if (phase === "CANCELLED") return "CANCELLED";
   return phase.replaceAll("_", " ");
 }

@@ -1,54 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { DemoBar } from "./DemoBar";
-
-const NAV = [
-  { href: "/", label: "Pulse" },
-  { href: "/explore", label: "Explore" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/simulate", label: "Simulate" },
-  { href: "/command", label: "Command" },
-  { href: "/goals", label: "Goals" },
-  { href: "/graph", label: "Graph" },
-  { href: "/warnings", label: "Warnings" },
-  { href: "/autopilot", label: "Autopilot" },
-  { href: "/autonomy", label: "Autonomy" },
-];
+import { Sidebar } from "./shell/Sidebar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        router.push("/command");
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-baseline gap-3">
-            <span className="font-serif text-2xl tracking-tight">EvoPulse</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.22em] text-mute sm:inline">
-              Business Control System
-            </span>
-          </Link>
-          <nav className="flex gap-1 text-sm">
-            {NAV.map((item) => {
-              const active = item.href === "/" ? path === "/" : path.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full px-3 py-1.5 ${
-                    active ? "bg-paper text-ink-950" : "text-sand hover:text-paper"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+    <div className="os-frame flex min-h-screen">
+      <a className="skip-link" href="#workspace">
+        Skip to workspace
+      </a>
+      {navOpen ? (
+        <button type="button" className="fixed inset-0 z-30 bg-ink-950/70 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />
+      ) : null}
+      <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex min-h-14 items-center justify-between border-b border-hairline px-4 lg:px-8">
+          <button
+            type="button"
+            className="font-mono text-[11px] uppercase tracking-[0.16em] text-sand lg:hidden"
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen((value) => !value)}
+          >
+            Menu
+          </button>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Sunday 27 Sep 2026 · Africa/Tunis</p>
+          <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-ok sm:block">LIVE</p>
+        </header>
         <DemoBar />
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+        <div id="workspace" className="flex min-h-0 flex-1 flex-col">
+          {children}
+        </div>
+        <p className="sr-only">
+          Contextual tools stay off the primary rail:{" "}
+          <Link href="/explore">Explore</Link>, <Link href="/simulate">Simulate</Link>,{" "}
+          <Link href="/warnings">Warnings</Link>, <Link href="/autopilot">Autopilot</Link>.
+        </p>
+      </div>
     </div>
   );
 }

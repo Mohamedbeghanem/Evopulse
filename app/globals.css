@@ -1,3 +1,4 @@
+@import "../design/AURORA_TOKENS.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,20 +10,17 @@
 html,
 body {
   min-height: 100%;
-  background: #080a0d;
-  color: #efe7d6;
+  background: var(--aurora-canvas, #07090c);
+  color: var(--aurora-ink, #e8ecf1);
 }
 
 body {
-  background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(240, 162, 2, 0.08), transparent 55%),
-    radial-gradient(900px 500px at 110% 0%, rgba(126, 182, 217, 0.07), transparent 50%),
-    linear-gradient(180deg, #0c1016 0%, #080a0d 40%);
+  background: var(--aurora-canvas, #07090c);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #253042 transparent;
+  scrollbar-color: #1c232c transparent;
 }
 
 a {
@@ -30,6 +28,37 @@ a {
 }
 
 .rule {
-  background: linear-gradient(90deg, transparent, rgba(239, 231, 214, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(232, 236, 241, 0.14), transparent);
   height: 1px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 80;
+  border-radius: 999px;
+  background: #e8ecf1;
+  color: #07090c;
+  padding: 0.5rem 0.9rem;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.os-frame {
+  min-height: 100vh;
+  background: #07090c;
+}
+
+.nav-active {
+  background: #1a212b;
+  box-shadow: inset 2px 0 0 #ff5a1f;
+}
+
+.sim-banner {
+  border: 1px solid rgba(127, 178, 224, 0.35);
+  background: rgba(127, 178, 224, 0.08);
+  color: #7fb2e0;
 }
