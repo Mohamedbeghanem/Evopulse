@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse Control OS — Approval</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aurora-canvas: #07090c;
+      --aurora-nav: #090c10;
+      --aurora-surface: #0e1217;
+      --aurora-surface-raised: #141a22;
+      --aurora-surface-active: #1a212b;
+      --aurora-recessed: #0a0d11;
+      --aurora-ink: #e8ecf1;
+      --aurora-secondary: #a3adba;
+      --aurora-muted: #7c8796;
+      --aurora-quiet: #8f9aa8;
+      --aurora-hairline: #1c232c;
+      --aurora-hairline-strong: #232b35;
+      --aurora-panel-line: #1f2630;
+      --aurora-row-line: #1a2029;
+      --aurora-attention: #ff5a1f;
+      --aurora-attention-hot: #ff7a45;
+      --aurora-on-attention: #0a0c0f;
+      --aurora-watch: #f0b44c;
+      --aurora-auto: #7fb2e0;
+      --aurora-focus: #ff7a45;
+      --aurora-needs-approval: var(--aurora-attention-hot);
+      --aurora-blocked: var(--aurora-quiet);
+      --aurora-handled: var(--aurora-auto);
+      --aurora-overlay: rgba(7, 9, 12, 0.72);
+      --aurora-need-wash: rgba(255, 90, 31, 0.08);
+      --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --text-body: 14px;
+      --text-display: 26px;
+      --leading-tight: 1.2;
+      --leading-body: 1.45;
+      --tracking-label: 0.12em;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius-chip: 4px;
+      --radius-control: 6px;
+      --radius-panel: 10px;
+      --radius-overlay: 12px;
+      --os-sidebar-width: 240px;
+      --os-inspector-width: 360px;
+      --os-header-height: 56px;
+      --os-nav-item-height: 34px;
+      --os-gutter-sidebar: 16px;
+      --os-gutter-workspace: 28px;
+      --os-gutter-inspector: 20px;
+      --workspace-focused: 840px;
+      --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--aurora-canvas); color: var(--aurora-ink); font-family: var(--font-sans); font-size: var(--text-body); line-height: var(--leading-body); }
+    a { color: inherit; text-decoration: none; }
+    button, textarea { font: inherit; color: inherit; }
+    button { background: none; border: 0; padding: 0; cursor: pointer; }
+    :focus { outline: none; }
+    :focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-control); }
+    .skip { position: absolute; left: 12px; top: -40px; z-index: 80; padding: 8px 12px; background: var(--aurora-surface-raised); border: 1px solid var(--aurora-hairline); border-radius: var(--radius-control); }
+    .skip:focus { top: 12px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .os { display: flex; min-height: 100vh; background: var(--aurora-canvas); }
+    .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; width: var(--os-sidebar-width); min-width: var(--os-sidebar-width); height: 100vh; padding: 0 var(--os-gutter-sidebar) var(--space-5); border-right: 1px solid var(--aurora-hairline); background: var(--aurora-nav); }
+    .workspace { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 100vh; }
+    .inspector { display: flex; flex-direction: column; width: var(--os-inspector-width); min-width: var(--os-inspector-width); height: 100vh; position: sticky; top: 0; padding: 0 var(--os-gutter-inspector) var(--space-5); background: var(--aurora-nav); box-shadow: inset 1px 0 0 var(--aurora-hairline); }
+    .brand { display: flex; align-items: center; height: var(--os-header-height); gap: 10px; padding: 0 4px; }
+    .brand-mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--aurora-attention); color: var(--aurora-on-attention); font-size: 11px; font-weight: 700; }
+    .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .sidebar-launch { display: grid; gap: 6px; margin: 4px 0 var(--space-5); }
+    .control, .nav-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: var(--os-nav-item-height); padding: 0 10px; border-radius: var(--radius-control); color: var(--aurora-secondary); text-align: left; }
+    .control:hover, .nav-item:hover { background: var(--aurora-surface-raised); color: var(--aurora-ink); }
+    .control-primary { background: var(--aurora-surface-raised); color: var(--aurora-ink); box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong); }
+    .control kbd { margin-left: auto; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; }
+    .nav-block + .nav-block { margin-top: var(--space-4); }
+    .nav-label { padding: 0 10px 6px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+    .nav-item[aria-current="page"] { background: var(--aurora-surface-active); color: var(--aurora-ink); box-shadow: inset 2px 0 0 var(--aurora-attention); }
+    .nav-item[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+    .sidebar-foot { margin-top: auto; display: grid; gap: 2px; padding-top: var(--space-4); }
+    .live { display: flex; align-items: center; gap: 8px; height: 28px; margin: 8px 4px 6px; padding: 0 10px; border: 1px solid #2a333f; border-radius: 14px; color: var(--aurora-secondary); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; }
+    .live i { width: 8px; height: 8px; border-radius: 4px; background: var(--aurora-attention); }
+    .clock { padding: 0 10px 8px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    .user-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px; color: var(--aurora-ink); }
+    .avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 14px; background: var(--aurora-surface-active); border: 1px solid #2a333f; font-family: var(--font-mono); font-size: 11px; }
+    .user-row small { display: block; color: var(--aurora-muted); font-size: 12px; }
+    .collapse { display: none; margin-left: auto; }
+    .os.sidebar-collapsed .sidebar { display: none; }
+    .reopen { display: none; }
+    .os.sidebar-collapsed .reopen { display: inline-flex; position: fixed; left: 8px; top: 12px; z-index: 30; width: 40px; height: 32px; align-items: center; justify-content: center; background: var(--aurora-surface-raised); border: 1px solid var(--aurora-hairline-strong); border-radius: var(--radius-control); }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; min-height: var(--os-header-height); padding: 14px var(--os-gutter-workspace) 10px; }
+    .kicker { margin: 0 0 6px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; }
+    .page-header h1 { margin: 0; font-size: var(--text-display); font-weight: 600; letter-spacing: -0.015em; line-height: var(--leading-tight); }
+    .lede { margin: 6px 0 0; color: var(--aurora-quiet); font-size: 13px; max-width: 62ch; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .mono { font-family: var(--font-mono); }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .status i { width: 8px; height: 8px; border-radius: 4px; background: currentColor; }
+    .status--need { color: var(--aurora-attention-hot); }
+    .status--auto { color: var(--aurora-auto); }
+    .status--quiet { color: var(--aurora-quiet); }
+    .chip, .icon-btn, .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: var(--radius-control); color: var(--aurora-ink); background: var(--aurora-surface-raised); border: 1px solid #2a333f; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-pri { background: var(--aurora-attention); border-color: var(--aurora-attention); color: var(--aurora-on-attention); font-weight: 600; }
+    .workspace-body { flex: 1; padding: 8px var(--os-gutter-workspace) 28px; }
+    .focused { max-width: var(--workspace-focused); }
+    .banner { display: none; margin: 0 0 16px; padding: 12px 14px; background: var(--aurora-need-wash); border: 1px solid var(--aurora-hairline-strong); border-radius: var(--radius-panel); color: var(--aurora-secondary); font-size: 13px; }
+    .banner[data-show="true"] { display: block; }
+    .banner[data-tone="auto"] { background: rgba(127, 178, 224, 0.08); color: var(--aurora-auto); }
+    .banner[data-tone="quiet"] { color: var(--aurora-quiet); }
+    .section { padding: 18px 0; border-top: 1px solid var(--aurora-row-line); }
+    .section h2 { margin: 0 0 10px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+    .lead { margin: 0 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .copy { margin: 0; color: var(--aurora-secondary); }
+    .row { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--aurora-row-line); }
+    .row:last-child { border-bottom: 0; }
+    .num { font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); padding-top: 2px; }
+    .row h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .row p { margin: 4px 0 0; color: var(--aurora-secondary); font-size: 13px; }
+    .tag { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; padding: 3px 6px; border-radius: 3px; border: 1px solid var(--aurora-hairline-strong); color: var(--aurora-auto); }
+    .tag.need { color: var(--aurora-attention-hot); }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 0; }
+    .facts dt { font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); }
+    .facts dd { margin: 4px 0 0; }
+    .quote { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.4; }
+    .src { margin: 8px 0 0; font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); }
+    .gate { margin: 16px 0 0; padding: 12px 14px; background: var(--aurora-recessed); border-radius: var(--radius-panel); color: var(--aurora-secondary); font-size: 13px; }
+    .gate strong { color: var(--aurora-ink); font-weight: 600; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .inspector-head { min-height: var(--os-header-height); padding-top: 16px; }
+    .inspector-kicker { margin: 0 0 4px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; }
+    .inspector h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .inspector-section { margin-top: var(--space-5); }
+    .inspector-section h3 { margin: 0 0 8px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; }
+    .fact { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--aurora-row-line); font-size: 13px; }
+    .fact span { color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    .source { display: block; background: var(--aurora-recessed); margin: 0; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+    .source + .source { margin-top: 6px; }
+    .source small { display: block; margin-top: 4px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    dialog { border: 1px solid var(--aurora-hairline-strong); background: var(--aurora-surface); color: var(--aurora-ink); width: min(520px, calc(100vw - 32px)); padding: 24px; border-radius: var(--radius-overlay); box-shadow: 0 24px 64px rgba(0,0,0,.55); }
+    dialog::backdrop { background: var(--aurora-overlay); }
+    dialog h2 { margin: 0 0 8px; font-size: 18px; }
+    label { display: block; margin: 12px 0 6px; color: var(--aurora-secondary); }
+    textarea { width: 100%; min-height: 120px; background: var(--aurora-recessed); border: 1px solid var(--aurora-hairline-strong); border-radius: var(--radius-control); padding: 10px; color: var(--aurora-ink); }
+    .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; }
+    @media (max-width: 1280px) {
+      .sidebar { width: 220px; min-width: 220px; }
+      .inspector { width: 320px; min-width: 320px; }
+      .page-header, .workspace-body { padding-left: 24px; padding-right: 24px; }
+      .facts { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 1024px) {
+      .collapse { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; }
+      .inspector { position: fixed; right: 0; top: 0; z-index: 25; height: 100vh; width: 320px; min-width: 320px; }
+      .os.inspector-hidden .inspector { display: none; }
+      .workspace-body { padding: 8px 20px 28px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#brief">Skip to authority brief</a>
+  <div class="os" data-frame="1440" data-active="approval">
+    <aside class="sidebar" aria-label="Control OS">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">e</span>
+        <span class="brand-name">EvoPulse</span>
+        <button class="collapse icon-btn" type="button" data-collapse aria-expanded="true" aria-label="Collapse sidebar">‹</button>
+      </div>
+      <div class="sidebar-launch">
+        <button class="control control-primary" type="button" disabled>New command</button>
+        <button class="control" type="button" disabled>Ask your business <kbd>⌘K</kbd></button>
+      </div>
+      <nav class="nav-block" aria-label="Primary">
+        <div class="nav-label">Primary</div>
+        <span class="nav-item" aria-disabled="true">Pulse</span>
+        <span class="nav-item" aria-disabled="true">Command</span>
+        <span class="nav-item" aria-disabled="true">Timeline</span>
+      </nav>
+      <nav class="nav-block" aria-label="Workspace">
+        <div class="nav-label">Workspace</div>
+        <span class="nav-item" aria-disabled="true">Business</span>
+        <span class="nav-item" aria-disabled="true">Goals</span>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="nav-item" href="../16-policy/policy.html">Policies / Control</a>
+        <span class="nav-item" aria-disabled="true">Settings</span>
+        <div class="live" aria-label="Live event clock"><i></i> LIVE</div>
+        <div class="clock">SUN 27 SEP · 08:18 +01</div>
+        <div class="user-row">
+          <span class="avatar" aria-hidden="true">MO</span>
+          <span>Mohamed<small>Operator</small></span>
+        </div>
+      </div>
+    </aside>
+
+    <button class="reopen" type="button" data-reopen aria-label="Open sidebar">☰</button>
+
+    <div class="workspace" id="workspace">
+      <header class="page-header">
+        <div>
+          <p class="kicker">APPROVAL · HUMAN GATE</p>
+          <h1>What needs human authority?</h1>
+          <p class="lede">Recover the 320K Atlas decision. EvoPulse prepared the work. A person authorizes anything that leaves the building.</p>
+        </div>
+        <div class="header-actions">
+          <p class="status status--need" id="stateChip"><i></i> <span id="stateLabel">NEEDS APPROVAL</span></p>
+        </div>
+      </header>
+
+      <main class="workspace-body focused" id="brief">
+        <div class="banner" id="banner" role="status" aria-live="polite"></div>
+
+        <section class="section" aria-labelledby="want" style="border-top:0;padding-top:0">
+          <h2 id="want">What EvoPulse wants to do</h2>
+          <p class="lead">Recover the 320K Atlas decision.</p>
+          <p class="copy">Prepare the revised proposal, draft a precise follow-up, and plant a Monday checkpoint. External send stays behind approval. Plan <span class="mono">pln_recovery_320k</span>.</p>
+          <div class="row">
+            <span class="num">01</span>
+            <div>
+              <h3>Prepare revised proposal</h3>
+              <p>Assemble the 320,000 DZD revised proposal for Atlas Retail (warehouse fit-out Q4). Strategy: personalized_followup.</p>
+            </div>
+            <span class="tag">AUTO</span>
+          </div>
+          <div class="row">
+            <span class="num">02</span>
+            <div>
+              <h3>Draft apology / follow-up</h3>
+              <p id="draftText">Amine — the revised 320K proposal is ready. We missed Thursday. Decision still yours this week; I can walk you through it today.</p>
+              <p class="src" id="editMark" hidden>Edited by Mohamed · still NEEDS APPROVAL</p>
+            </div>
+            <span class="tag need">APPROVAL_REQUIRED</span>
+          </div>
+          <div class="row">
+            <span class="num">03</span>
+            <div>
+              <h3>Create follow-up checkpoint</h3>
+              <p>Monday 28 Sep 10:00 — confirm proposal received and decision still expected.</p>
+            </div>
+            <span class="tag">AUTO</span>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="why">
+          <h2 id="why">Why</h2>
+          <p class="lead">Thursday send was missed. Friday decision is blocked.</p>
+          <p class="copy">Wednesday, Amine asked for the revised 320,000 DZD proposal tomorrow and promised a Friday decision. Thursday 24 Sep 18:00 passed with no quote.sent. Their commitment depends on ours.</p>
+        </section>
+
+        <section class="section" aria-labelledby="impact">
+          <h2 id="impact">Impact</h2>
+          <dl class="facts">
+            <div>
+              <dt>Associated opportunity</dt>
+              <dd>320,000 DZD · Atlas Q4 warehouse fit-out</dd>
+            </div>
+            <div>
+              <dt>Customers / opportunities</dt>
+              <dd>1 · 1 — this deal only</dd>
+            </div>
+            <div>
+              <dt>Cash timing</dt>
+              <dd>Affected — Friday decision cannot land without the send</dd>
+            </div>
+            <div>
+              <dt>Semantics</dt>
+              <dd>Proposal / recovery. Not revenue saved. Not lost.</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="section" aria-labelledby="policy">
+          <h2 id="policy">Policy</h2>
+          <dl class="facts">
+            <div>
+              <dt>external_message_requires_approval</dt>
+              <dd>true — customer-facing send needs a human</dd>
+            </div>
+            <div>
+              <dt>Plan roll-up</dt>
+              <dd>APPROVAL_REQUIRED · mixed AUTO + approval · no BLOCKED action</dd>
+            </div>
+            <div>
+              <dt>discount_max</dt>
+              <dd>5 — not in play on this recovery</dd>
+            </div>
+            <div>
+              <dt>financial_commitment_requires_approval</dt>
+              <dd>true — money movement needs a human</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="section" aria-labelledby="evidence">
+          <h2 id="evidence">Evidence</h2>
+          <blockquote class="quote">“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”</blockquote>
+          <p class="src">Customer conversation · Amine Khelifi · Wed 23 Sep 16:42 · inbox · 94% · heuristic-v1</p>
+        </section>
+
+        <p class="gate"><strong>EvoPulse cannot approve itself.</strong> There is no auto-approve. Mohamed is the operator. Software may prepare; a person authorizes.</p>
+
+        <div class="actions">
+          <button class="btn btn-pri" id="btnApprove" type="button">Approve</button>
+          <button class="btn" id="btnEdit" type="button">Edit</button>
+          <button class="btn" id="btnReject" type="button">Reject</button>
+        </div>
+      </main>
+    </div>
+
+    <aside class="inspector" aria-label="Evidence">
+      <div class="inspector-head">
+        <p class="inspector-kicker">EVIDENCE</p>
+        <h2>Business sources</h2>
+      </div>
+      <div class="inspector-section">
+        <h3>Object</h3>
+        <div class="fact"><b>Opportunity</b><span>ent_opp_320k</span></div>
+        <div class="fact"><b>Amount</b><span>320,000 DZD</span></div>
+        <div class="fact"><b>Contact</b><span>Amine Khelifi</span></div>
+        <div class="fact"><b>Plan</b><span>pln_recovery_320k</span></div>
+      </div>
+      <div class="inspector-section">
+        <h3>Sources</h3>
+        <p class="source">Customer conversation<small>Wed 23 Sep 16:42 · inbox · message.received</small></p>
+        <p class="source">Expected vs actual<small>quote.sent due Thu 24 Sep 18:00 · no event</small></p>
+        <p class="source">Dependency<small>Friday decision depends on Thursday send</small></p>
+        <p class="source">Policy rule<small>external_message_requires_approval = true</small></p>
+      </div>
+    </aside>
+  </div>
+
+  <p class="live-region" id="live" role="status" aria-live="polite"></p>
+
+  <dialog id="editDialog" aria-labelledby="editTitle">
+    <h2 id="editTitle">Edit the customer draft</h2>
+    <p class="copy">Saving does not approve. External send still needs Approve.</p>
+    <label for="draftField">Draft follow-up</label>
+    <textarea id="draftField"></textarea>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="editCancel">Cancel</button>
+      <button class="btn btn-pri" type="button" id="editSave">Save draft</button>
+    </div>
+  </dialog>
+
+  <dialog id="rejectDialog" aria-labelledby="rejectTitle">
+    <h2 id="rejectTitle">Reject this recovery</h2>
+    <p class="copy">EvoPulse will not send and will not self-retry approval.</p>
+    <label for="rejectField">Reason (required)</label>
+    <textarea id="rejectField" required></textarea>
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="rejectCancel">Cancel</button>
+      <button class="btn" type="button" id="rejectConfirm">Reject recovery</button>
+    </div>
+  </dialog>
+
+  <script>
+    (function () {
+      var state = "NEEDS_APPROVAL";
+      var draft = document.getElementById("draftText").textContent;
+      var banner = document.getElementById("banner");
+      var live = document.getElementById("live");
+      var chip = document.getElementById("stateChip");
+      var label = document.getElementById("stateLabel");
+      var btnA = document.getElementById("btnApprove");
+      var btnE = document.getElementById("btnEdit");
+      var btnR = document.getElementById("btnReject");
+      var editD = document.getElementById("editDialog");
+      var rejectD = document.getElementById("rejectDialog");
+      var os = document.querySelector(".os");
+
+      function say(text, tone) {
+        banner.dataset.show = "true";
+        banner.dataset.tone = tone || "need";
+        banner.textContent = text;
+        live.textContent = text;
+      }
+      function lock(next, toneClass) {
+        state = next;
+        label.textContent = next.replace("_", " ");
+        chip.className = "status " + toneClass;
+        btnA.disabled = true;
+        btnE.disabled = true;
+        btnR.disabled = true;
+      }
+
+      btnA.addEventListener("click", function () {
+        if (state !== "NEEDS_APPROVAL") return;
+        lock("APPROVED", "status--auto");
+        say("Mohamed authorized pln_recovery_320k. Prepare and checkpoint may execute. Send alone does not mark the exception solved — customer-response verification is pending. Pulse attention becomes MONITORING.", "auto");
+      });
+      btnE.addEventListener("click", function () {
+        if (state !== "NEEDS_APPROVAL") return;
+        document.getElementById("draftField").value = draft;
+        editD.showModal();
+        document.getElementById("draftField").focus();
+      });
+      document.getElementById("editCancel").addEventListener("click", function () { editD.close(); btnE.focus(); });
+      document.getElementById("editSave").addEventListener("click", function () {
+        var next = document.getElementById("draftField").value.trim();
+        if (!next) { document.getElementById("draftField").focus(); return; }
+        draft = next;
+        document.getElementById("draftText").textContent = draft;
+        document.getElementById("editMark").hidden = false;
+        editD.close();
+        say("Draft edited by Mohamed. State remains NEEDS APPROVAL. EvoPulse did not approve.");
+        btnA.focus();
+      });
+      btnR.addEventListener("click", function () {
+        if (state !== "NEEDS_APPROVAL") return;
+        document.getElementById("rejectField").value = "";
+        rejectD.showModal();
+        document.getElementById("rejectField").focus();
+      });
+      document.getElementById("rejectCancel").addEventListener("click", function () { rejectD.close(); btnR.focus(); });
+      document.getElementById("rejectConfirm").addEventListener("click", function () {
+        var reason = document.getElementById("rejectField").value.trim();
+        if (!reason) { document.getElementById("rejectField").focus(); return; }
+        rejectD.close();
+        lock("REJECTED", "status--quiet");
+        say("Mohamed rejected recovery. Reason: " + reason + ". No customer message leaves. EvoPulse will not self-approve a retry.", "quiet");
+      });
+
+      document.querySelectorAll("[data-collapse], [data-reopen]").forEach(function (el) {
+        el.addEventListener("click", function () { os.classList.toggle("sidebar-collapsed"); });
+      });
+    })();
+  </script>
+</body>
+</html>

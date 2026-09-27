@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurora — Command master</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="aurora.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="top-inner">
+        <a class="brand" href="index.html"><strong>EvoPulse</strong><span>Business Control System</span></a>
+        <nav class="nav">
+          <a href="pulse.html">Pulse</a>
+          <a class="active" href="command.html">Command</a>
+          <a href="warning.html">Warnings</a>
+          <a class="ghost" href="index.html">Goals</a>
+        </nav>
+      </div>
+    </header>
+    <main class="page">
+      <p class="kicker">Operating console · AgentRuntime</p>
+      <h1>Live operation</h1>
+      <p class="lede">A run, not a chat. Engines decide what is true. Policy decides what is allowed. A human approves anything that leaves the building.</p>
+
+      <div class="prompts section">
+        <button class="prompt" type="button">Why is 850K at risk?</button>
+        <button class="prompt" type="button">What if Atlas is another 3 days late?</button>
+        <button class="prompt on" type="button">Protect everything at risk this week.</button>
+        <button class="prompt" type="button">Why did you block the 10%?</button>
+      </div>
+      <form class="composer" onsubmit="return false">
+        <input value="Protect everything at risk this week." readonly />
+        <button class="btn btn-paper" type="button">Run</button>
+      </form>
+
+      <section class="ops section">
+        <article class="card">
+          <div class="prior">
+            <p class="muted">Prior · Why is 850K at risk?</p>
+            <p class="sand" style="margin-top:4px">3 orders · 3 customers · 850,000 associated · 540,000 expected cash timing. Connected on the graph — not lost.</p>
+          </div>
+          <p class="muted">Protect everything at risk this week.</p>
+          <p class="note">Waiting for approval · deterministic</p>
+          <h3>Protection plan ready</h3>
+          <ol class="trace">
+            <li><p class="mono">Inspecting</p><p class="sand">Read live business state. No new facts invented.</p></li>
+            <li><p class="mono">Tracing</p><p class="sand">Atlas Supply → SH-204 → three orders → three customers.</p></li>
+            <li><p class="mono">Planning</p><p class="sand">Reuse the existing planner. Goal stays incomplete until verification.</p></li>
+            <li><p class="mono">Checking policy</p><p class="sand">Live recheck. Stored AUTO is not enough to execute.</p></li>
+            <li><p class="mono">Safe actions</p><p class="sand">2 AUTO executed. 10% stays blocked. Follow-up still needs you.</p></li>
+            <li><p class="mono">Waiting</p><p class="sand">The agent requested approval. It cannot approve itself.</p></li>
+          </ol>
+          <div class="facts">
+            <span>2 safe</span>
+            <span>1 approval</span>
+            <span>1 blocked</span>
+            <span>verification pending</span>
+          </div>
+        </article>
+
+        <div class="stack">
+          <section class="dock">
+            <p class="note">Approval required · human only</p>
+            <h3>Draft customer follow-up</h3>
+            <p class="sand">External message on the 320,000 DZD opportunity. Policy: external_message_requires_approval.</p>
+            <p class="tiny">Impact: 320,000 DZD associated · Evidence: recovery plan act_draft_followup</p>
+            <p class="tiny">approve_action is never an agent tool.</p>
+            <div class="actions">
+              <button class="btn btn-paper" type="button">Approve</button>
+              <button class="btn btn-line" type="button">Edit</button>
+              <button class="btn btn-line" type="button">Reject</button>
+            </div>
+          </section>
+
+          <article class="card card-miss">
+            <p class="note miss">Blocked · policy</p>
+            <h3>The 10% discount stays blocked</h3>
+            <p class="sand">discount_max=5% blocks a 10% discount. Allowed alternative: 5% (304,000 DZD) or Net-14, both still behind approval.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -89,6 +89,16 @@ export type GoalContext = {
   policies: Record<string, string>;
   strategyEvidence: StrategyEvidenceBundle | null;
   pendingApprovals: number;
+  earlyWarnings: Array<{
+    id: string;
+    title: string;
+    status: string;
+    bufferState: string;
+    expectationId: string | null;
+    shortfallMinutes: number;
+    availableBufferMinutes: number;
+    requiredBufferMinutes: number;
+  }>;
 };
 
 export type ActionEvidence = {

@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
 import { gateAction } from "../autonomy/service";
 import { executeAction } from "../engine/execute";
-import { evaluatePolicy, loadPolicies } from "../engine/policy";
+import { recheckActionPolicy } from "../engine/policy";
 import type { ActionRow, PlanRow } from "../types";
 import { hydratePlan } from "./planner";
 import { refreshGoalStatus } from "./status";
@@ -11,24 +11,18 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]);
   if (!plan) throw new Error("Plan not found");
 
-  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? ORDER BY priority, created_at", [planId]);
+  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? ORDER BY priority, created_at", [planId]).map(
+    (action) => recheckActionPolicy(db, action),
+  );
   const auto = actions.filter((action) => action.policy_outcome === "AUTO" && action.status !== "executed");
   const skippedApproval = actions.filter((action) => action.policy_outcome === "APPROVAL_REQUIRED");
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
-  const policies = loadPolicies(db);
   const executed: ActionRow[] = [];
   const heldByAutonomy: string[] = [];
   for (const action of auto) {
-    const payload = parsePayload(action.payload);
-    const decision = evaluatePolicy({ type: action.type, payload }, policies);
-    if (decision.outcome !== "AUTO") {
-      run(db, "UPDATE actions SET policy_outcome = ?, policy_reason = ? WHERE id = ?", [
-        decision.outcome,
-        decision.reason,
-        action.id,
-      ]);
-      continue;
+    if (action.policy_outcome !== "AUTO") {
+      throw new Error("Safe execution refused a non-AUTO action.");
     }
     // Adaptive autonomy: the emergency pause or a suspended action type holds the step.
     if (!gateAction(db, action, now, { humanInitiated: true }).mayAutoExecute) {
@@ -61,25 +55,20 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   };
 }
 
-function parsePayload(raw: string): Record<string, unknown> {
-  try {
-    const value = JSON.parse(raw) as unknown;
-    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
-}
-
 export function approvePlanAction(db: DatabaseSync, planId: string, actionId: string, now: string, actor = "operator") {
-  const action = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ? AND plan_id = ?", [actionId, planId]);
-  if (!action) throw new Error("Action not found");
+  const found = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ? AND plan_id = ?", [actionId, planId]);
+  if (!found) throw new Error("Action not found");
+  const action = recheckActionPolicy(db, found);
   if (action.policy_outcome === "BLOCKED") {
     throw new Error(action.policy_reason || "Blocked actions cannot be approved.");
+  }
+  if (action.status === "executed") {
+    throw new Error("Action already executed.");
   }
   run(db, "UPDATE actions SET status = ? WHERE id = ?", ["approved", actionId]);
   run(
     db,
-    "INSERT INTO approvals (id, plan_id, action_id, status, decided_at, decided_by) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT OR IGNORE INTO approvals (id, plan_id, action_id, status, decided_at, decided_by) VALUES (?, ?, ?, ?, ?, ?)",
     [`apr_${actionId}`, planId, actionId, "approved", now, actor],
   );
   return one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);

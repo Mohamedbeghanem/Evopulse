@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>EvoPulse · Time Machine</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07090C;color:#E8ECF1;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#FF7A45}a:hover{color:#FFA07A}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.rail{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7C8796;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em}
+.rail:hover{background:#141A22;color:#E8ECF1}
+.rail.on{background:#1A212B;color:#FF6A2B}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;height:34px;padding:0 14px;border-radius:6px;border:1px solid #2A333F;background:#141A22;color:#E8ECF1;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:#1C2430;color:#fff}
+.btn.pri{background:#FF5A1F;border-color:#FF5A1F;color:#0A0C0F}
+.btn.pri:hover{background:#FF7A45;color:#0A0C0F}
+.seg{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.06em;height:30px;padding:0 12px;border:0;border-radius:5px;background:transparent;color:#8F9AA8;cursor:pointer}
+.seg:hover{color:#E8ECF1}
+.seg.on{background:#1F2731;color:#E8ECF1}
+.tick{position:absolute;top:6px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:#7C8796;transform:translateX(-50%)}
+.ev{display:flex;gap:12px;align-items:center;padding:0 16px;border-bottom:1px solid #1A2029}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.08em;padding:2px 6px;border-radius:3px;background:#161C24;color:#A3ADBA}
+.tr{background:rgba(255,90,31,.16);color:#FF7A45}
+.tw{background:rgba(240,180,76,.14);color:#F0B44C}
+.ta{background:rgba(127,178,224,.14);color:#7FB2E0}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,31,.6)}70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
+.pulse{animation:pulse 1.8s infinite}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 900px; display: flex; background: #07090C; overflow: hidden">
+<nav aria-label="Primary" style="width: 64px; height: 900px; box-sizing: border-box; background: #090C10; border-right: 1px solid #1C232C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; flex-shrink: 0">
+<div style="width: 36px; height: 36px; border-radius: 8px; background: #FF5A1F; display: flex; align-items: center; justify-content: center; margin-bottom: 14px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0C0F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-7 4 14 3-7h6"></path></svg>
+</div>
+<a href="Main.dc.html" aria-label="Business Twin" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>TWIN</a>
+<a href="Causal.dc.html" aria-label="Causal Explorer" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4" r="2"></circle><circle cx="5" cy="20" r="2"></circle><circle cx="12" cy="20" r="2"></circle><circle cx="19" cy="20" r="2"></circle><path d="M12 6v12M12 11c0 3-7 3-7 7M12 11c0 3 7 3 7 7"></path></svg>CAUSE</a>
+<a href="Time.dc.html" aria-label="Time Machine" class="rail on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>TIME</a>
+<a href="Actions.dc.html" aria-label="Actions" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h6"></path><path d="m14 17 2.5 2.5L21 15"></path></svg>ACT</a>
+</nav>
+<div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+<header style="height: 56px; box-sizing: border-box; border-bottom: 1px solid #1C232C; display: flex; align-items: center; gap: 16px; padding: 0 24px; background: #090C10; flex-shrink: 0">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-weight: 700; font-size: 16px; letter-spacing: -0.01em">EvoPulse</span>
+<span class="mono" style="font-size: 12px; color: #7C8796">/ Atlas Steel Distribution / <span style="color: #C9D1DB">Business Time Machine</span></span>
+</div>
+<div style="flex-grow: 1"></div>
+<label for="ask" class="sr">Ask your business</label>
+<input id="ask" placeholder="Ask your business… e.g. what changed since Wednesday?" style="width: 380px; height: 34px; box-sizing: border-box; background: #0E1217; border: 1px solid #232B35; border-radius: 6px; color: #E8ECF1; padding: 0 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px">
+<div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border: 1px solid #2A333F; border-radius: 14px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .1em">LIVE</span>
+</div>
+<span class="mono" style="font-size: 12px; color: #A3ADBA">SUN 27 SEP · 14:32:08 CET</span>
+<button aria-label="Account" style="width: 32px; height: 32px; border-radius: 16px; background: #1A212B; border: 1px solid #2A333F; color: #E8ECF1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer">MO</button>
+</header>
+
+<main style="flex-grow: 1; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+<div style="height: 48px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">BUSINESS TIME MACHINE · WED 23 SEP → MON 5 OCT</span>
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em">What changed, what needs you now, and what comes next</h1>
+</div>
+<div style="display: flex; gap: 4px; padding: 3px; background: #0E1217; border: 1px solid #1F2630; border-radius: 8px">
+<button class="seg">−7D</button><button class="seg">−24H</button><button class="seg on">NOW</button><button class="seg">+24H</button><button class="seg">+7D</button>
+</div>
+</div>
+
+<section aria-label="Cash position chart" style="height: 214px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 36px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">CASH POSITION · ACTUAL + PROJECTED</span>
+<div class="mono" style="display: flex; gap: 16px; font-size: 10.5px; color: #A3ADBA">
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#C9D1DB" stroke-width="2"></line></svg>ACTUAL</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#8F9AA8" stroke-width="2" stroke-dasharray="4 3"></line></svg>EXPECTED</span>
+<span style="display: flex; align-items: center; gap: 6px"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="4 3"></line></svg>LIKELY IF NOTHING CHANGES</span>
+</div>
+</div>
+<svg width="1318" height="150" viewBox="0 0 1320 150" fill="none" aria-hidden="true" style="display: block">
+<line x1="0" y1="86" x2="1320" y2="86" stroke="#3A4552" stroke-dasharray="2 4"></line>
+<text x="10" y="80" fill="#7C8796" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1">CASH FLOOR 1.2M DZD</text>
+<rect x="520" y="0" width="12" height="150" fill="#07090C"></rect>
+<rect x="772" y="0" width="12" height="150" fill="#07090C"></rect>
+<polygon points="0,104 65,100 195,92 325,96 455,88 652,84 652,150 0,150" fill="#C9D1DB" fill-opacity="0.05"></polygon>
+<polyline points="0,104 65,100 195,92 325,96 455,88 652,84" stroke="#C9D1DB" stroke-width="2"></polyline>
+<polygon points="1097,94 1186,40 1275,60 1320,62 1320,98 1275,96 1186,82 1097,98" fill="#FF5A1F" fill-opacity="0.12"></polygon>
+<polyline points="652,84 829,88 918,90 1008,92 1097,94 1186,40 1275,60 1320,62" stroke="#8F9AA8" stroke-width="2" stroke-dasharray="5 4"></polyline>
+<polyline points="652,84 829,88 918,90 1008,94 1097,98 1186,82 1275,96 1320,98" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="5 4"></polyline>
+<circle cx="1186" cy="40" r="4" fill="#E8ECF1"></circle>
+<text x="1176" y="28" text-anchor="end" fill="#E8ECF1" font-family="IBM Plex Mono, monospace" font-size="11">+540K expected</text>
+<circle cx="1186" cy="82" r="4" fill="#FF5A1F"></circle>
+<text x="1176" y="116" text-anchor="end" fill="#FF7A45" font-family="IBM Plex Mono, monospace" font-size="11">+240K likely</text>
+<circle cx="1275" cy="96" r="4" fill="#FF5A1F"></circle>
+<text x="1275" y="122" text-anchor="middle" fill="#FF7A45" font-family="IBM Plex Mono, monospace" font-size="10">FLOOR BREACH</text>
+<line x1="652" y1="0" x2="652" y2="150" stroke="#FF5A1F" stroke-width="1.5"></line>
+<rect x="612" y="6" width="80" height="18" rx="3" fill="#FF5A1F"></rect>
+<text x="652" y="19" text-anchor="middle" fill="#0A0C0F" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600">NOW 14:32</text>
+<circle cx="652" cy="84" r="4.5" fill="#FF5A1F" stroke="#0E1217" stroke-width="2"></circle>
+</svg>
+<div style="position: relative; height: 26px; border-top: 1px solid #1A2029">
+<span class="tick" style="left: 65px">WED 23</span><span class="tick" style="left: 195px">THU 24</span><span class="tick" style="left: 325px">FRI 25</span><span class="tick" style="left: 455px">SAT 26</span>
+<span class="tick" style="left: 652px; color: #FF7A45; font-weight: 600">SUN 27</span>
+<span class="tick" style="left: 829px">MON 28</span><span class="tick" style="left: 918px">TUE 29</span><span class="tick" style="left: 1008px">WED 30</span><span class="tick" style="left: 1097px">THU 1</span><span class="tick" style="left: 1186px; color: #E8ECF1">FRI 2</span><span class="tick" style="left: 1275px">MON 5</span>
+</div>
+</section>
+
+<div style="flex-grow: 1; display: flex; gap: 12px; min-height: 0">
+<section aria-label="Past" style="width: 520px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA">◀ PAST · WHAT CHANGED</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">4 SIGNIFICANT · 312 ROUTINE</span>
+</div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">WED 23 10:40</span><span style="flex-grow: 1; font-size: 14px">HR coil price index +4% at supplier</span><span class="tag">PRICE</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">THU 24 15:12</span><span style="flex-grow: 1; font-size: 14px">Order B confirmed, 240K DZD, 50% prepaid</span><span class="tag">SALES</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 92px; font-size: 11px; color: #7C8796">SAT 26 18:05</span><span style="flex-grow: 1; font-size: 14px">Sider Métal flags congestion at Annaba</span><span class="tag tw">SIGNAL</span></div>
+<div class="ev" style="flex-grow: 1; border-bottom: 0"><span class="mono" style="width: 92px; font-size: 11px; color: #FF7A45">SUN 27 09:02</span><span style="flex-grow: 1; font-size: 14px; font-weight: 600">Delay confirmed: SHP-2291 +2 days</span><span class="tag tr">TRIGGER</span></div>
+</section>
+
+<section aria-label="Now" style="width: 240px; flex-shrink: 0; box-sizing: border-box; background: #1A0F0A; border: 1.5px solid #FF5A1F; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 14px; border-bottom: 1px solid rgba(255,90,31,0.35); display: flex; align-items: center; gap: 8px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .12em; color: #FF7A45">NOW · NEEDS YOU</span>
+</div>
+<div style="padding: 14px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1">
+<div style="display: flex; align-items: baseline; gap: 8px"><span class="mono" style="font-size: 44px; font-weight: 500; line-height: 1; color: #FF6A2B">2</span><span style="font-size: 13px; color: #C9D1DB; line-height: 1.3">decisions<br>awaiting you</span></div>
+<div class="mono" style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #8F9AA8">EXPOSED</span><span style="font-size: 18px; color: #FF7A45">300,000 DZD</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Expedite customs</span><span class="mono" style="color: #FF7A45">+180K</span></div>
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Ship 80% of Order C</span><span class="mono" style="color: #FF7A45">+96K</span></div>
+</div>
+<div style="flex-grow: 1"></div>
+<a href="Actions.dc.html" class="btn pri">Open plan</a>
+</div>
+</section>
+
+<section aria-label="Future" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA">FUTURE · WHAT'S EXPECTED ▶</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">PROBABILITY</span>
+</div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">MON 28</span><span style="flex-grow: 1; font-size: 13.5px">Rouiba stock staged for Oran run</span><span class="tag ta">AUTO</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px">0.97</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">TUE 29</span><span style="flex-grow: 1; font-size: 13.5px; color: #7C8796; text-decoration: line-through">Original SHP-2291 arrival</span><span class="tag">MOVED</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #7C8796">0.00</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">WED 30</span><span style="flex-grow: 1; font-size: 13.5px">BatiCo deadline 17:00, likely missed</span><span class="tag tr">AT RISK</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #FF7A45">0.91</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">THU 1</span><span style="flex-grow: 1; font-size: 13.5px">SHP-2291 lands 08:00 · Oran due 16:00</span><span class="tag tr">AT RISK</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #FF7A45">0.83</span></div>
+<div class="ev" style="flex-grow: 1"><span class="mono" style="width: 72px; font-size: 11px; color: #E8ECF1">FRI 2</span><span style="flex-grow: 1; font-size: 13.5px; font-weight: 600">540K payment expected</span><span class="tag tw">WATCH</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #F0B44C">0.44</span></div>
+<div class="ev" style="flex-grow: 1; border-bottom: 0"><span class="mono" style="width: 72px; font-size: 11px; color: #7C8796">MON 5</span><span style="flex-grow: 1; font-size: 13.5px">Supplier payment 410K · floor check</span><span class="tag tw">WATCH</span><span class="mono" style="width: 40px; text-align: right; font-size: 12px; color: #F0B44C">0.56</span></div>
+</section>
+</div>
+
+<section aria-label="What happens next" style="height: 128px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 38px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px 0 16px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">WHAT HAPPENS NEXT</span>
+<div style="display: flex; gap: 2px">
+<button class="seg on">IF YOU APPROVE BOTH</button>
+<button class="seg">IF NOTHING CHANGES</button>
+</div>
+</div>
+<div style="flex-grow: 1; display: flex; align-items: stretch; padding: 12px 16px; gap: 8px">
+
+<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: #0A0D11; border: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">MON 09:00</span><span class="mono" style="font-size: 11px; font-weight: 600; color: #A3ADBA">IF APPROVED</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">Broker files SHP-2291 customs docs</span>
+</div>
+
+<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: #0A0D11; border: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">WED 14:00</span><span class="mono" style="font-size: 11px; font-weight: 600; color: #A3ADBA">p 0.78</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">SHP-2291 cleared a day early</span>
+</div>
+
+<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: #0A0D11; border: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">WED 17:00</span><span class="mono" style="font-size: 11px; font-weight: 600; color: #E8ECF1">+180K</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">Order A reaches BatiCo on time</span>
+</div>
+
+<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: #0A0D11; border: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">THU 09:00</span><span class="mono" style="font-size: 11px; font-weight: 600; color: #E8ECF1">+96K</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">80% of Order C ships from Rouiba</span>
+</div>
+
+<div style="flex-grow: 1; flex-basis: 0; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; background: #0A0D11; border: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 10.5px; letter-spacing: .06em; color: #8F9AA8">FRI 2 OCT</span><span class="mono" style="font-size: 11px; font-weight: 600; color: #E8ECF1">TARGET MET</span></span>
+<span style="font-size: 13.5px; font-weight: 500; line-height: 1.3">516K of 540K collected</span>
+</div>
+
+</div>
+</section>
+</main>
+</div>
+</div>
+</body>
+</html>

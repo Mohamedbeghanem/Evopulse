@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse Control OS — Twin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink-950: #080a0d;
+      --ink-900: #0c1016;
+      --ink-800: #131922;
+      --ink-700: #1b2330;
+      --ink-600: #253042;
+      --paper: #efe7d6;
+      --sand: #c8b896;
+      --mute: #8a8476;
+      --need: #f0a202;
+      --miss: #e85d4c;
+      --ok: #3dba8b;
+      --ice: #7eb6d9;
+      --line: rgba(239, 231, 214, 0.12);
+      --serif: "Instrument Serif", Georgia, serif;
+      --sans: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--ink-950);
+      color: var(--paper);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100%;
+      background-image:
+        radial-gradient(1200px 600px at 8% -12%, rgba(240, 162, 2, 0.08), transparent 55%),
+        radial-gradient(900px 500px at 110% 0%, rgba(126, 182, 217, 0.07), transparent 50%),
+        linear-gradient(180deg, #0c1016 0%, #080a0d 42%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .skip {
+      position: absolute;
+      left: 12px;
+      top: -40px;
+      z-index: 20;
+      background: var(--paper);
+      color: var(--ink-950);
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+    .skip:focus { top: 12px; }
+
+    .os {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .chrome {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(8, 10, 13, 0.72);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand strong {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    .brand span, .meta span {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .pill.live { background: rgba(240, 162, 2, 0.16); color: var(--need); }
+    .pill.live i {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--need);
+      display: inline-block;
+    }
+
+    nav.os-nav {
+      display: flex;
+      gap: 4px;
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+    nav.os-nav a {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--sand);
+      white-space: nowrap;
+    }
+    nav.os-nav a[aria-current="page"] {
+      background: var(--paper);
+      color: var(--ink-950);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: 228px minmax(0, 1fr) 320px;
+      min-height: 0;
+    }
+
+    .rail {
+      border-right: 1px solid var(--line);
+      padding: 16px 12px 24px;
+      overflow: auto;
+    }
+    .rail h2, .canvas h2, .inspector h2, .block-title {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .domains { display: grid; gap: 6px; margin-top: 12px; }
+    .domain {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(19, 25, 34, 0.5);
+    }
+    .domain:hover, .node:hover, .row:hover { border-color: rgba(239, 231, 214, 0.28); }
+    .domain[aria-pressed="true"], .node[aria-pressed="true"], .row[aria-pressed="true"] {
+      border-color: rgba(240, 162, 2, 0.55);
+      background: rgba(240, 162, 2, 0.08);
+    }
+    .domain:focus-visible, .node:focus-visible, .row:focus-visible, nav.os-nav a:focus-visible, .exit:focus-visible {
+      outline: 2px solid var(--need);
+      outline-offset: 2px;
+    }
+    .domain .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: var(--mute); }
+    .domain .v { margin-top: 4px; font-size: 12px; color: var(--sand); }
+    .status {
+      display: inline-flex;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .status.at-risk, .status.attention, .status.needs-you { color: var(--need); }
+    .status.missed, .status.blocked { color: var(--miss); }
+    .status.monitoring { color: var(--ice); }
+    .status.handled, .status.fulfilled, .status.ok { color: var(--ok); }
+    .status.stable, .status.draft, .status.healthy { color: var(--mute); }
+
+    .canvas {
+      min-width: 0;
+      padding: 22px 28px 40px;
+      overflow: auto;
+    }
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .canvas h1 {
+      margin: 8px 0 0;
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 46px);
+      font-weight: 400;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    .lede {
+      max-width: 62ch;
+      margin: 14px 0 0;
+      color: var(--sand);
+    }
+    .lede strong { color: var(--paper); font-weight: 500; }
+    .note {
+      margin: 12px 0 0;
+      font-size: 12px;
+      color: var(--mute);
+    }
+
+    .exits { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .exit {
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      border: 1px solid rgba(239, 231, 214, 0.16);
+      color: var(--paper);
+    }
+    .exit.primary { background: var(--need); color: var(--ink-950); border-color: transparent; font-weight: 500; }
+    .exit.ghost { color: var(--sand); }
+
+    .section { margin-top: 28px; }
+    .cascade {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .flow-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .edge {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--need);
+      min-width: 7.5rem;
+    }
+    .nodes { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+    .node {
+      border: 1px solid var(--line);
+      background: rgba(19, 25, 34, 0.55);
+      border-radius: 12px;
+      padding: 8px 10px;
+      text-align: left;
+      min-width: 132px;
+    }
+    .node .t {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .node .n { margin-top: 3px; font-family: var(--serif); font-size: 16px; }
+    .node .a { margin-top: 4px; font-family: var(--mono); font-size: 11px; color: var(--need); }
+    .node.wide { min-width: 180px; }
+
+    .reading {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px 8px;
+      background: rgba(12, 16, 22, 0.55);
+    }
+    .reading ol {
+      margin: 10px 0 8px;
+      padding-left: 20px;
+      color: var(--sand);
+    }
+    .reading li { margin: 0 0 8px; }
+    .reading li strong { color: var(--paper); font-weight: 500; }
+    .inline {
+      display: inline;
+      padding: 0;
+      border: 0;
+      border-bottom: 1px dotted rgba(239, 231, 214, 0.35);
+      border-radius: 0;
+      color: var(--paper);
+      font-weight: 500;
+    }
+    .inline[aria-pressed="true"] { border-bottom-color: var(--need); color: var(--need); }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(19, 25, 34, 0.35);
+    }
+    .row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .row .who {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .row p { margin: 3px 0 0; color: var(--paper); }
+    .spine { display: grid; gap: 4px; margin-top: 10px; }
+    .goal {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    .goal h3 { margin: 4px 0 0; font-family: var(--serif); font-size: 22px; font-weight: 400; }
+    .goal p { margin: 4px 0 0; color: var(--sand); }
+
+    .inspector {
+      border-left: 1px solid var(--line);
+      padding: 16px 16px 28px;
+      overflow: auto;
+      background: rgba(8, 10, 13, 0.35);
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+    }
+    .inspector h3 {
+      margin: 8px 0 0;
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.15;
+    }
+    .inspector dl {
+      margin: 14px 0 0;
+      display: grid;
+      gap: 10px;
+    }
+    .inspector dt {
+      font-size: 12px;
+      color: var(--mute);
+    }
+    .inspector dd { margin: 2px 0 0; color: var(--paper); }
+    .quote {
+      margin: 0;
+      padding: 8px 0 0;
+      color: var(--sand);
+      font-style: italic;
+    }
+    .inspector-foot {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--mute);
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      border: 0;
+    }
+
+    @media (max-width: 1280px) {
+      .stage { grid-template-columns: 200px minmax(0, 1fr) 280px; }
+      .canvas { padding: 18px 18px 32px; }
+      .node { min-width: 118px; }
+    }
+
+    @media (max-width: 1024px) {
+      .stage { grid-template-columns: 1fr; }
+      .rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 12px;
+      }
+      .domains {
+        grid-template-columns: repeat(5, minmax(140px, 1fr));
+        overflow-x: auto;
+      }
+      .cascade-visual { display: none; }
+      .inspector {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .split { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .domains { grid-template-columns: 1fr 1fr; }
+      .chrome { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#understanding">Skip to understanding</a>
+  <div class="os">
+    <header class="chrome">
+      <div class="brand">
+        <strong>EvoPulse</strong>
+        <span>Control OS</span>
+        <span>Twin</span>
+      </div>
+      <div class="meta">
+        <span>Sun 27 Sep 08:18 · Africa/Tunis</span>
+        <span>Atlas Retail Group</span>
+        <span class="pill live" title="This canvas is the live twin, not a what-if."><i></i> Live twin</span>
+      </div>
+    </header>
+    <nav class="os-nav" aria-label="Control OS">
+      <a href="../11-pulse/pulse.html">Pulse</a>
+      <a href="business-twin.html" aria-current="page">Twin</a>
+      <a href="../12-timeline/timeline.html">Timeline</a>
+      <a href="../16-simulation/simulation.html">Simulate</a>
+      <a href="../17-command/command.html">Command</a>
+      <a href="../18-goals/goals.html">Goals</a>
+      <a href="../15-graph/graph.html">Graph</a>
+      <a href="../19-evidence/evidence.html">Evidence</a>
+    </nav>
+
+    <div class="stage">
+      <aside class="rail" aria-label="Twin domains">
+        <h2>Business state</h2>
+        <p class="note">Calculated from exceptions, commitments, and graph facts. Not a health score.</p>
+        <div class="domains">
+          <button class="domain" data-id="sales" aria-pressed="false">
+            <div class="k">Sales</div>
+            <div class="status attention">Attention</div>
+            <div class="v">320K commitment exception</div>
+          </button>
+          <button class="domain" data-id="operations" aria-pressed="false">
+            <div class="k">Operations</div>
+            <div class="status at-risk">At risk</div>
+            <div class="v">1 critical dependency broken · 3 orders</div>
+          </button>
+          <button class="domain" data-id="cash" aria-pressed="false">
+            <div class="k">Cash</div>
+            <div class="status monitoring">Monitoring</div>
+            <div class="v">540,000 DZD expected cash timing</div>
+          </button>
+          <button class="domain" data-id="customers" aria-pressed="false">
+            <div class="k">Customers</div>
+            <div class="status attention">Attention</div>
+            <div class="v">3 customers affected</div>
+          </button>
+          <button class="domain" data-id="suppliers" aria-pressed="false">
+            <div class="k">Suppliers</div>
+            <div class="status at-risk">At risk</div>
+            <div class="v">1 shipment delayed · +2 days</div>
+          </button>
+        </div>
+        <p class="note">Attention on Pulse: <strong style="color:var(--need);font-weight:500">2 NEEDS YOU</strong> · 0 MONITORING · 0 HANDLED · 0 HEALTHY</p>
+      </aside>
+
+      <main class="canvas" id="understanding">
+        <p class="eyebrow">Sunday 27 Sep · Live twin · not a simulation</p>
+        <h1>What EvoPulse understands about Atlas</h1>
+        <p class="lede">
+          Atlas is one company with two open situations. Our Thursday send of the
+          <strong>320,000 DZD</strong> revised proposal is <strong>MISSED</strong>, so Amine’s Friday decision is
+          <strong>BLOCKED</strong>. Separately, Atlas Supply moved shipment <strong>SH-204</strong> from Monday to Wednesday
+          <strong>+2 days</strong>. That break runs through RK-7 into three orders —
+          <strong>850,000 DZD associated revenue</strong> — and three invoices —
+          <strong>540,000 DZD expected cash timing</strong>. Associated is a graph sum. It is not a loss.
+        </p>
+
+        <div class="exits">
+          <button class="exit primary" data-id="ship204" type="button">Inspect SH-204</button>
+          <a class="exit" href="../11-pulse/pulse.html">Open Pulse · 2 NEEDS YOU</a>
+          <a class="exit ghost" href="../16-simulation/simulation.html">What-if lives in Simulate</a>
+        </div>
+
+        <section class="section" aria-labelledby="structure-title">
+          <h2 class="block-title" id="structure-title">Structure EvoPulse holds</h2>
+          <div class="cascade cascade-visual">
+            <div class="flow-row">
+              <button class="node wide" data-id="supplier" aria-pressed="false">
+                <div class="t">Supplier</div>
+                <div class="n">Atlas Supply</div>
+              </button>
+              <div class="edge">supplies →</div>
+              <button class="node wide" data-id="ship204" aria-pressed="true">
+                <div class="t">Shipment</div>
+                <div class="n">SH-204</div>
+                <div class="a">Monday → Wednesday · +2 days</div>
+                <div class="status at-risk">Delayed</div>
+              </button>
+            </div>
+            <div class="flow-row">
+              <div class="edge">contains →</div>
+              <button class="node wide" data-id="rk7" aria-pressed="false">
+                <div class="t">Product</div>
+                <div class="n">RK-7 kit</div>
+                <div class="a">Inventory 3</div>
+              </button>
+            </div>
+            <div class="flow-row">
+              <div class="edge">required by →</div>
+              <div class="nodes">
+                <button class="node" data-id="orderA" aria-pressed="false">
+                  <div class="t">Order A</div>
+                  <div class="n">Oran Fresh</div>
+                  <div class="a">320,000 DZD</div>
+                </button>
+                <button class="node" data-id="orderB" aria-pressed="false">
+                  <div class="t">Order B</div>
+                  <div class="n">Constantine Clinic</div>
+                  <div class="a">280,000 DZD</div>
+                </button>
+                <button class="node" data-id="orderC" aria-pressed="false">
+                  <div class="t">Order C</div>
+                  <div class="n">Sétif Depot</div>
+                  <div class="a">250,000 DZD</div>
+                </button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="edge">belongs to →</div>
+              <div class="nodes">
+                <button class="node" data-id="custA" aria-pressed="false"><div class="t">Customer</div><div class="n">Oran Fresh Market</div></button>
+                <button class="node" data-id="custB" aria-pressed="false"><div class="t">Customer</div><div class="n">Constantine Clinic</div></button>
+                <button class="node" data-id="custC" aria-pressed="false"><div class="t">Customer</div><div class="n">Sétif Depot</div></button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="edge">produces →</div>
+              <div class="nodes">
+                <button class="node" data-id="invA" aria-pressed="false"><div class="t">Invoice A</div><div class="n">200,000 DZD</div></button>
+                <button class="node" data-id="invB" aria-pressed="false"><div class="t">Invoice B</div><div class="n">180,000 DZD</div></button>
+                <button class="node" data-id="invC" aria-pressed="false"><div class="t">Invoice C</div><div class="n">160,000 DZD</div></button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="edge">expected payment →</div>
+              <button class="node wide" data-id="cashWeek" aria-pressed="false">
+                <div class="t">Cash week of 28 Sep</div>
+                <div class="n">540,000 DZD</div>
+                <div class="a">Expected timing · due Fri 2 Oct</div>
+                <div class="status monitoring">Monitoring</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="reading" id="graph-reading">
+            <h2>How this is connected — textual graph</h2>
+            <ol>
+              <li><button class="inline" data-id="supplier" aria-pressed="false">Atlas Supply</button> <em>supplies</em> <button class="inline" data-id="ship204" aria-pressed="true">shipment SH-204</button>.</li>
+              <li>SH-204 was expected <strong>Monday 28 Sep 09:00</strong>. Supplier moved it to <strong>Wednesday 30 Sep 09:00</strong> (+2 days). Kind: <strong>OBSERVED FACT</strong>. Confidence 96%.</li>
+              <li>SH-204 <em>contains</em> <button class="inline" data-id="rk7" aria-pressed="false">pallet racking kit RK-7</button> (sku RK-7, inventory 3).</li>
+              <li>RK-7 is <em>required_by</em> <button class="inline" data-id="orderA" aria-pressed="false">Order A — Oran Fresh 320,000 DZD</button>, <button class="inline" data-id="orderB" aria-pressed="false">Order B — Constantine Clinic 280,000 DZD</button>, <button class="inline" data-id="orderC" aria-pressed="false">Order C — Sétif Depot 250,000 DZD</button>.</li>
+              <li>Those three order amounts sum to <strong>850,000 DZD associated revenue</strong>. Graph fact. Not a claim the money is lost.</li>
+              <li>Orders <em>belong_to</em> <button class="inline" data-id="custA" aria-pressed="false">Oran Fresh Market</button>, <button class="inline" data-id="custB" aria-pressed="false">Constantine Clinic</button>, <button class="inline" data-id="custC" aria-pressed="false">Sétif Depot</button>.</li>
+              <li>Orders <em>produce</em> <button class="inline" data-id="invA" aria-pressed="false">Invoice A 200,000</button>, <button class="inline" data-id="invB" aria-pressed="false">Invoice B 180,000</button>, <button class="inline" data-id="invC" aria-pressed="false">Invoice C 160,000 DZD</button>.</li>
+              <li>Invoices <em>expected_payment</em> into <button class="inline" data-id="cashWeek" aria-pressed="false">expected cash — week of 28 Sep: 540,000 DZD</button>. Timing, not a cash-loss forecast.</li>
+              <li>Separately: <button class="inline" data-id="cmtOurs" aria-pressed="false">Atlas Q4 warehouse fit-out 320,000 DZD</button> is an opportunity of Atlas Retail Group, owned with Amine Khelifi. OUR send is <strong>MISSED</strong>. THEIR Friday decision <em>depends on</em> that send and is <strong>BLOCKED</strong>.</li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="commit-title">
+          <h2 class="block-title" id="commit-title">Commitments and expectations</h2>
+          <div class="split">
+            <div class="panel">
+              <h2>Sales chain</h2>
+              <button class="row" data-id="cmtOurs" aria-pressed="false">
+                <div>
+                  <div class="who">Our · missed</div>
+                  <p>Send the revised 320,000 DZD proposal</p>
+                </div>
+                <span class="status missed">Missed</span>
+              </button>
+              <button class="row" data-id="expOurs" aria-pressed="false">
+                <div>
+                  <div class="who">Expects quote.sent · Thu 24 Sep 18:00</div>
+                  <p>No proposal-sent event before Thursday 18:00</p>
+                </div>
+                <span class="status missed">Missed</span>
+              </button>
+              <button class="row" data-id="cmtTheirs" aria-pressed="false">
+                <div>
+                  <div class="who">Theirs · blocked · depends on our send</div>
+                  <p>Customer gives a decision on Friday</p>
+                </div>
+                <span class="status blocked">Blocked</span>
+              </button>
+              <button class="row" data-id="expTheirs" aria-pressed="false">
+                <div>
+                  <div class="who">Expects customer.decision · Fri 25 Sep</div>
+                  <p>Blocked — customer cannot decide without the revised proposal</p>
+                </div>
+                <span class="status blocked">Blocked</span>
+              </button>
+            </div>
+            <div class="panel">
+              <h2>Operations chain</h2>
+              <button class="row" data-id="cmtShip" aria-pressed="false">
+                <div>
+                  <div class="who">Our · receive_shipment</div>
+                  <p>Receive shipment SH-204 Monday</p>
+                </div>
+                <span class="status at-risk">At risk</span>
+              </button>
+              <button class="row" data-id="expShip" aria-pressed="false">
+                <div>
+                  <div class="who">Expects shipment.arrived</div>
+                  <p>Monday 28 Sep → Wednesday 30 Sep</p>
+                </div>
+                <span class="status at-risk">At risk</span>
+              </button>
+              <button class="row" data-id="cmtDeliver" aria-pressed="false">
+                <div>
+                  <div class="who">Our · deliver_order</div>
+                  <p>Deliver Order A to Oran Fresh Tuesday</p>
+                </div>
+                <span class="status at-risk">At risk</span>
+              </button>
+              <button class="row" data-id="expDeliver" aria-pressed="false">
+                <div>
+                  <div class="who">Expects order.delivered</div>
+                  <p>Blocked by SH-204 arriving Wednesday — Tuesday delivery at risk</p>
+                </div>
+                <span class="status at-risk">At risk</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="events-title">
+          <h2 class="block-title" id="events-title">Events the twin used</h2>
+          <div class="spine">
+            <button class="row" data-id="evtMsg1" aria-pressed="false">
+              <div>
+                <div class="who">Wed 23 Sep 16:42 · message.received · inbox</div>
+                <p>Amine Khelifi — send the revised 320,000 DZD proposal tomorrow</p>
+              </div>
+              <span class="status healthy">Observed fact</span>
+            </button>
+            <button class="row" data-id="evtMiss" aria-pressed="false">
+              <div>
+                <div class="who">Thu 24 Sep 18:00 · commitment.missed · pulse-engine</div>
+                <p>OUR send lapsed. Exception NEEDS YOU · 320,000 DZD associated</p>
+              </div>
+              <span class="status missed">Missed</span>
+            </button>
+            <button class="row" data-id="evtSupplier" aria-pressed="false">
+              <div>
+                <div class="who">Sun 27 Sep 09:13 · message.received · supplier-inbox</div>
+                <p>Atlas Supply — Wednesday instead of Monday</p>
+              </div>
+              <span class="status healthy">Observed fact</span>
+            </button>
+            <button class="row" data-id="evtDelay" aria-pressed="false">
+              <div>
+                <div class="who">Sun 27 Sep 09:13 · shipment.delayed · ingest</div>
+                <p>SH-204 expectedAt rewritten. Confidence 96%</p>
+              </div>
+              <span class="status at-risk">At risk</span>
+            </button>
+            <button class="row" data-id="evtCascade" aria-pressed="false">
+              <div>
+                <div class="who">Sun 27 Sep 09:14 · dependency.cascade · impact-engine</div>
+                <p>3 orders · 3 customers · 850,000 associated · 540,000 cash timing</p>
+              </div>
+              <span class="status attention">Calculated impact</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="goal-title">
+          <h2 class="block-title" id="goal-title">Goal the twin knows</h2>
+          <button class="goal" data-id="goalRev" aria-pressed="false">
+            <div>
+              <div class="who status draft">Draft · seed · protect_revenue not typed yet</div>
+              <h3>Protect September revenue</h3>
+              <p>Target stored on the seed row: close Atlas 320K. Outcome-engine goals are created from Command; this row is the seed fact, status DRAFT.</p>
+            </div>
+            <span class="status draft">Draft</span>
+          </button>
+        </section>
+      </main>
+
+      <aside class="inspector" aria-label="Inspector" aria-live="polite">
+        <h2 id="insp-kicker">Inspect · Event</h2>
+        <p class="status at-risk" id="insp-status">Delayed</p>
+        <h3 id="insp-title">Shipment SH-204</h3>
+        <dl id="insp-fields">
+          <div><dt>Source</dt><dd>Supplier conversation</dd></div>
+          <div>
+            <dt>Evidence</dt>
+            <dd>
+              <p class="quote">“Your shipment will arrive Wednesday instead of Monday.”</p>
+            </dd>
+          </div>
+          <div><dt>Timestamp</dt><dd>Sun 27 Sep 09:13</dd></div>
+          <div><dt>Confidence</dt><dd>96%</dd></div>
+          <div><dt>Relationship</dt><dd>supplied by Atlas Supply · contains RK-7</dd></div>
+          <div><dt>Value</dt><dd>850,000 DZD associated revenue downstream — not lost</dd></div>
+          <div><dt>Expected</dt><dd>Monday 28 Sep 09:00</dd></div>
+          <div><dt>Actual</dt><dd>Wednesday 30 Sep 09:00 · +2 days</dd></div>
+          <div><dt>Kind</dt><dd>OBSERVED FACT</dd></div>
+        </dl>
+        <p class="inspector-foot">Inspector is read-only. Acting on NEEDS YOU happens on Pulse. What-if happens on Simulate.</p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const OBJECTS = {
+      sales: {
+        kicker: "Inspect · Domain",
+        status: "Attention",
+        tone: "attention",
+        title: "Sales",
+        fields: [
+          ["Headline", "320K commitment exception"],
+          ["Exceptions", "1 open · NEEDS YOU"],
+          ["Commitments", "2 — OUR send, THEIR decision"],
+          ["Dependencies", "Friday decision depends on Thursday send"],
+          ["Recent changes", "Our commitment missed — revised proposal never sent"],
+          ["Future expectations", "Friday customer decision depends on the revised proposal"],
+          ["Attention value", "320,000 DZD associated — not a forecast"],
+          ["Source", "Pulse / twin.domains.SALES"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      operations: {
+        kicker: "Inspect · Domain",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Operations",
+        fields: [
+          ["Headline", "1 critical dependency broken · 3 orders affected"],
+          ["Exceptions", "1 · delivery_delay · NEEDS YOU"],
+          ["Recent changes", "SH-204 Monday → Wednesday"],
+          ["Future expectations", "Wednesday shipment arrival · Order A delivery"],
+          ["Attention value", "850,000 DZD associated revenue"],
+          ["Source", "Graph impact from SH-204"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      cash: {
+        kicker: "Inspect · Domain",
+        status: "Monitoring",
+        tone: "monitoring",
+        title: "Cash",
+        fields: [
+          ["Headline", "540,000 DZD expected cash timing affected"],
+          ["Exceptions", "1 (same delay, cash view)"],
+          ["Recent changes", "Invoice cash week depends on delayed racking"],
+          ["Future expectations", "540K DZD expected cash events still dated next week"],
+          ["Attention value", "540,000 DZD expected timing — not lost cash"],
+          ["Due", "Fri 2 Oct 17:00"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      customers: {
+        kicker: "Inspect · Domain",
+        status: "Attention",
+        tone: "attention",
+        title: "Customers",
+        fields: [
+          ["Headline", "3 customers affected"],
+          ["Who", "Oran Fresh Market · Constantine Clinic · Sétif Depot"],
+          ["Plus", "Amine Khelifi waiting on the revised 320K proposal"],
+          ["Recent changes", "Three customer orders share SH-204"],
+          ["Kind", "CALCULATED IMPACT"],
+          ["Note", "This is a wait-state, not a CRM list."]
+        ]
+      },
+      suppliers: {
+        kicker: "Inspect · Domain",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Suppliers",
+        fields: [
+          ["Headline", "1 shipment delayed · +2 days"],
+          ["Supplier", "Atlas Supply · Algiers · racking supplier"],
+          ["Recent changes", "Supplier message: Wednesday instead of Monday"],
+          ["Future expectations", "Wednesday 30 Sep arrival"],
+          ["Attention value", "2 days"],
+          ["Evidence", "“Your shipment will arrive Wednesday instead of Monday.”"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      supplier: {
+        kicker: "Inspect · Entity",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Atlas Supply",
+        fields: [
+          ["Type", "supplier"],
+          ["City / role", "Algiers · racking supplier"],
+          ["Relationship", "supplies SH-204"],
+          ["Source", "Seed graph · ent_atlas_supply"],
+          ["Evidence", "Inbound supplier of pallet racking"],
+          ["Timestamp", "Seeded 12 Sep 10:00"],
+          ["Confidence", "95%"],
+          ["Value", "—"]
+        ]
+      },
+      ship204: {
+        kicker: "Inspect · Event",
+        status: "Delayed",
+        tone: "at-risk",
+        title: "Shipment SH-204",
+        fields: [
+          ["Source", "Supplier conversation"],
+          ["Evidence", "“Your shipment will arrive Wednesday instead of Monday.”"],
+          ["Timestamp", "Sun 27 Sep 09:13"],
+          ["Confidence", "96%"],
+          ["Relationship", "supplied by Atlas Supply · contains RK-7"],
+          ["Value", "850,000 DZD associated revenue downstream — not lost"],
+          ["Expected", "Monday 28 Sep 09:00"],
+          ["Actual", "Wednesday 30 Sep 09:00 · +2 days"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      rk7: {
+        kicker: "Inspect · Entity",
+        status: "Dependency",
+        tone: "monitoring",
+        title: "Pallet racking kit RK-7",
+        fields: [
+          ["Type", "product"],
+          ["SKU / inventory", "RK-7 · 3"],
+          ["Relationship", "contained by SH-204 · required_by Orders A, B, C"],
+          ["Source", "Seed graph"],
+          ["Evidence", "Product rides on SH-204"],
+          ["Value", "Unlocks 850,000 DZD associated order amounts"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      orderA: {
+        kicker: "Inspect · Entity",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Order A — Oran Fresh",
+        fields: [
+          ["Amount", "320,000 DZD associated"],
+          ["Due", "Tue 29 Sep 10:00 · lead 1 day after stock"],
+          ["Relationship", "required_by RK-7 · belongs_to Oran Fresh Market · produces Invoice A"],
+          ["Why affected", "Order A is affected because SH-204 contains RK-7, which is required_by this order."],
+          ["Source", "Graph impact"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      orderB: {
+        kicker: "Inspect · Entity",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Order B — Constantine Clinic",
+        fields: [
+          ["Amount", "280,000 DZD associated"],
+          ["Due", "Fri 2 Oct 17:00 · lead 1 day"],
+          ["Relationship", "required_by RK-7 · belongs_to Constantine Clinic · produces Invoice B"],
+          ["Why affected", "Order B is affected because: Atlas Supply supplies SH-204, which contains RK-7, which is required_by Order B."],
+          ["Source", "Supplier message"],
+          ["Evidence", "“Your shipment will arrive Wednesday instead of Monday.”"],
+          ["Confidence", "96%"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      orderC: {
+        kicker: "Inspect · Entity",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Order C — Sétif Depot",
+        fields: [
+          ["Amount", "250,000 DZD associated"],
+          ["Due", "Mon 6 Oct 17:00 · lead 2 days"],
+          ["Relationship", "required_by RK-7 · belongs_to Sétif Depot · produces Invoice C"],
+          ["Source", "Graph impact"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      custA: {
+        kicker: "Inspect · Entity",
+        status: "Attention",
+        tone: "attention",
+        title: "Oran Fresh Market",
+        fields: [
+          ["City", "Oran"],
+          ["Relationship", "Order A belongs_to this customer"],
+          ["Wait-state", "Delivery Tuesday depends on SH-204"],
+          ["Note", "A wait-state in the twin — not a CRM account record."]
+        ]
+      },
+      custB: {
+        kicker: "Inspect · Entity",
+        status: "Attention",
+        tone: "attention",
+        title: "Constantine Clinic",
+        fields: [
+          ["City", "Constantine"],
+          ["Relationship", "Order B belongs_to this customer"],
+          ["Associated order", "280,000 DZD"],
+          ["Note", "A wait-state in the twin — not a CRM account record."]
+        ]
+      },
+      custC: {
+        kicker: "Inspect · Entity",
+        status: "Attention",
+        tone: "attention",
+        title: "Sétif Depot",
+        fields: [
+          ["City", "Sétif"],
+          ["Relationship", "Order C belongs_to this customer"],
+          ["Associated order", "250,000 DZD"],
+          ["Note", "A wait-state in the twin — not a CRM account record."]
+        ]
+      },
+      invA: { kicker: "Inspect · Entity", status: "Monitoring", tone: "monitoring", title: "Invoice A", fields: [["Amount", "200,000 DZD"], ["Due", "Fri 2 Oct 17:00"], ["Relationship", "produced by Order A · expected_payment into cash week"], ["Kind", "CALCULATED IMPACT"]] },
+      invB: { kicker: "Inspect · Entity", status: "Monitoring", tone: "monitoring", title: "Invoice B", fields: [["Amount", "180,000 DZD"], ["Due", "Fri 2 Oct 17:00"], ["Relationship", "produced by Order B · expected_payment into cash week"], ["Kind", "CALCULATED IMPACT"]] },
+      invC: { kicker: "Inspect · Entity", status: "Monitoring", tone: "monitoring", title: "Invoice C", fields: [["Amount", "160,000 DZD"], ["Due", "Fri 2 Oct 17:00"], ["Relationship", "produced by Order C · expected_payment into cash week"], ["Kind", "CALCULATED IMPACT"]] },
+      cashWeek: {
+        kicker: "Inspect · Entity",
+        status: "Monitoring",
+        tone: "monitoring",
+        title: "Expected cash — week of 28 Sep",
+        fields: [
+          ["Amount", "540,000 DZD"],
+          ["Composition", "Invoice A 200,000 + B 180,000 + C 160,000"],
+          ["Due", "Fri 2 Oct 17:00"],
+          ["Meaning", "Expected cash timing. Not a claim the cash is lost."],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      cmtOurs: {
+        kicker: "Inspect · Commitment",
+        status: "Missed",
+        tone: "missed",
+        title: "Send the revised 320,000 DZD proposal",
+        fields: [
+          ["Actor", "OUR · company"],
+          ["Deadline", "Thu 24 Sep 18:00"],
+          ["Evidence", "“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”"],
+          ["Source", "Customer conversation · Amine Khelifi"],
+          ["Timestamp", "Wed 23 Sep 16:42"],
+          ["Confidence", "94%"],
+          ["Value", "320,000 DZD associated opportunity"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      expOurs: {
+        kicker: "Inspect · Expectation",
+        status: "Missed",
+        tone: "missed",
+        title: "Revised 320,000 DZD proposal sent Thursday",
+        fields: [
+          ["Expected event", "quote.sent"],
+          ["Expected at", "Thu 24 Sep 18:00"],
+          ["Actual", "No proposal-sent event before Thursday 18:00"],
+          ["Source type", "commitment"],
+          ["Confidence", "94%"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      cmtTheirs: {
+        kicker: "Inspect · Commitment",
+        status: "Blocked",
+        tone: "blocked",
+        title: "Customer gives a decision on Friday",
+        fields: [
+          ["Actor", "THEIRS · Amine Khelifi"],
+          ["Deadline", "Fri 25 Sep 17:00"],
+          ["Relationship", "depends on OUR send"],
+          ["Evidence", "“…and I'll give you my decision Friday.”"],
+          ["Confidence", "92%"]
+        ]
+      },
+      expTheirs: {
+        kicker: "Inspect · Expectation",
+        status: "Blocked",
+        tone: "blocked",
+        title: "Customer decision Friday",
+        fields: [
+          ["Expected event", "customer.decision"],
+          ["Actual", "Blocked — customer cannot decide without the revised proposal"],
+          ["Source type", "commitment"],
+          ["Confidence", "92%"]
+        ]
+      },
+      cmtShip: {
+        kicker: "Inspect · Commitment",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Receive shipment SH-204 Monday",
+        fields: [
+          ["Actor", "OUR · company"],
+          ["Deadline now", "Wed 30 Sep 09:00 (moved)"],
+          ["Original", "Mon 28 Sep 09:00"],
+          ["Evidence", "Seeded inbound shipment from Atlas Supply"],
+          ["Confidence", "95%"]
+        ]
+      },
+      expShip: {
+        kicker: "Inspect · Expectation",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Shipment SH-204 arrives Monday",
+        fields: [
+          ["Expected event", "shipment.arrived"],
+          ["Expected / actual", "Monday 28 Sep → Wednesday 30 Sep"],
+          ["Actual", "Supplier moved arrival Monday → Wednesday (+2 days)"],
+          ["Confidence", "95% → event 96%"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      cmtDeliver: {
+        kicker: "Inspect · Commitment",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Deliver Order A to Oran Fresh Tuesday",
+        fields: [
+          ["Deadline", "Tue 29 Sep 10:00"],
+          ["Relationship", "depends on SH-204 arriving Monday"],
+          ["Evidence", "Customer delivery depends on SH-204 arriving Monday"],
+          ["Confidence", "91%"]
+        ]
+      },
+      expDeliver: {
+        kicker: "Inspect · Expectation",
+        status: "At risk",
+        tone: "at-risk",
+        title: "Order A delivered to Oran Fresh Tuesday",
+        fields: [
+          ["Expected event", "order.delivered"],
+          ["Actual", "Blocked by SH-204 arriving Wednesday — Tuesday delivery at risk"],
+          ["Confidence", "91%"]
+        ]
+      },
+      evtMsg1: {
+        kicker: "Inspect · Event",
+        status: "Observed fact",
+        tone: "healthy",
+        title: "message.received",
+        fields: [
+          ["Source", "inbox"],
+          ["Actor", "Amine Khelifi"],
+          ["Evidence", "“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”"],
+          ["Timestamp", "Wed 23 Sep 16:42"],
+          ["Confidence", "100%"]
+        ]
+      },
+      evtMiss: {
+        kicker: "Inspect · Event",
+        status: "Missed",
+        tone: "missed",
+        title: "commitment.missed",
+        fields: [
+          ["Source", "pulse-engine"],
+          ["Expected", "Revised proposal sent Thursday 24 Sep 18:00"],
+          ["Actual", "No proposal-sent event before Thursday 18:00"],
+          ["Exception", "NEEDS YOU · missed_commitment · 320,000 DZD associated"],
+          ["Confidence", "94%"]
+        ]
+      },
+      evtSupplier: {
+        kicker: "Inspect · Event",
+        status: "Observed fact",
+        tone: "healthy",
+        title: "message.received",
+        fields: [
+          ["Source", "supplier-inbox"],
+          ["Actor", "Atlas Supply"],
+          ["Evidence", "“Your shipment will arrive Wednesday instead of Monday.”"],
+          ["Timestamp", "Sun 27 Sep 09:13"],
+          ["Confidence", "100%"]
+        ]
+      },
+      evtDelay: {
+        kicker: "Inspect · Event",
+        status: "At risk",
+        tone: "at-risk",
+        title: "shipment.delayed",
+        fields: [
+          ["Source", "ingest"],
+          ["Delta", "+2 days"],
+          ["Expected", "Mon 28 Sep 09:00"],
+          ["Actual", "Wed 30 Sep 09:00"],
+          ["Confidence", "96%"],
+          ["Kind", "OBSERVED FACT"]
+        ]
+      },
+      evtCascade: {
+        kicker: "Inspect · Event",
+        status: "Calculated impact",
+        tone: "attention",
+        title: "dependency.cascade",
+        fields: [
+          ["Source", "impact-engine"],
+          ["Timestamp", "Sun 27 Sep 09:14"],
+          ["Orders / customers", "3 / 3"],
+          ["Associated revenue", "850,000 DZD — not lost"],
+          ["Expected cash timing", "540,000 DZD — timing, not a loss"],
+          ["Kind", "CALCULATED IMPACT"]
+        ]
+      },
+      goalRev: {
+        kicker: "Inspect · Goal",
+        status: "Draft",
+        tone: "draft",
+        title: "Protect September revenue",
+        fields: [
+          ["Target", "close Atlas 320K"],
+          ["Status", "DRAFT — schema default on the seed row"],
+          ["Source", "seed"],
+          ["Note", "Command creates typed outcome goals (protect_business, protect_cash). This seed row is what the twin already stores."],
+          ["Related attention", "320,000 DZD miss + 850,000 DZD cascade sit beside this goal — they are not a health score for it."]
+        ]
+      }
+    };
+
+    const kicker = document.getElementById("insp-kicker");
+    const status = document.getElementById("insp-status");
+    const title = document.getElementById("insp-title");
+    const fields = document.getElementById("insp-fields");
+
+    function render(id) {
+      const item = OBJECTS[id];
+      if (!item) return;
+      document.querySelectorAll("[data-id]").forEach((el) => {
+        if (el.hasAttribute("aria-pressed")) el.setAttribute("aria-pressed", el.dataset.id === id ? "true" : "false");
+      });
+      kicker.textContent = item.kicker;
+      status.textContent = item.status;
+      status.className = "status " + item.tone;
+      title.textContent = item.title;
+      fields.innerHTML = item.fields.map(([k, v]) => {
+        const quoted = v.startsWith("“") ? `<p class="quote">${escapeHtml(v)}</p>` : escapeHtml(v);
+        return `<div><dt>${escapeHtml(k)}</dt><dd>${quoted}</dd></div>`;
+      }).join("");
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-id]");
+      if (!target || target.tagName === "A") return;
+      event.preventDefault();
+      render(target.dataset.id);
+    });
+
+    render("ship204");
+  </script>
+</body>
+</html>

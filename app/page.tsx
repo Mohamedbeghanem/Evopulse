@@ -4,6 +4,7 @@ import { formatDay, formatMoney } from "@/lib/clock";
 import { getDb, getMeta } from "@/lib/db";
 import { pulseSummary } from "@/lib/engine/pulse";
 import { IDS } from "@/lib/ids";
+import type { AttentionItem } from "@/lib/attention";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +13,13 @@ export default function PulsePage() {
   const pulse = pulseSummary(db, getMeta(db, "demo_now"));
   const phase = getMeta(db, "demo_phase", "seeded");
   const supplierPhase = getMeta(db, "supplier_phase", "stable");
-  const delay = pulse.exceptions.find((e) => e.id === IDS.excDelay && e.attention === "NEEDS_YOU");
-  const miss = pulse.exceptions.find((e) => e.id === IDS.excMissed);
-  const discount = pulse.exceptions.find((e) => e.id === IDS.excDiscount && e.attention === "NEEDS_YOU");
-  const salesCard = discount || miss;
+  const attention = pulse.attention;
+  const summary = attention.summary;
   const twin = pulse.twin;
+  const delay = attention.needsMe.find((item) => item.sourceExceptionId === IDS.excDelay);
+  const sales = attention.needsMe.find(
+    (item) => item.sourceExceptionId === IDS.excMissed || item.sourceExceptionId === IDS.excDiscount,
+  );
 
   return (
     <div className="space-y-10">
@@ -27,20 +30,21 @@ export default function PulsePage() {
             {pulse.headline}
           </h1>
           <p className="mt-4 max-w-xl text-sand">
-            What requires your attention. Expected versus actual — not a dashboard of charts.
+            Your business is running. {summary.eventsProcessed} events understood · {summary.autoHandled} handled
+            automatically · {summary.monitoring} monitoring · {summary.needsYou + summary.needsApproval} need you.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             {delay ? (
               <Link
-                href={`/impact/${IDS.excDelay}`}
+                href={delay.href}
                 className="animate-throb rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950"
               >
                 View supplier impact
               </Link>
             ) : null}
-            {salesCard ? (
+            {sales ? (
               <Link
-                href={`/exceptions/${salesCard.id}`}
+                href={sales.href}
                 className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
               >
                 Review recovery
@@ -55,10 +59,10 @@ export default function PulsePage() {
           </div>
         </div>
         <aside className="grid grid-cols-2 gap-3 self-start">
-          <Stat label="NEEDS YOU" count={pulse.counts.NEEDS_YOU} className="text-need" />
-          <Stat label="HANDLED" count={pulse.counts.HANDLED} className="text-ok" />
-          <Stat label="MONITORING" count={pulse.counts.MONITORING} className="text-ice" />
-          <Stat label="HEALTHY" count={pulse.counts.HEALTHY} className="text-mute" />
+          <Stat label="NEEDS YOU" count={summary.needsYou} className="text-need" />
+          <Stat label="APPROVAL" count={summary.needsApproval} className="text-need" />
+          <Stat label="MONITORING" count={summary.monitoring} className="text-ice" />
+          <Stat label="HANDLED" count={summary.handled} className="text-ok" />
         </aside>
       </section>
 
@@ -76,70 +80,42 @@ export default function PulsePage() {
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">
-          <h2 className="font-serif text-3xl">Critical</h2>
+          <h2 className="font-serif text-3xl">What needs me?</h2>
           <p className="font-mono text-xs text-mute">
             phase {phase} · supplier {supplierPhase}
           </p>
         </div>
-
-        <div className="space-y-3">
-          {delay ? (
-            <article className="rounded-2xl border border-need/40 bg-need/5 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>SUPPLIER CASCADE</Badge>
-                    <Badge>NEEDS YOU</Badge>
-                  </div>
-                  <h3 className="mt-3 font-serif text-2xl">Atlas Supply · shipment delayed +2 days</h3>
-                  <p className="mt-2 text-sm text-sand">
-                    {delay.evidence.quote} 3 orders · 3 customers ·{" "}
-                    {formatMoney(delay.impact.revenueAssociated)} associated revenue · 540,000 DZD expected
-                    cash timing affected.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-2xl text-need">{formatMoney(delay.impact.revenueAssociated)}</p>
-                  <p className="text-xs text-mute">associated — not lost</p>
-                </div>
-              </div>
-              <Link
-                href={`/impact/${IDS.excDelay}`}
-                className="mt-4 inline-flex rounded-full bg-need px-4 py-2 text-sm font-medium text-ink-950"
-              >
-                View Impact
-              </Link>
-            </article>
-          ) : null}
-
-          {salesCard ? (
-            <article className="rounded-2xl border border-white/10 bg-ink-800/50 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>CUSTOMER COMMITMENT</Badge>
-                    <Badge>{salesCard.attention}</Badge>
-                  </div>
-                  <h3 className="mt-3 font-serif text-2xl">{salesCard.title}</h3>
-                  <p className="mt-1 text-sm text-sand">{salesCard.evidence.quote}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-2xl text-need">
-                    {formatMoney(salesCard.impact.revenueAssociated, salesCard.impact.currency)}
-                  </p>
-                  <p className="text-xs text-mute">Clinique / Atlas 320K</p>
-                </div>
-              </div>
-              <Link
-                href={salesCard.id === IDS.excMissed ? `/exceptions/${IDS.excMissed}/plan` : `/exceptions/${salesCard.id}`}
-                className="mt-4 inline-flex rounded-full bg-paper px-4 py-2 text-sm font-medium text-ink-950"
-              >
-                Review Recovery
-              </Link>
-            </article>
-          ) : null}
-        </div>
+        {attention.needsMe.length ? (
+          attention.needsMe.map((item) => <AttentionCard key={item.id} item={item} />)
+        ) : (
+          <p className="rounded-2xl border border-white/10 p-5 text-sand">Nothing needs you.</p>
+        )}
       </section>
+
+      {attention.watching.length ? (
+        <section className="space-y-4">
+          <h2 className="font-serif text-3xl">Watching</h2>
+          {attention.watching.map((item) => (
+            <AttentionCard key={item.id} item={item} />
+          ))}
+        </section>
+      ) : null}
+
+      {attention.handled.length ? (
+        <section className="space-y-3">
+          <h2 className="font-serif text-3xl">Handled</h2>
+          {attention.handled.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-ok/20 bg-ok/5 p-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge>{item.classification}</Badge>
+                <Badge>{item.reasonCode}</Badge>
+              </div>
+              <h3 className="mt-3 font-serif text-2xl">{item.title}</h3>
+              <p className="mt-2 text-sm text-sand">{item.summary}</p>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 p-4">
@@ -172,6 +148,58 @@ export default function PulsePage() {
 
       <p className="hidden font-mono text-[10px] text-mute">{IDS.excMissed}</p>
     </div>
+  );
+}
+
+function AttentionCard({ item }: { item: AttentionItem }) {
+  return (
+    <article className="rounded-2xl border border-need/30 bg-need/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <Badge>{item.classification}</Badge>
+            <Badge>{item.reasonCode}</Badge>
+          </div>
+          <h3 className="mt-3 font-serif text-2xl">{item.title}</h3>
+          <p className="mt-2 text-sm text-sand">{item.summary}</p>
+          {item.impact.associatedRevenue != null ? (
+            <p className="mt-2 text-sm text-sand">
+              {item.impact.orders != null ? `${item.impact.orders} orders · ` : null}
+              {item.impact.customers != null ? `${item.impact.customers} customers · ` : null}
+              {formatMoney(item.impact.associatedRevenue, item.impact.currency)} associated
+              {item.impact.expectedCash != null
+                ? ` · ${formatMoney(item.impact.expectedCash, item.impact.currency)} expected cash timing`
+                : null}
+              . Not a loss claim.
+            </p>
+          ) : null}
+          <ul className="mt-3 space-y-1 text-sm text-mute">
+            {item.layers.map((layer) => (
+              <li key={`${layer.kind}-${layer.id || layer.label}`}>
+                {layer.kind}: {layer.label}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm text-paper">Needs you: {item.needsFromYou}</p>
+        </div>
+        {item.impact.associatedRevenue != null ? (
+          <div className="text-right">
+            <p className="font-mono text-2xl text-need">
+              {formatMoney(item.impact.associatedRevenue, item.impact.currency)}
+            </p>
+            <p className="text-xs text-mute">associated — not lost</p>
+          </div>
+        ) : null}
+      </div>
+      <Link href={item.href} className="mt-4 inline-flex rounded-full bg-need px-4 py-2 text-sm font-medium text-ink-950">
+        Review
+      </Link>
+      {item.autopilotDecisionId ? (
+        <Link href={`/autopilot/${item.autopilotDecisionId}`} className="ml-3 text-sm underline underline-offset-4">
+          Why?
+        </Link>
+      ) : null}
+    </article>
   );
 }
 
