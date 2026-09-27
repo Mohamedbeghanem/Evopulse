@@ -1,51 +1,48 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { connection } from "next/server";
+import { getDb, getMeta } from "@/lib/db";
+import { CANNED_PROMPTS } from "@/lib/prompts";
+import { demoStamp } from "@/lib/ui/format";
+import type { NavItem } from "@/lib/ui/nav";
 import { DemoBar } from "./DemoBar";
+import { Rail, type RailItem } from "./os/Rail";
+import { TopBar } from "./os/TopBar";
 
-const NAV = [
-  { href: "/", label: "Pulse" },
-  { href: "/explore", label: "Explore" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/simulate", label: "Simulate" },
-  { href: "/command", label: "Command" },
-  { href: "/goals", label: "Goals" },
-  { href: "/graph", label: "Graph" },
+/** The four design screens. ACT points at goals until the /actions screen lands. */
+const NAV: RailItem[] = [
+  { href: "/", label: "Business Twin", short: "Twin", icon: "twin" },
+  { href: "/explore", label: "Causal Explorer", short: "Cause", icon: "cause", match: ["/impact"] },
+  { href: "/timeline", label: "Time Machine", short: "Time", icon: "time" },
+  { href: "/goals", label: "Goal → Action", short: "Act", icon: "act", match: ["/exceptions"] },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const path = usePathname();
+/** Everything else lives behind "More". */
+const MORE: NavItem[] = [
+  { href: "/simulate", label: "Simulate" },
+  { href: "/command", label: "Command" },
+  { href: "/graph", label: "Graph" },
+  { href: "/autonomy", label: "Autonomy" },
+];
+
+export async function AppShell({ children }: { children: React.ReactNode }) {
+  // The demo clock lives in the database, so the shell is always rendered per request.
+  await connection();
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-baseline gap-3">
-            <span className="font-serif text-2xl tracking-tight">EvoPulse</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.22em] text-mute sm:inline">
-              Business Control System
-            </span>
-          </Link>
-          <nav className="flex gap-1 text-sm">
-            {NAV.map((item) => {
-              const active = item.href === "/" ? path === "/" : path.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full px-3 py-1.5 ${
-                    active ? "bg-paper text-ink-950" : "text-sand hover:text-paper"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+    <div className="flex min-h-screen bg-os-bg text-fg">
+      <Rail items={NAV} more={MORE} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar demoStamp={readDemoStamp()} askPlaceholder={`Ask your business… e.g. ${CANNED_PROMPTS[0]}`} />
         <DemoBar />
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-8 sm:px-6 md:pb-8">{children}</main>
+      </div>
     </div>
   );
+}
+
+function readDemoStamp(): string {
+  try {
+    const db = getDb();
+    return demoStamp(getMeta(db, "demo_now"));
+  } catch {
+    return "";
+  }
 }
