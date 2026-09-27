@@ -73,8 +73,10 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 - **Event Layer (product P2 / PLAN §1)** lives at `lib/events/` — `EventRepository`, `EventService`, and an in-process dispatcher. Everything entering EvoPulse becomes a row on the `events` table and is then dispatched to registered handlers. Later engines (graph, twin, pulse matchers) subscribe to this stream; they do not grow a second history.
 - **Business Graph + Impact (product P3)** lives at `lib/graph/` and `lib/engine/impact.ts`. SQLite `graph_nodes` / `graph_edges`; traversal is relational. Impact sums seeded order/invoice amounts — it does not hardcode 850K / 540K.
+- **Business Simulator (what-if)** lives at `lib/simulation/`. It reads the Business Graph into a detached snapshot, clones the slice downstream of the scenario target, applies one change (e.g. supplier delay +3 days), and propagates it deterministically through real edges. Baseline and simulation use the same propagator. Nothing is written — a content hash of every table is taken before and after each run to prove it.
 - **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
+- **Expectation + Pulse/Exception (product P5–P6)** lives at `lib/engine/expectations.ts` and `lib/engine/matcher.ts`. `ExpectedEventMatcher` consumes the Event Layer dispatcher (`registerEngineHook`). Software decides miss vs match from event type, entity scope, and the clock — never an LLM. Control’s `VerificationService` table is unchanged; Detect exports `applyVerificationOutcome` so verify SUCCESS/FAIL can share the same matcher later.
 - Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
 
 ## Stack
@@ -90,8 +92,10 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | Route | Job |
 | --- | --- |
 | `/` | Pulse — attention, NEEDS YOU, impact currency |
+| `/explore` | Causal explorer — cause, event, dependency, consequence |
 | `/timeline` | Business Time Machine — Past / Now / Future + event stream |
-| `/impact/:id` | Causal cascade for the supplier delay |
+| `/impact/:id` | Impact numbers for the supplier delay |
+| `/simulate` | Business Simulator — what-if baseline vs simulation, delta, WHY paths |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
 | `/command` | Outcome commands + grounded questions |
@@ -100,7 +104,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `GET /api/health`
 

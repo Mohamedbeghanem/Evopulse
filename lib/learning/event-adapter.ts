@@ -48,14 +48,20 @@ export function expireAndRecord(db: DatabaseSync, now: string) {
   return failed;
 }
 
-const hooked = new WeakSet<DatabaseSync>();
+const globalForLearning = globalThis as unknown as { evopulseLearningHook?: boolean };
 
-/** Subscribe once per db handle. Safe to call from execute / ingest. */
-export function ensureLearningHooks(db: DatabaseSync) {
-  if (hooked.has(db)) return;
-  hooked.add(db);
+/**
+ * Subscribe once. Detect also wires this via `ensureDetectHooks`.
+ * Uses peekDb so a closed test handle is not captured.
+ */
+export function ensureLearningHooks(_db?: DatabaseSync) {
+  if (globalForLearning.evopulseLearningHook) return;
+  globalForLearning.evopulseLearningHook = true;
   registerEngineHook("learning-verification", (event) => {
     try {
+      const { peekDb } = require("../db") as typeof import("../db");
+      const db = peekDb();
+      if (!db) return;
       handleLearningEvent(db, event);
     } catch (error) {
       console.error("[learning-adapter] handler failed", event.id, event.type, error);

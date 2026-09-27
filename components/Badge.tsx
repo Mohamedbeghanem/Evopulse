@@ -27,7 +27,6 @@ const TONES: Record<string, string> = {
   ACTIVE: "bg-need/20 text-need",
   DRAFT: "bg-white/10 text-sand",
   COMPLETED: "bg-ok/20 text-ok",
-  CANCELLED: "bg-white/10 text-sand",
   OBSERVED_FACT: "bg-ice/20 text-ice",
   CALCULATED_IMPACT: "bg-need/20 text-need",
   HISTORICAL_EVIDENCE: "bg-ok/20 text-ok",

@@ -16,6 +16,13 @@ export function evaluatePolicy(
   action: ProposedAction,
   policies: Record<string, string>,
 ): { outcome: PolicyOutcome; reason: string } {
+  if (action.type === "offer_alternative" && policies.financial_commitment_requires_approval === "true") {
+    return {
+      outcome: "APPROVAL_REQUIRED",
+      reason: "Payment terms are a financial commitment and need approval.",
+    };
+  }
+
   if (action.type === "apply_discount") {
     const requested = Number(action.payload.percent ?? 0);
     const max = Number(policies.discount_max ?? 5);

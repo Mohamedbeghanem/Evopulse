@@ -42,8 +42,7 @@ export function collectBusinessRisks(db: DatabaseSync): BusinessRisk[] {
     : null;
 
   for (const exception of exceptions) {
-    const resolved =
-      exception.status === "resolved" || exception.attention === "HANDLED" || exception.attention === "HEALTHY";
+    const resolved = exception.status === "resolved";
     const impact = parseJson<Impact & { affectedExpectedCash?: number }>(exception.impact_json, {
       customersAffected: 0,
       opportunitiesAffected: 0,

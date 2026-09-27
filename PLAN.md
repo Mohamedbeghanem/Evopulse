@@ -1,5 +1,25 @@
 # EvoPulse — Implementation Plan
 
+## Rebased build order (2026-09-27)
+
+GitHub PR numbers and plan section numbers diverged. This is the order to build from `main` (`78bba37`).
+
+| State | GitHub | Plan section | What it is |
+| --- | --- | --- | --- |
+| On main | #1 | MVP loop | 320K proposal miss → recovery → 10% block |
+| On main | #2 | docs | This plan |
+| On main | #3 | §1 Event layer | Everything becomes an event |
+| On main | #4 | §2–§3 Graph, Twin, partial Impact | Atlas SH-204 cascade, 850K / 540K from stored amounts |
+| On main | #5 | §15–§17 | Verification, outcome ledger, learning foundation (landed early) |
+| On `fix/review-bugs` | — | §7 Causal Explorer | `/explore`. Click a node for source, evidence, timestamp, confidence |
+| On `fix/review-bugs` | #8 | §9 Impact Simulator | Read-only what-if. Missing payment terms no longer invent a day. Slice keeps every predecessor |
+| On `fix/review-bugs` | #7 | §4–§5 | Expectation matcher. Index after migration. Match requires both entity ids. Clock owns MISSED |
+| On `fix/review-bugs` | #6 | §11–§12 | Goal planner. Creating a goal does not fire the supplier delay. Net-14 needs approval. Safe-execute rechecks policy |
+
+Learning stays on main and must not train on simulated rows.
+
+Sections below keep their original numbers. Treat this table as the sequence.
+
 ## Target
 
 Transform EvoPulse from:
@@ -331,6 +351,8 @@ Keep factual exposure separate from AI predictions.
 ---
 
 ## 7. PR #8 — Causal Explorer
+
+**Status (2026-09-27):** implemented on `main` working tree as `/explore`. Click a node for source, evidence, timestamp, confidence, and affected objects. Totals still come from `calculateGraphImpact`. GitHub PR #8 is the later simulator, not this screen.
 
 ### Goal
 

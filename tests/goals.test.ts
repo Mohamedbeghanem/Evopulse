@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { getDb, getMeta, resetDbFile, run } from "../lib/db";
 import { executeAction } from "../lib/engine/execute";
+import { triggerSupplierDelay } from "../lib/engine/supplier";
 import { evaluatePolicy, loadPolicies } from "../lib/engine/policy";
 import { IDS } from "../lib/ids";
 import {
@@ -33,17 +34,20 @@ describe("goal engine + planner", { concurrency: 1 }, () => {
   it("creates a persisted goal and structured plan from live state", () => {
     const db = getDb();
     const now = getMeta(db, "demo_now");
+    assert.equal(getMeta(db, "supplier_phase", "stable"), "stable");
     const result = createGoal(db, { utterance: "Protect everything at risk this week." }, now);
+    assert.equal(getMeta(db, "supplier_phase", "stable"), "stable");
     assert.equal(result.goal.goal_type, "protect_business");
     assert.equal(result.goal.status, "ACTIVE");
     assert.ok(result.plan);
-    assert.ok(result.plan!.actions.length >= 6);
+    assert.ok(result.plan!.actions.length >= 1);
     assert.ok(result.plan!.id);
     assert.equal(result.plan!.goalId, result.goal.id);
   });
 
   it("includes sales / operations / cash risks from stored amounts — not planner constants", () => {
     const db = getDb();
+    triggerSupplierDelay(db);
     const totals = orderAmountsFromDb(db);
     assert.equal(totals.revenue, 850000);
     assert.equal(totals.cash, 540000);
@@ -62,6 +66,7 @@ describe("goal engine + planner", { concurrency: 1 }, () => {
     assert.equal(cash.associatedValue, totals.cash);
     assert.ok(result.context.exceptions.some((e) => e.id === IDS.excMissed));
     assert.ok(result.context.exceptions.some((e) => e.id === IDS.excDelay));
+    assert.ok(result.plan!.actions.length >= 6);
   });
 
   it("excludes resolved and unrelated risks from goal context", () => {

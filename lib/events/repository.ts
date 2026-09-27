@@ -110,6 +110,13 @@ export class EventRepository {
     return this.list({ from, to });
   }
 
+  /** Operator counter only. Does not rewrite type, payload, or timestamps. */
+  updateMetadata(id: string, metadata: Record<string, unknown>) {
+    const cols = columnNames(this.db);
+    if (!cols.has("metadata")) return;
+    run(this.db, "UPDATE events SET metadata = ? WHERE id = ?", [JSON.stringify(metadata), id]);
+  }
+
   findIdempotent(source: string, sourceId: string, type: string): BusinessEvent | undefined {
     const row = one<EventRow>(
       this.db,

@@ -77,7 +77,8 @@ export function triggerSupplierDelay(db: DatabaseSync) {
       SUPPLIER_MSG_ISO,
     ],
   );
-  run(db, "UPDATE expectations SET due_at = ?, status = ?, actual = ?, updated_at = ? WHERE id = ?", [
+  run(db, "UPDATE expectations SET due_at = ?, expected_at = ?, status = ?, actual = ?, updated_at = ? WHERE id = ?", [
+    SHIP_DELAYED_ISO,
     SHIP_DELAYED_ISO,
     "AT_RISK",
     "Supplier moved arrival Monday → Wednesday (+2 days)",
@@ -211,17 +212,23 @@ export function triggerSupplierDelay(db: DatabaseSync) {
     idempotent: true,
   });
 
-  const orderEvents = [
-    [IDS.evtOrderA, IDS.orderA, 320000],
-    [IDS.evtOrderB, IDS.orderB, 280000],
-    [IDS.evtOrderC, IDS.orderC, 250000],
-  ] as const;
+  const orderEventIds: Record<string, string> = {
+    [IDS.orderA]: IDS.evtOrderA,
+    [IDS.orderB]: IDS.evtOrderB,
+    [IDS.orderC]: IDS.evtOrderC,
+  };
+  const orderEvents = Object.entries(orderEventIds).map(([orderId, eventId]) => {
+    const node = graph.getNode(orderId);
+    const raw = node?.metadata.amount;
+    const amount = typeof raw === "number" ? raw : Number(raw || 0);
+    return [eventId, orderId, amount] as const;
+  });
   for (const [eventId, orderId, amount] of orderEvents) {
     events.append({
       id: eventId,
       type: EVENT_TYPES.ORDER_AFFECTED,
       source: "impact-engine",
-      source_id: IDS.shipment,
+      source_id: orderId,
       actor_id: IDS.supplier,
       entity_type: "order",
       entity_id: orderId,

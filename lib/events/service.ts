@@ -31,7 +31,7 @@ const EventInputSchema = z.object({
 /**
  * Replay limits (documented for operators and later engines):
  * - Re-dispatch only. Does not re-run ingest / execute / seed side effects.
- * - Does not insert a duplicate event; increments metadata.replay_count.
+ * - Does not insert a duplicate event. Replay count is metadata only; type, payload, and timestamps stay as stored.
  * - Handlers must key off event.id so a second dispatch is a no-op.
  * - Failed handlers are logged and skipped; remaining events still replay.
  */
@@ -110,9 +110,9 @@ export class EventService {
     const event = this.repo.getById(eventId);
     if (!event) throw new Error("Event not found");
     const stamped = stampReplay(event);
-    this.repo.persist(stamped);
-    this.dispatcher.dispatch({ ...stamped, metadata: { ...stamped.metadata, replay: true } });
-    return { replayed: [stamped], skipped: [], note: REPLAY_LIMITS };
+    this.repo.updateMetadata(event.id, stamped.metadata);
+    this.dispatcher.dispatch({ ...event, metadata: { ...stamped.metadata, replay: true } });
+    return { replayed: [{ ...event, metadata: stamped.metadata }], skipped: [], note: REPLAY_LIMITS };
   }
 
   async replaySequence(options: {
@@ -141,9 +141,9 @@ export class EventService {
     const replayed: BusinessEvent[] = [];
     for (const event of events) {
       const stamped = stampReplay(event);
-      this.repo.persist(stamped);
-      this.dispatcher.dispatch({ ...stamped, metadata: { ...stamped.metadata, replay: true } });
-      replayed.push(stamped);
+      this.repo.updateMetadata(event.id, stamped.metadata);
+      this.dispatcher.dispatch({ ...event, metadata: { ...stamped.metadata, replay: true } });
+      replayed.push({ ...event, metadata: stamped.metadata });
     }
     return { replayed, skipped: [], note: REPLAY_LIMITS };
   }

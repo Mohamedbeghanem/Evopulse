@@ -1,7 +1,51 @@
 import type { DatabaseSync } from "node:sqlite";
 import { parseIso } from "../clock";
 import { all, one, run } from "../db";
-import type { CommitmentRow, ExpectationRow, ExpectationStatus } from "../types";
+import { id } from "../ids";
+import type {
+  CommitmentRow,
+  ExpectationRow,
+  ExpectationSourceType,
+  ExpectationStatus,
+} from "../types";
+
+export const OPEN_EXPECTATION_STATUSES: ExpectationStatus[] = [
+  "ON_TRACK",
+  "UPCOMING",
+  "AT_RISK",
+  "BLOCKED",
+  "MISSED",
+];
+
+export const TERMINAL_EXPECTATION_STATUSES: ExpectationStatus[] = ["FULFILLED", "CANCELLED"];
+
+/** Commitment action → expected business event. Software-owned; not LLM output. */
+export const EXPECTED_EVENT_FROM_ACTION: Record<string, string> = {
+  send_revised_proposal: "quote.sent",
+  provide_decision: "customer.decision",
+  receive_shipment: "shipment.arrived",
+  deliver_order: "order.delivered",
+};
+
+export type ExpectationWrite = {
+  id?: string;
+  commitment_id?: string;
+  description: string;
+  due_at: string;
+  status?: ExpectationStatus;
+  actual?: string;
+  created_at: string;
+  updated_at?: string;
+  type?: string;
+  entity_id?: string | null;
+  expected_event?: string;
+  expected_at?: string;
+  source_type?: ExpectationSourceType | string;
+  source_id?: string | null;
+  confidence?: number;
+  condition?: string | Record<string, unknown>;
+  resolved_at?: string | null;
+};
 
 function hoursUntil(dueIso: string, nowIso: string): number {
   return (parseIso(dueIso).getTime() - parseIso(nowIso).getTime()) / 36e5;
@@ -25,6 +69,102 @@ export function deriveExpectationStatus(input: {
   return "ON_TRACK";
 }
 
+export function expectedAtOf(row: ExpectationRow): string {
+  return row.expected_at || row.due_at;
+}
+
+export function expectedEventOf(row: ExpectationRow): string {
+  return row.expected_event || "";
+}
+
+export function inferredExpectedEvent(action: string): string {
+  return EXPECTED_EVENT_FROM_ACTION[action] || "";
+}
+
+export function getExpectation(db: DatabaseSync, expectationId: string): ExpectationRow | undefined {
+  return one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ?", [expectationId]);
+}
+
+export function listExpectations(db: DatabaseSync, status?: ExpectationStatus): ExpectationRow[] {
+  if (status) return all<ExpectationRow>(db, "SELECT * FROM expectations WHERE status = ?", [status]);
+  return all<ExpectationRow>(db, "SELECT * FROM expectations");
+}
+
+export function upsertExpectation(db: DatabaseSync, input: ExpectationWrite): ExpectationRow {
+  const sourceType = input.source_type || "commitment";
+  const sourceId = input.source_id ?? input.commitment_id ?? "";
+  const commitmentId = input.commitment_id || sourceId || "";
+  const dueAt = input.due_at;
+  const expectedAt = input.expected_at || dueAt;
+  const expectedEvent = input.expected_event || "";
+  const condition =
+    typeof input.condition === "string" ? input.condition : JSON.stringify(input.condition ?? {});
+  const rowId = input.id || id("exp");
+  const updatedAt = input.updated_at || input.created_at;
+  const status = input.status || "ON_TRACK";
+
+  run(
+    db,
+    `INSERT INTO expectations
+      (id, commitment_id, description, due_at, status, actual, created_at, updated_at,
+       type, entity_id, expected_event, expected_at, source_type, source_id, confidence, condition, resolved_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       commitment_id = excluded.commitment_id,
+       description = excluded.description,
+       due_at = excluded.due_at,
+       status = excluded.status,
+       actual = excluded.actual,
+       updated_at = excluded.updated_at,
+       type = excluded.type,
+       entity_id = excluded.entity_id,
+       expected_event = excluded.expected_event,
+       expected_at = excluded.expected_at,
+       source_type = excluded.source_type,
+       source_id = excluded.source_id,
+       confidence = excluded.confidence,
+       condition = excluded.condition,
+       resolved_at = excluded.resolved_at`,
+    [
+      rowId,
+      commitmentId,
+      input.description,
+      dueAt,
+      status,
+      input.actual || "",
+      input.created_at,
+      updatedAt,
+      input.type || "event",
+      input.entity_id ?? null,
+      expectedEvent,
+      expectedAt,
+      sourceType,
+      sourceId,
+      input.confidence ?? 1,
+      condition,
+      input.resolved_at ?? null,
+    ],
+  );
+  return getExpectation(db, rowId)!;
+}
+
+export function markExpectationResolved(
+  db: DatabaseSync,
+  expectationId: string,
+  status: Extract<ExpectationStatus, "FULFILLED" | "CANCELLED" | "MISSED">,
+  now: string,
+  actual: string,
+) {
+  run(db, "UPDATE expectations SET status = ?, actual = ?, updated_at = ?, resolved_at = ? WHERE id = ?", [
+    status,
+    actual,
+    now,
+    now,
+    expectationId,
+  ]);
+  return getExpectation(db, expectationId);
+}
+
 export function refreshExpectations(db: DatabaseSync, now: string) {
   const rows = all<ExpectationRow>(db, "SELECT * FROM expectations");
   const commitments = new Map(
@@ -44,19 +184,16 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
 
   for (const row of rows) {
     const commitment = commitments.get(row.commitment_id);
-    const fulfilled = commitment?.status === "fulfilled" || row.status === "FULFILLED";
-    const cancelled = commitment?.status === "cancelled";
+    const fulfilled = row.status === "FULFILLED";
+    const cancelled = commitment?.status === "cancelled" || row.status === "CANCELLED";
     const blocked = blockedPrereqs.has(row.id) || blockedPrereqs.has(row.commitment_id);
-    const revised = one(db, "SELECT id FROM expectation_changes WHERE expectation_id = ?", [row.id]);
-    const next = revised && !fulfilled && !cancelled
-      ? "AT_RISK"
-      : deriveExpectationStatus({
-          dueAt: row.due_at,
-          now,
-          fulfilled,
-          blocked: blocked && !fulfilled,
-          cancelled: Boolean(cancelled),
-        });
+    const next = deriveExpectationStatus({
+      dueAt: expectedAtOf(row),
+      now,
+      fulfilled,
+      blocked: blocked && !fulfilled,
+      cancelled,
+    });
     if (next !== row.status) {
       const actual =
         next === "MISSED"
@@ -64,12 +201,13 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
           : next === "BLOCKED"
             ? "Blocked by a missed prerequisite"
             : row.actual;
-      run(db, "UPDATE expectations SET status = ?, actual = ?, updated_at = ? WHERE id = ?", [
-        next,
-        actual,
-        now,
-        row.id,
-      ]);
+      const resolvedAt =
+        next === "FULFILLED" || next === "CANCELLED" || next === "MISSED" ? now : row.resolved_at ?? null;
+      run(
+        db,
+        "UPDATE expectations SET status = ?, actual = ?, updated_at = ?, resolved_at = ? WHERE id = ?",
+        [next, actual, now, resolvedAt, row.id],
+      );
     }
   }
 }

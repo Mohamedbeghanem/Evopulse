@@ -62,6 +62,8 @@ describe("EventRepository + EventService", { concurrency: 1 }, () => {
     const db = getDb();
     const service = new EventService(new EventRepository(db), getDispatcher());
     const before = service.listByType(EVENT_TYPES.MESSAGE_RECEIVED).length;
+    const beforeReplay = service.getById(IDS.message1);
+    assert.ok(beforeReplay);
     const seen: string[] = [];
     const off = getDispatcher().on("*", (event) => {
       if (event.metadata.replay) seen.push(event.id);
@@ -74,6 +76,9 @@ describe("EventRepository + EventService", { concurrency: 1 }, () => {
     assert.deepEqual(seen, [IDS.message1]);
     const stored = service.getById(IDS.message1);
     assert.equal(stored?.metadata.replay_count, 1);
+    assert.equal(stored?.occurred_at, beforeReplay.occurred_at);
+    assert.equal(stored?.type, beforeReplay.type);
+    assert.equal(JSON.stringify(stored?.payload), JSON.stringify(beforeReplay.payload));
   });
 
   it("is idempotent on source + source_id + type", () => {

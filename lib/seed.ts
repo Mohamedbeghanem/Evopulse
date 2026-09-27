@@ -11,6 +11,8 @@ import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
 import { seedSupplierGraph } from "./engine/seed-graph";
+import { upsertExpectation } from "./engine/expectations";
+import { EXCEPTION_TYPES } from "./engine/exception-types";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
@@ -188,36 +190,43 @@ export function seedWorld(db: DatabaseSync) {
     idempotent: true,
   });
 
-  run(
-    db,
-    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      IDS.expectOurs,
-      IDS.commitOurs,
-      "Revised 320,000 DZD proposal sent Thursday",
-      PROPOSAL_DUE_ISO,
-      "MISSED",
-      "No proposal-sent event before Thursday 18:00",
-      MESSAGE_ONE_ISO,
-      now,
-    ],
-  );
-  run(
-    db,
-    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      IDS.expectTheirs,
-      IDS.commitTheirs,
-      "Customer decision Friday",
-      DECISION_DUE_ISO,
-      "BLOCKED",
-      "Blocked — customer cannot decide without the revised proposal",
-      MESSAGE_ONE_ISO,
-      now,
-    ],
-  );
+  upsertExpectation(db, {
+    id: IDS.expectOurs,
+    commitment_id: IDS.commitOurs,
+    description: "Revised 320,000 DZD proposal sent Thursday",
+    due_at: PROPOSAL_DUE_ISO,
+    status: "MISSED",
+    actual: "No proposal-sent event before Thursday 18:00",
+    created_at: MESSAGE_ONE_ISO,
+    updated_at: now,
+    type: "event",
+    entity_id: IDS.opportunity,
+    expected_event: "quote.sent",
+    expected_at: PROPOSAL_DUE_ISO,
+    source_type: "commitment",
+    source_id: IDS.commitOurs,
+    confidence: 0.94,
+    condition: { event_type: "quote.sent" },
+    resolved_at: now,
+  });
+  upsertExpectation(db, {
+    id: IDS.expectTheirs,
+    commitment_id: IDS.commitTheirs,
+    description: "Customer decision Friday",
+    due_at: DECISION_DUE_ISO,
+    status: "BLOCKED",
+    actual: "Blocked — customer cannot decide without the revised proposal",
+    created_at: MESSAGE_ONE_ISO,
+    updated_at: now,
+    type: "event",
+    entity_id: IDS.contact,
+    expected_event: "customer.decision",
+    expected_at: DECISION_DUE_ISO,
+    source_type: "commitment",
+    source_id: IDS.commitTheirs,
+    confidence: 0.92,
+    condition: { event_type: "customer.decision" },
+  });
 
   run(
     db,
@@ -265,12 +274,12 @@ export function seedWorld(db: DatabaseSync) {
   run(
     db,
     `INSERT OR REPLACE INTO exceptions
-      (id, title, kind, expectation_id, opportunity_id, attention, severity, urgency, impact_json, evidence_json, confidence, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, title, kind, expectation_id, opportunity_id, attention, severity, urgency, impact_json, evidence_json, confidence, status, created_at, detected_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       IDS.excMissed,
       "Our commitment missed — revised proposal never sent",
-      "commitment_missed",
+      EXCEPTION_TYPES.MISSED_COMMITMENT,
       IDS.expectOurs,
       IDS.opportunity,
       "NEEDS_YOU",
@@ -280,6 +289,7 @@ export function seedWorld(db: DatabaseSync) {
       JSON.stringify(evidence),
       0.94,
       "open",
+      now,
       now,
     ],
   );
@@ -313,7 +323,7 @@ export function seedWorld(db: DatabaseSync) {
     actor_id: IDS.company,
     entity_type: "opportunity",
     entity_id: IDS.opportunity,
-    payload: { kind: "commitment_missed", exceptionId: IDS.excMissed },
+    payload: { kind: EXCEPTION_TYPES.MISSED_COMMITMENT, exceptionId: IDS.excMissed },
     occurred_at: now,
     received_at: now,
     confidence: 0.94,

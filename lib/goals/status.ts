@@ -29,9 +29,7 @@ export function refreshGoalStatus(db: DatabaseSync, goalId: string, now: string)
   const exceptions = actionExceptionIds
     .map((id) => one<ExceptionRow>(db, "SELECT * FROM exceptions WHERE id = ?", [id]))
     .filter((row): row is ExceptionRow => Boolean(row));
-  const open = exceptions.filter(
-    (row) => row.status !== "resolved" && row.attention !== "HANDLED" && row.attention !== "HEALTHY",
-  );
+  const open = exceptions.filter((row) => row.status !== "resolved");
 
   if (exceptions.length > 0 && open.length === 0) {
     updateGoalStatus(db, goalId, "COMPLETED", now, now);

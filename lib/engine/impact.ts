@@ -33,9 +33,15 @@ export function calculateGraphImpact(db: DatabaseSync, nodeId: string, maxDepth 
   const customers = hits.filter((h) => h.node.type === "customer");
   const invoices = hits.filter((h) => h.node.type === "invoice");
   const commitments = hits.filter((h) => h.node.type === "commitment");
-  const atRisk = all<CommitmentRow>(
-    db,
-    "SELECT * FROM commitments WHERE id IN (SELECT entity_id FROM graph_nodes WHERE type = 'commitment') AND status = 'at_risk'",
+  const commitmentIds = commitments.map((h) => h.node.entity_id || h.node.id);
+  const liveAtRisk = new Set(
+    commitmentIds.length
+      ? all<CommitmentRow>(
+          db,
+          `SELECT * FROM commitments WHERE status = 'at_risk' AND id IN (${commitmentIds.map(() => "?").join(", ")})`,
+          commitmentIds,
+        ).map((row) => row.id)
+      : [],
   );
   const associated_revenue = orders.reduce((sum, h) => sum + amountOf(h.node.metadata), 0);
   const affected_expected_cash = invoices.reduce((sum, h) => sum + amountOf(h.node.metadata), 0);
@@ -60,7 +66,9 @@ export function calculateGraphImpact(db: DatabaseSync, nodeId: string, maxDepth 
     associated_revenue,
     affected_expected_cash,
     dependency_depth,
-    commitments_at_risk: atRisk.length || commitments.filter((h) => h.node.metadata.status === "at_risk").length,
+    commitments_at_risk: commitments.filter(
+      (h) => liveAtRisk.has(h.node.entity_id) || liveAtRisk.has(h.node.id) || h.node.metadata.status === "at_risk",
+    ).length,
     currency: "DZD",
     paths,
     notes: origin

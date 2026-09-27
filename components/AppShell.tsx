@@ -6,7 +6,9 @@ import { DemoBar } from "./DemoBar";
 
 const NAV = [
   { href: "/", label: "Pulse" },
+  { href: "/explore", label: "Explore" },
   { href: "/timeline", label: "Timeline" },
+  { href: "/simulate", label: "Simulate" },
   { href: "/command", label: "Command" },
   { href: "/goals", label: "Goals" },
   { href: "/graph", label: "Graph" },

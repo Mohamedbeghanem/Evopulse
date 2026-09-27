@@ -5,20 +5,11 @@ import { buildGoalContext } from "./context";
 import { interpretGoal } from "./interpret";
 import { buildPlan, hydratePlan } from "./planner";
 import { getGoal, insertGoal, listGoals } from "./repository";
-import { ensureLiveCascade } from "./seed-risks";
 import { refreshGoalStatus } from "./status";
 import type { GoalInput, StructuredPlan } from "./types";
 
 export function createGoal(db: DatabaseSync, input: GoalInput, now: string, options: { plan?: boolean } = {}) {
   const interpreted = interpretGoal(input);
-  if (
-    interpreted.goalType === "protect_business" ||
-    interpreted.goalType === "protect_revenue" ||
-    interpreted.goalType === "protect_cash" ||
-    interpreted.goalType === "protect_customer_commitments"
-  ) {
-    ensureLiveCascade(db);
-  }
   const goal = insertGoal(db, interpreted, now, input.source || "command");
   let plan: StructuredPlan | undefined;
   if (options.plan !== false) {

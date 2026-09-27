@@ -64,8 +64,19 @@ function migrate(db: DatabaseSync) {
       status TEXT NOT NULL,
       actual TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'event',
+      entity_id TEXT,
+      expected_event TEXT NOT NULL DEFAULT '',
+      expected_at TEXT NOT NULL DEFAULT '',
+      source_type TEXT NOT NULL DEFAULT 'commitment',
+      source_id TEXT,
+      confidence REAL NOT NULL DEFAULT 1,
+      condition TEXT NOT NULL DEFAULT '{}',
+      resolved_at TEXT
     );
+
+    CREATE INDEX IF NOT EXISTS idx_expectations_status ON expectations(status);
 
     CREATE TABLE IF NOT EXISTS dependencies (
       id TEXT PRIMARY KEY,
@@ -96,7 +107,8 @@ function migrate(db: DatabaseSync) {
       evidence_json TEXT NOT NULL,
       confidence REAL NOT NULL,
       status TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      detected_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS plans (
@@ -189,6 +201,8 @@ function migrate(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_node_id);
   `);
   migrateEventsTable(db);
+  migrateExpectationsTable(db);
+  migrateExceptionsTable(db);
   const { migrateLearningTables } = require("./learning/schema") as typeof import("./learning/schema");
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
@@ -215,19 +229,78 @@ function migrateEventsTable(db: DatabaseSync) {
   if (!cols.has("metadata")) add("ALTER TABLE events ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'");
 }
 
+function tableColumns(db: DatabaseSync, table: string): Set<string> {
+  return new Set((db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name));
+}
+
+function migrateExpectationsTable(db: DatabaseSync) {
+  const cols = tableColumns(db, "expectations");
+  const add = (sql: string) => db.exec(sql);
+  if (!cols.has("type")) add("ALTER TABLE expectations ADD COLUMN type TEXT NOT NULL DEFAULT 'event'");
+  if (!cols.has("entity_id")) add("ALTER TABLE expectations ADD COLUMN entity_id TEXT");
+  if (!cols.has("expected_event")) add("ALTER TABLE expectations ADD COLUMN expected_event TEXT NOT NULL DEFAULT ''");
+  if (!cols.has("expected_at")) add("ALTER TABLE expectations ADD COLUMN expected_at TEXT NOT NULL DEFAULT ''");
+  if (!cols.has("source_type")) add("ALTER TABLE expectations ADD COLUMN source_type TEXT NOT NULL DEFAULT 'commitment'");
+  if (!cols.has("source_id")) add("ALTER TABLE expectations ADD COLUMN source_id TEXT");
+  if (!cols.has("confidence")) add("ALTER TABLE expectations ADD COLUMN confidence REAL NOT NULL DEFAULT 1");
+  if (!cols.has("condition")) add("ALTER TABLE expectations ADD COLUMN condition TEXT NOT NULL DEFAULT '{}'");
+  if (!cols.has("resolved_at")) add("ALTER TABLE expectations ADD COLUMN resolved_at TEXT");
+  db.exec("UPDATE expectations SET expected_at = due_at WHERE expected_at IS NULL OR expected_at = ''");
+  db.exec("UPDATE expectations SET source_id = commitment_id WHERE (source_id IS NULL OR source_id = '') AND commitment_id IS NOT NULL AND commitment_id != ''");
+  const rows = db.prepare("SELECT id, commitment_id FROM expectations WHERE expected_event IS NULL OR expected_event = ''").all() as {
+    id: string;
+    commitment_id: string;
+  }[];
+  const map: Record<string, string> = {
+    send_revised_proposal: "quote.sent",
+    provide_decision: "customer.decision",
+    receive_shipment: "shipment.arrived",
+    deliver_order: "order.delivered",
+  };
+  for (const row of rows) {
+    const commitment = db.prepare("SELECT action FROM commitments WHERE id = ?").get(row.commitment_id) as
+      | { action: string }
+      | undefined;
+    const expected = commitment ? map[commitment.action] : undefined;
+    if (expected) {
+      db.prepare("UPDATE expectations SET expected_event = ? WHERE id = ?").run(expected, row.id);
+    }
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_expectations_expected_event ON expectations(expected_event)");
+}
+
+function migrateExceptionsTable(db: DatabaseSync) {
+  const cols = tableColumns(db, "exceptions");
+  if (!cols.has("detected_at")) db.exec("ALTER TABLE exceptions ADD COLUMN detected_at TEXT");
+  db.exec("UPDATE exceptions SET detected_at = created_at WHERE detected_at IS NULL OR detected_at = ''");
+  db.exec("UPDATE exceptions SET kind = 'missed_commitment' WHERE kind = 'commitment_missed'");
+}
+
+export function peekDb(): DatabaseSync | undefined {
+  return globalForDb.evopulseDb;
+}
+
+function wireEngineHooks(db: DatabaseSync) {
+  const { ensureDetectHooks } = require("./engine/hooks") as typeof import("./engine/hooks");
+  ensureDetectHooks(db);
+}
+
 export function getDb(): DatabaseSync {
   if (globalForDb.evopulseDb) {
     migrate(globalForDb.evopulseDb);
+    wireEngineHooks(globalForDb.evopulseDb);
     return globalForDb.evopulseDb;
   }
   const path = dbPath();
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
   migrate(db);
+  // Publish before seed so dispatcher hooks can see the live handle.
+  globalForDb.evopulseDb = db;
+  wireEngineHooks(db);
   // Lazy import avoids a db ↔ seed cycle.
   const { seedIfEmpty } = require("./seed") as typeof import("./seed");
   seedIfEmpty(db);
-  globalForDb.evopulseDb = db;
   return db;
 }
 

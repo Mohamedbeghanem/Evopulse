@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
 import { executeAction } from "../engine/execute";
+import { evaluatePolicy, loadPolicies } from "../engine/policy";
 import type { ActionRow, PlanRow } from "../types";
 import { hydratePlan } from "./planner";
 import { refreshGoalStatus } from "./status";
@@ -14,11 +15,18 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   const skippedApproval = actions.filter((action) => action.policy_outcome === "APPROVAL_REQUIRED");
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
+  const policies = loadPolicies(db);
   const executed: ActionRow[] = [];
   for (const action of auto) {
-    if (action.policy_outcome !== "AUTO") continue;
-    if (action.policy_outcome === "APPROVAL_REQUIRED" || action.policy_outcome === "BLOCKED") {
-      throw new Error("Safe execution refused a non-AUTO action.");
+    const payload = parsePayload(action.payload);
+    const decision = evaluatePolicy({ type: action.type, payload }, policies);
+    if (decision.outcome !== "AUTO") {
+      run(db, "UPDATE actions SET policy_outcome = ?, policy_reason = ? WHERE id = ?", [
+        decision.outcome,
+        decision.reason,
+        action.id,
+      ]);
+      continue;
     }
     executed.push(executeAction(db, action.id, now, actor)!);
   }
@@ -40,6 +48,15 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
       blocked: live.filter((row) => row.policy_outcome === "BLOCKED").length,
     },
   };
+}
+
+function parsePayload(raw: string): Record<string, unknown> {
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
 export function approvePlanAction(db: DatabaseSync, planId: string, actionId: string, now: string, actor = "operator") {

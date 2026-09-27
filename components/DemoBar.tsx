@@ -41,7 +41,7 @@ export function DemoBar() {
           </button>
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/supplier-delay", "supplier", "/impact/exc_shipment_delay")}
+            onClick={() => post("/api/demo/supplier-delay", "supplier", "/explore")}
             className="rounded-full border border-need/40 px-3 py-1 text-need hover:bg-need hover:text-ink-950 disabled:opacity-50"
           >
             {busy === "supplier" ? "Cascading…" : "Trigger Supplier Delay"}

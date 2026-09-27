@@ -3,12 +3,17 @@ import { CASH_DUE_ISO, DELIVER_A_ISO, DEMO_NOW_ISO, SHIP_EXPECTED_ISO } from "..
 import { EVENT_TYPES, eventsFor } from "../events";
 import { graphFor } from "../graph";
 import { IDS } from "../ids";
+import { upsertExpectation } from "./expectations";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
 }
 
 const CREATED = "2026-09-12T10:00:00+01:00";
+
+/** Customer delivery deadlines and lead times (days after RK-7 is in stock). Read by the simulator. */
+const DELIVER_B_ISO = "2026-10-02T17:00:00+01:00";
+const DELIVER_C_ISO = "2026-10-06T17:00:00+01:00";
 
 export const SEED_MESSAGE_SUPPLIER = "Your shipment will arrive Wednesday instead of Monday.";
 
@@ -26,9 +31,24 @@ export function seedSupplierGraph(db: DatabaseSync) {
       { expectedAt: SHIP_EXPECTED_ISO, status: "expected", ref: "SH-204" },
     ],
     [IDS.product, "product", "Pallet racking kit RK-7", { sku: "RK-7", inventory: 3 }],
-    [IDS.orderA, "order", "Order A — Oran Fresh", { amount: 320000, currency: "DZD" }],
-    [IDS.orderB, "order", "Order B — Constantine Clinic", { amount: 280000, currency: "DZD" }],
-    [IDS.orderC, "order", "Order C — Sétif Depot", { amount: 250000, currency: "DZD" }],
+    [
+      IDS.orderA,
+      "order",
+      "Order A — Oran Fresh",
+      { amount: 320000, currency: "DZD", dueAt: DELIVER_A_ISO, leadDays: 1 },
+    ],
+    [
+      IDS.orderB,
+      "order",
+      "Order B — Constantine Clinic",
+      { amount: 280000, currency: "DZD", dueAt: DELIVER_B_ISO, leadDays: 1 },
+    ],
+    [
+      IDS.orderC,
+      "order",
+      "Order C — Sétif Depot",
+      { amount: 250000, currency: "DZD", dueAt: DELIVER_C_ISO, leadDays: 2 },
+    ],
     [IDS.customerA, "customer", "Oran Fresh Market", { city: "Oran" }],
     [IDS.customerB, "customer", "Constantine Clinic", { city: "Constantine" }],
     [IDS.customerC, "customer", "Sétif Depot", { city: "Sétif" }],
@@ -148,36 +168,40 @@ export function seedSupplierGraph(db: DatabaseSync) {
     metadata: { status: "open" },
   });
 
-  run(
-    db,
-    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      IDS.expectShip,
-      IDS.commitShip,
-      "Shipment SH-204 arrives Monday",
-      SHIP_EXPECTED_ISO,
-      "ON_TRACK",
-      "",
-      CREATED,
-      now,
-    ],
-  );
-  run(
-    db,
-    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      IDS.expectDeliverA,
-      IDS.commitDeliverA,
-      "Order A delivered to Oran Fresh Tuesday",
-      DELIVER_A_ISO,
-      "ON_TRACK",
-      "",
-      CREATED,
-      now,
-    ],
-  );
+  upsertExpectation(db, {
+    id: IDS.expectShip,
+    commitment_id: IDS.commitShip,
+    description: "Shipment SH-204 arrives Monday",
+    due_at: SHIP_EXPECTED_ISO,
+    status: "ON_TRACK",
+    created_at: CREATED,
+    updated_at: now,
+    type: "event",
+    entity_id: IDS.shipment,
+    expected_event: "shipment.arrived",
+    expected_at: SHIP_EXPECTED_ISO,
+    source_type: "commitment",
+    source_id: IDS.commitShip,
+    confidence: 0.95,
+    condition: { event_type: "shipment.arrived" },
+  });
+  upsertExpectation(db, {
+    id: IDS.expectDeliverA,
+    commitment_id: IDS.commitDeliverA,
+    description: "Order A delivered to Oran Fresh Tuesday",
+    due_at: DELIVER_A_ISO,
+    status: "ON_TRACK",
+    created_at: CREATED,
+    updated_at: now,
+    type: "event",
+    entity_id: IDS.orderA,
+    expected_event: "order.delivered",
+    expected_at: DELIVER_A_ISO,
+    source_type: "commitment",
+    source_id: IDS.commitDeliverA,
+    confidence: 0.91,
+    condition: { event_type: "order.delivered" },
+  });
 
   eventsFor(db).append({
     id: IDS.evtShipExpected,
