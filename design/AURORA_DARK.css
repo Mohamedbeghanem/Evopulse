@@ -1,0 +1,43 @@
+/*
+  EvoPulse Control OS — Dark Aurora
+  Pulse V1 operational surface.
+
+  Same token names as AURORA_TOKENS.css.
+  Values shift to the locked dark operational environment
+  from the existing EvoPulse HTML DNA:
+
+  dark canvas · paper ink · restrained orange · hairlines.
+  Orange remains rare: attention, active control, primary action.
+*/
+
+:root {
+  --aurora-canvas: #080a0d;
+  --aurora-surface: #0c1016;
+  --aurora-surface-raised: #131922;
+  --aurora-ink: #efe7d6;
+  --aurora-muted: #9a9488;
+  --aurora-subtle: #7a7468;
+  --aurora-hairline: rgba(239, 231, 214, 0.1);
+  --aurora-hairline-strong: rgba(239, 231, 214, 0.16);
+  --aurora-primary: #efe7d6;
+  --aurora-focus: #c97820;
+  --aurora-attention: #c97820;
+  --aurora-critical: #d46a5c;
+  --aurora-success: #3dba8b;
+  --aurora-simulation: #7eb6d9;
+
+  --aurora-overlay: rgba(8, 10, 13, 0.64);
+  --aurora-wash-warm: rgba(201, 120, 32, 0.08);
+  --aurora-wash-cool: rgba(126, 182, 217, 0.06);
+
+  --aurora-needs-you: var(--aurora-attention);
+  --aurora-needs-approval: #c4a06a;
+  --aurora-monitoring: var(--aurora-simulation);
+  --aurora-blocked: var(--aurora-critical);
+  --aurora-handled: var(--aurora-success);
+  --aurora-at-risk: #c97820;
+
+  --elevate-overlay: 0 20px 48px rgba(0, 0, 0, 0.48);
+  --elevate-inspector: 0 0 0 1px var(--aurora-hairline), 0 8px 28px rgba(0, 0, 0, 0.28);
+  --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+}

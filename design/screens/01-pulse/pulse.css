@@ -1,0 +1,512 @@
+/*
+  Pulse V1 — situation surface on Control OS chrome.
+  Structured rows. No KPI board. No card stack.
+*/
+
+html,
+body.pulse-page {
+  color-scheme: dark;
+}
+
+.os--pulse .sidebar {
+  background: color-mix(in srgb, var(--aurora-canvas) 92%, #000);
+}
+
+.os--pulse .avatar {
+  background: color-mix(in srgb, var(--aurora-ink) 16%, var(--aurora-surface));
+  color: var(--aurora-ink);
+}
+
+.os--pulse .send {
+  background: transparent;
+  color: var(--aurora-ink);
+  box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong);
+}
+
+.os--pulse .send:hover {
+  background: color-mix(in srgb, var(--aurora-ink) 6%, transparent);
+}
+
+.os--pulse .control-primary {
+  background: color-mix(in srgb, var(--aurora-ink) 6%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Hero — status sentence, not KPI tiles                                */
+/* ------------------------------------------------------------------ */
+
+.pulse-hero {
+  max-width: 760px;
+  padding: 12px 0 8px;
+}
+
+.pulse-kicker {
+  margin: 0 0 18px;
+  color: var(--aurora-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.pulse-hero h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.pulse-summary {
+  margin: 14px 0 0;
+  color: var(--aurora-muted);
+  font-size: var(--text-body-lg);
+}
+
+.pulse-summary b {
+  color: var(--aurora-ink);
+  font-weight: 600;
+}
+
+.pulse-clock {
+  display: block;
+  margin-top: 10px;
+  color: var(--aurora-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Composer — operating input, not a chat product                       */
+/* ------------------------------------------------------------------ */
+
+.pulse-composer-wrap {
+  max-width: 760px;
+  margin: 28px 0 8px;
+}
+
+.os--pulse .composer {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--aurora-surface-raised) 86%, #000);
+}
+
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 10px 2px 0;
+}
+
+.suggest button {
+  min-height: 32px;
+  color: var(--aurora-subtle);
+  font-size: 13px;
+  text-align: left;
+}
+
+.suggest button:hover,
+.suggest button:focus-visible {
+  color: var(--aurora-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* Situation bands                                                      */
+/* ------------------------------------------------------------------ */
+
+.band {
+  margin-top: 40px;
+}
+
+.band--need {
+  margin-top: 36px;
+}
+
+.band--watch,
+.band--done {
+  margin-top: 36px;
+}
+
+.band-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.band h2 {
+  margin: 0;
+  color: var(--aurora-subtle);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.band--need h2 {
+  color: var(--aurora-attention);
+}
+
+.band--watch h2,
+.band--done h2 {
+  color: var(--aurora-subtle);
+}
+
+.band-count {
+  color: var(--aurora-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------ */
+/* Situation row                                                        */
+/* ------------------------------------------------------------------ */
+
+.situation {
+  padding: 22px 0 20px;
+  border-top: var(--border-hairline);
+}
+
+.situation:last-child {
+  border-bottom: var(--border-hairline);
+}
+
+.situation--lead {
+  padding-top: 26px;
+  padding-bottom: 26px;
+}
+
+.situation--quiet {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  opacity: 0.72;
+}
+
+.situation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.status--need { color: var(--aurora-needs-you); }
+.status--approve { color: var(--aurora-needs-approval); }
+.status--blocked { color: var(--aurora-blocked); }
+.status--watch { color: var(--aurora-monitoring); }
+.status--done { color: var(--aurora-handled); }
+
+.situation-title {
+  margin: 10px 0 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.situation--quiet .situation-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.explain {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  color: var(--aurora-ink);
+  font-size: 16px;
+}
+
+.situation--quiet .explain {
+  font-size: 14px;
+  color: var(--aurora-muted);
+}
+
+.impact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 16px 0 0;
+}
+
+.impact-item {
+  min-width: 0;
+}
+
+.impact-item dt {
+  margin: 0;
+  color: var(--aurora-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.impact-item dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.money {
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 32px;
+  text-align: left;
+}
+
+.money:hover,
+.money:focus-visible {
+  color: var(--aurora-attention);
+}
+
+.causal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0;
+  margin: 16px 0 0;
+  color: var(--aurora-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.causal span {
+  color: var(--aurora-ink);
+}
+
+.causal i {
+  margin: 0 8px;
+  color: var(--aurora-subtle);
+  font-style: normal;
+}
+
+.evidence-line {
+  margin: 12px 0 0;
+  color: var(--aurora-subtle);
+  font-size: 13px;
+}
+
+.situation-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 18px;
+}
+
+.situation--quiet .situation-foot {
+  margin-top: 12px;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.action--primary {
+  background: var(--aurora-attention);
+  color: #140f09;
+}
+
+.action--primary:hover {
+  filter: brightness(1.06);
+}
+
+.action--ghost {
+  color: var(--aurora-ink);
+  box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong);
+}
+
+.action--ghost:hover {
+  background: color-mix(in srgb, var(--aurora-ink) 5%, transparent);
+}
+
+.situation time {
+  margin-left: auto;
+  color: var(--aurora-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.empty {
+  padding: 14px 0 6px;
+  color: var(--aurora-subtle);
+  font-size: 13px;
+  border-top: var(--border-hairline);
+}
+
+.band--done .empty {
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------------ */
+/* Inspector Pulse panels                                               */
+/* ------------------------------------------------------------------ */
+
+.inspector-panel[hidden] {
+  display: none;
+}
+
+.inspector-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inspector-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: var(--border-hairline);
+  font-size: 13px;
+}
+
+.inspector-list span {
+  color: var(--aurora-muted);
+}
+
+.inspector-note {
+  margin: 10px 0 0;
+  color: var(--aurora-muted);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Overlays — Situation / Simulate / Approve / Evidence                 */
+/* ------------------------------------------------------------------ */
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 36;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 24px 24px;
+  background: var(--aurora-overlay);
+}
+
+.layer.is-open {
+  display: flex;
+}
+
+.sheet {
+  width: min(640px, 100%);
+  max-height: min(78vh, 760px);
+  overflow: auto;
+  padding: 22px 24px 24px;
+  background: var(--aurora-surface-raised);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--elevate-overlay);
+}
+
+.sheet-kicker {
+  margin: 0 0 8px;
+  color: var(--aurora-subtle);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.sheet h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.sheet h3 {
+  margin: 22px 0 8px;
+  color: var(--aurora-subtle);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.sheet p {
+  margin: 8px 0 0;
+  max-width: 58ch;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.command-hits {
+  padding: 6px 8px 12px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive — preserve hierarchy, do not shrink everything            */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 1280px) {
+  .pulse-hero h1 {
+    font-size: 36px;
+  }
+
+  .situation-title {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .pulse-hero h1 {
+    font-size: 32px;
+  }
+
+  .situation-title {
+    font-size: 24px;
+  }
+
+  .impact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+  }
+
+  .situation time {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .band--done {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action--primary:hover {
+    filter: none;
+  }
+}
