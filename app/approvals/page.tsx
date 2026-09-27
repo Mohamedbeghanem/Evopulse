@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/chrome";
 import { all, runWithDb } from "@/lib/db";

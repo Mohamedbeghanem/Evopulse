@@ -7,6 +7,7 @@ import { pulseSummary } from "@/lib/engine/pulse";
 import { NotificationService } from "@/lib/notifications/service";
 import { requireAppUser } from "@/lib/onboarding/guard";
 import { DiscoveryService } from "@/lib/discovery/service";
+import { toPlain } from "@/lib/plain";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function UserPulsePage() {
             handled.
           </p>
         </div>
-        <PulseBoard pulse={pulse} />
+        <PulseBoard pulse={toPlain({ headline: pulse.headline, attention: pulse.attention })} />
       </div>
     );
   });

@@ -3,15 +3,15 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { AuthService, resetControlDbHandle } from "../lib/auth";
+import { CommandRouter } from "../lib/command";
+import { OnboardingService } from "../lib/onboarding/service";
+import { openWorkspaceDb } from "../lib/workspace/db";
 
 const dir = mkdtempSync(join(tmpdir(), "ep-journey-"));
 process.env.CONTROL_DB_PATH = join(dir, "control.db");
 process.env.WORKSPACE_DB_DIR = join(dir, "workspaces");
-
-const { AuthService } = await import("../lib/auth");
-const { OnboardingService } = await import("../lib/onboarding/service");
-const { openWorkspaceDb } = await import("../lib/workspace/db");
-const { CommandRouter } = await import("../lib/command");
+resetControlDbHandle();
 
 describe("new user golden path", () => {
   it("creates an account, finishes onboarding, asks what needs me, and restores the workspace after login", () => {

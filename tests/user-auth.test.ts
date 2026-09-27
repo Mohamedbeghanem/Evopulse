@@ -3,13 +3,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { AuthService, ForbiddenError, resetControlDbHandle } from "../lib/auth";
+import { openWorkspaceDb } from "../lib/workspace/db";
 
 const dir = mkdtempSync(join(tmpdir(), "ep-auth-"));
 process.env.CONTROL_DB_PATH = join(dir, "control.db");
 process.env.WORKSPACE_DB_DIR = join(dir, "workspaces");
-
-const { AuthService, ForbiddenError } = await import("../lib/auth");
-const { openWorkspaceDb } = await import("../lib/workspace/db");
+resetControlDbHandle();
 
 describe("user account lifecycle", () => {
   it("signs up, signs in, rejects a bad password, and isolates sessions", () => {

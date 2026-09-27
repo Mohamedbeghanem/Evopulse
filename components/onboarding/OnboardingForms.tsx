@@ -5,7 +5,7 @@ import { useState } from "react";
 import { PulseAvatar } from "@/components/pulse-avatar/PulseAvatar";
 import { Button, Input } from "@/components/ui/primitives";
 import { PULSE_INTRO } from "@/lib/pulse-avatar/states";
-import { PROTECTION_OPTIONS } from "@/lib/onboarding/service";
+import { PROTECTION_OPTIONS } from "@/lib/onboarding/types";
 import type { ConnectorView } from "@/lib/integrations/service";
 import type { DiscoveryFact } from "@/lib/discovery/service";
 

@@ -3,6 +3,7 @@ import { AuthService, getWorkspace, type PublicWorkspace } from "../auth";
 import { getControlDb } from "../auth/control-db";
 import { id } from "../ids";
 import { IntegrationService } from "../integrations/service";
+import { toPlain } from "../plain";
 
 export type DiscoveryFact = {
   id: string;
@@ -35,9 +36,10 @@ function entityCount(db: DatabaseSync, type: string) {
 
 export const DiscoveryService = {
   list(workspaceId: string): DiscoveryFact[] {
-    return getControlDb()
+    const rows = getControlDb()
       .prepare("SELECT * FROM discovery_facts WHERE workspace_id = ? ORDER BY kind")
       .all(workspaceId) as DiscoveryFact[];
+    return toPlain(rows);
   },
 
   discover(workspaceId: string, db: DatabaseSync, workspace: PublicWorkspace) {

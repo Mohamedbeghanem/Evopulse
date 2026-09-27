@@ -89,7 +89,7 @@ export function getMembership(userId: string, workspaceId: string): MembershipRe
 }
 
 export function listMemberships(workspaceId: string): Array<MembershipRecord & { email: string; name: string }> {
-  return getControlDb()
+  const rows = getControlDb()
     .prepare(
       `SELECT m.*, u.email, u.name
        FROM memberships m JOIN users u ON u.id = m.user_id
@@ -97,6 +97,7 @@ export function listMemberships(workspaceId: string): Array<MembershipRecord & {
        ORDER BY m.created_at`,
     )
     .all(workspaceId) as Array<MembershipRecord & { email: string; name: string }>;
+  return JSON.parse(JSON.stringify(rows)) as Array<MembershipRecord & { email: string; name: string }>;
 }
 
 export function assertWorkspaceAccess(userId: string, workspaceId: string): MembershipRecord {

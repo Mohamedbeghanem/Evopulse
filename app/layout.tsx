@@ -22,6 +22,8 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "EvoPulse — Nothing falls through",
   description: "Your business is running. EvoPulse makes sure nothing falls through.",

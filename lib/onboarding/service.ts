@@ -3,6 +3,9 @@ import { AuthService, getWorkspace, type OnboardingStep, type PublicWorkspace } 
 import { DiscoveryService } from "../discovery/service";
 import { IntegrationService } from "../integrations/service";
 import type { DatabaseSync } from "node:sqlite";
+import { PROTECTION_OPTIONS } from "./types";
+
+export { PROTECTION_OPTIONS } from "./types";
 
 const ORDER: OnboardingStep[] = [
   "welcome",
@@ -16,15 +19,6 @@ const ORDER: OnboardingStep[] = [
   "first-pulse",
   "complete",
 ];
-
-export const PROTECTION_OPTIONS = [
-  { id: "revenue", label: "Revenue" },
-  { id: "orders", label: "Orders" },
-  { id: "customers", label: "Customers" },
-  { id: "cash", label: "Cash" },
-  { id: "operations", label: "Operations" },
-  { id: "commitments", label: "Commitments" },
-] as const;
 
 const GOAL_BY_PROTECTION: Record<string, { goalType: "protect_revenue" | "protect_cash" | "protect_customer_commitments" | "protect_business"; utterance: string }> =
   {

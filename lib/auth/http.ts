@@ -37,8 +37,12 @@ export function sessionCookieOptions() {
 }
 
 export async function readSessionToken(): Promise<string | null> {
-  const store = await cookies();
-  return store.get(SESSION_COOKIE)?.value ?? null;
+  try {
+    const store = await cookies();
+    return store.get(SESSION_COOKIE)?.value ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function resolveRequestContext(): Promise<RequestContext> {

@@ -3,14 +3,14 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { AuthService, assertWorkspaceAccess, ForbiddenError, resetControlDbHandle } from "../lib/auth";
+import { eventsFor } from "../lib/events";
+import { openWorkspaceDb } from "../lib/workspace/db";
 
 const dir = mkdtempSync(join(tmpdir(), "ep-tenant-"));
 process.env.CONTROL_DB_PATH = join(dir, "control.db");
 process.env.WORKSPACE_DB_DIR = join(dir, "workspaces");
-
-const { AuthService, assertWorkspaceAccess, ForbiddenError } = await import("../lib/auth");
-const { openWorkspaceDb } = await import("../lib/workspace/db");
-const { eventsFor } = await import("../lib/events");
+resetControlDbHandle();
 
 describe("tenant isolation", () => {
   it("keeps events, goals, and command history out of the other workspace", () => {
