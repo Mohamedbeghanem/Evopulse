@@ -228,14 +228,52 @@ export class VerificationService {
     const payload = safeJson(action.payload);
     const strategy =
       typeof payload.strategy === "string" ? payload.strategy : inferStrategyFromAction(action);
+    const target = verificationTargetFor(this.db, action);
     return this.createVerification({
       action_id: action.id,
       exception_id: action.exception_id,
       now,
       strategy,
-      metadata: { actionType: action.type, planId: action.plan_id },
+      metadata: { actionType: action.type, planId: action.plan_id, ...(target ? { target } : {}) },
     });
   }
+}
+
+/** The party a verifiable action was aimed at. A reply only verifies an action sent to the party that replied. */
+export type VerificationTarget = { entityId: string | null; name: string | null };
+
+/**
+ * Target of a verifiable action, from its own payload: `targetEntityId`, else `to`.
+ * A `to` name is resolved to a single business entity (exact name, or the name followed by a word,
+ * e.g. "Oran Fresh" → "Oran Fresh Market") so replies stamped with the entity id also match.
+ * Returns null when the action names no party; such verifications keep accepting any reply.
+ */
+export function verificationTargetFor(db: DatabaseSync, action: ActionRow): VerificationTarget | null {
+  const payload = safeJson(action.payload);
+  const name = typeof payload.to === "string" && payload.to.trim() ? payload.to.trim() : null;
+  let entityId = typeof payload.targetEntityId === "string" && payload.targetEntityId ? payload.targetEntityId : null;
+  if (!entityId && name) {
+    const matches = all<{ id: string }>(
+      db,
+      "SELECT id FROM entities WHERE lower(name) = lower(?) OR lower(name) LIKE lower(?) || ' %'",
+      [name, name],
+    );
+    if (matches.length === 1) entityId = matches[0].id;
+  }
+  if (!entityId && !name) return null;
+  return { entityId, name };
+}
+
+/** True when a reply event comes from the verification's target. Unscoped verifications accept any reply. */
+export function replyMatchesTarget(
+  verification: Pick<VerificationRow, "metadata">,
+  event: { actor_id?: string | null; entity_id?: string | null; payload?: Record<string, unknown> },
+): boolean {
+  const target = safeJson(verification.metadata).target as VerificationTarget | null | undefined;
+  if (!target || (!target.entityId && !target.name)) return true;
+  if (target.entityId && (event.actor_id === target.entityId || event.entity_id === target.entityId)) return true;
+  const from = typeof event.payload?.from === "string" ? event.payload.from.trim().toLowerCase() : "";
+  return Boolean(target.name && from && from === target.name.toLowerCase());
 }
 
 export function inferStrategyFromAction(action: ActionRow): string {

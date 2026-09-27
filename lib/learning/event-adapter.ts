@@ -5,6 +5,7 @@ import { StrategyMemory } from "./strategy-memory";
 import { SEED_FOLLOWUP_SIGNATURE } from "./context";
 import {
   applyVerificationToException,
+  replyMatchesTarget,
   VerificationService,
 } from "./verification";
 import { EXPECTED_EVENT_ALIASES } from "./types";
@@ -24,6 +25,8 @@ export function handleLearningEvent(db: DatabaseSync, event: BusinessEvent) {
       verification.expected_event_type,
     ];
     if (!accepted.includes(event.type)) continue;
+    // A reply from one party must not verify an action aimed at another (e.g. Amine's reply vs the Oran Fresh notice).
+    if (!replyMatchesTarget(verification, event)) continue;
     const resolved = verifications.evaluateVerification(verification.id, {
       type: event.type,
       occurred_at: event.occurred_at,
