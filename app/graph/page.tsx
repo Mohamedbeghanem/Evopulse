@@ -8,10 +8,11 @@ export default function GraphPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Commitment graph</p>
-        <h1 className="mt-2 font-serif text-5xl">Atlas 320K</h1>
+        <p className="text-xs uppercase tracking-[0.24em] text-mute">Business graph</p>
+        <h1 className="mt-2 font-serif text-5xl">Atlas 320K + SH-204</h1>
         <p className="mt-3 max-w-2xl text-sand">
-          Contact → company → opportunity → our promise → their promise → the miss.
+          Persisted nodes and edges. The 320K commitment chain stays; the supplier cascade is stored
+          as data, not drawn by hand.
         </p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">

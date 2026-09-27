@@ -72,6 +72,8 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 ## Architecture
 
 - **Event Layer (product P2 / PLAN §1)** lives at `lib/events/` — `EventRepository`, `EventService`, and an in-process dispatcher. Everything entering EvoPulse becomes a row on the `events` table and is then dispatched to registered handlers. Later engines (graph, twin, pulse matchers) subscribe to this stream; they do not grow a second history.
+- **Business Graph + Impact (product P3)** lives at `lib/graph/` and `lib/engine/impact.ts`. SQLite `graph_nodes` / `graph_edges`; traversal is relational. Impact sums seeded order/invoice amounts — it does not hardcode 850K / 540K.
+- **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
 - Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
 
@@ -89,6 +91,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | --- | --- |
 | `/` | Pulse — attention, NEEDS YOU, impact currency |
 | `/timeline` | Business Time Machine — Past / Now / Future + event stream |
+| `/impact/:id` | Causal cascade for the supplier delay |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
 | `/command` | Ask EvoPulse (grounded) |
@@ -96,9 +99,9 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `POST /ask` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
 
-Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/health`
+Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `GET /api/health`
 
 ## AI disclosure (submit this)
 

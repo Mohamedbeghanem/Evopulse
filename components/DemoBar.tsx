@@ -41,6 +41,13 @@ export function DemoBar() {
           </button>
           <button
             disabled={Boolean(busy)}
+            onClick={() => post("/api/demo/supplier-delay", "supplier", "/impact/exc_shipment_delay")}
+            className="rounded-full border border-need/40 px-3 py-1 text-need hover:bg-need hover:text-ink-950 disabled:opacity-50"
+          >
+            {busy === "supplier" ? "Cascading…" : "Trigger Supplier Delay"}
+          </button>
+          <button
+            disabled={Boolean(busy)}
             onClick={() => post("/api/demo/discount", "discount", "/exceptions/exc_discount_blocked")}
             className="rounded-full bg-need px-3 py-1 font-medium text-ink-950 hover:bg-paper disabled:opacity-50"
           >

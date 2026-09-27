@@ -1,22 +1,30 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all } from "../db";
-import type { CommitmentRow, DependencyRow, EntityRow, ExceptionRow, ExpectationRow } from "../types";
+import { graphFor } from "../graph";
+import type { CommitmentRow, DependencyRow, ExceptionRow, ExpectationRow } from "../types";
 
 export function businessGraph(db: DatabaseSync) {
-  const entities = all<EntityRow>(db, "SELECT * FROM entities");
+  const persisted = graphFor(db);
   const commitments = all<CommitmentRow>(db, "SELECT * FROM commitments");
   const expectations = all<ExpectationRow>(db, "SELECT * FROM expectations");
   const dependencies = all<DependencyRow>(db, "SELECT * FROM dependencies");
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions");
 
   const nodes = [
-    ...entities.map((e) => ({ id: e.id, kind: e.type, label: e.name, status: "" })),
-    ...commitments.map((c) => ({
-      id: c.id,
-      kind: "commitment",
-      label: `${c.actor === "company" ? "OUR" : "THEIR"} · ${c.description}`,
-      status: c.status,
+    ...persisted.listNodes().map((n) => ({
+      id: n.id,
+      kind: n.type,
+      label: n.label,
+      status: typeof n.metadata.status === "string" ? n.metadata.status : "",
     })),
+    ...commitments
+      .filter((c) => !persisted.getNode(c.id))
+      .map((c) => ({
+        id: c.id,
+        kind: "commitment",
+        label: `${c.actor === "company" ? "OUR" : "THEIR"} · ${c.description}`,
+        status: c.status,
+      })),
     ...expectations.map((e) => ({
       id: e.id,
       kind: "expectation",
@@ -40,6 +48,11 @@ export function businessGraph(db: DatabaseSync) {
     { from: "exp_send_proposal", to: "cmt_send_proposal", label: "expects" },
     { from: "exp_decision_friday", to: "cmt_decision_friday", label: "expects" },
     { from: "exc_proposal_missed", to: "exp_send_proposal", label: "raised from" },
+    ...persisted.listEdges().map((e) => ({
+      from: e.source_node_id,
+      to: e.target_node_id,
+      label: e.relationship,
+    })),
     ...dependencies.map((d) => ({ from: d.from_id, to: d.to_id, label: "depends on" })),
   ];
 
