@@ -13,6 +13,7 @@ export const DELIVER_A_ISO = "2026-09-29T10:00:00+01:00";
 export const SUPPLIER_MSG_ISO = "2026-09-27T09:13:00+01:00";
 export const SUPPLIER_CASCADE_ISO = "2026-09-27T09:14:00+01:00";
 export const CASH_DUE_ISO = "2026-10-02T17:00:00+01:00";
+export const WEEK_END_ISO = "2026-10-03T18:00:00+01:00";
 
 export function parseIso(iso: string): Date {
   return new Date(iso);

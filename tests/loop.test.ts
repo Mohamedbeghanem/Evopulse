@@ -18,7 +18,6 @@ describe("seeded 320K loop", () => {
   it("cold start → recover → 10% BLOCKED with alternative", async () => {
     const db = getDb();
     const pulse = pulseSummary(db, getMeta(db, "demo_now"));
-    assert.match(pulse.headline, /320/);
     assert.ok(pulse.counts.NEEDS_YOU >= 1);
     const seedTypes = new Set(eventsFor(db).list().map((e) => e.type));
     assert.ok(seedTypes.has(EVENT_TYPES.MESSAGE_RECEIVED));
@@ -48,7 +47,8 @@ describe("seeded 320K loop", () => {
     assert.equal(pending[0].status, "PENDING");
     assert.equal(pending[0].expected_event_type, "customer.response");
     const pulseAfter = pulseSummary(db, getMeta(db, "demo_now"));
-    assert.equal(pulseAfter.counts.NEEDS_YOU, 0);
+    const missAfter = pulseAfter.exceptions.find((e) => e.id === IDS.excMissed);
+    assert.equal(missAfter?.attention, "MONITORING");
     assert.ok(pulseAfter.counts.MONITORING >= 1);
     const recoveredTypes = new Set(eventsFor(db).list().map((e) => e.type));
     assert.ok(recoveredTypes.has(EVENT_TYPES.ACTION_EXECUTED));

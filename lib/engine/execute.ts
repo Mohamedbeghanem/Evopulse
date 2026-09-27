@@ -181,4 +181,53 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
       IDS.opportunity,
     ]);
   }
+
+  applyCatalogSideEffects(db, action, now);
+}
+
+function applyCatalogSideEffects(db: DatabaseSync, action: ActionRow, now: string) {
+  const payload = (() => {
+    try {
+      return JSON.parse(action.payload) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  })();
+
+  if (action.type === "prioritize_order") {
+    const orderId = String(payload.orderId || action.target_id || IDS.orderA);
+    const existing = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [orderId]);
+    const current = existing ? (JSON.parse(existing.payload) as Record<string, unknown>) : {};
+    run(db, "UPDATE entities SET payload = ? WHERE id = ?", [
+      JSON.stringify({ ...current, priority: "critical" }),
+      orderId,
+    ]);
+  }
+
+  if (action.type === "update_expectation") {
+    const expectationId = String(payload.expectationId || IDS.expectCash);
+    run(db, "UPDATE expectations SET actual = ?, updated_at = ? WHERE id = ?", [
+      "Timing updated from goal plan — still at risk until deliveries move",
+      now,
+      expectationId,
+    ]);
+  }
+
+  if (action.type === "create_task" || action.type === "monitor" || action.type === "schedule_followup") {
+    const taskId = `ent_${action.id}`;
+    run(
+      db,
+      `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [taskId, "task", action.title, JSON.stringify({ actionId: action.id, ...payload }), now],
+    );
+  }
+
+  if (action.type === "prepare_customer_notice" || action.type === "update_record") {
+    const docId = `ent_notice_${action.id}`;
+    run(
+      db,
+      `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [docId, "document", action.title, JSON.stringify({ actionId: action.id, status: "prepared", ...payload }), now],
+    );
+  }
 }

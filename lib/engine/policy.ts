@@ -33,7 +33,11 @@ export function evaluatePolicy(
     }
   }
 
-  if (action.type === "send_message" || action.type === "draft_message") {
+  if (
+    action.type === "send_message" ||
+    action.type === "send_simulated_message" ||
+    action.type === "draft_message"
+  ) {
     if (policies.external_message_requires_approval === "true") {
       return {
         outcome: "APPROVAL_REQUIRED",

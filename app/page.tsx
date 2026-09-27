@@ -45,14 +45,13 @@ export default function PulsePage() {
               >
                 Review recovery
               </Link>
-            ) : (
-              <Link
-                href="/command"
-                className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
-              >
-                Ask EvoPulse
-              </Link>
-            )}
+            ) : null}
+            <Link
+              href="/command"
+              className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
+            >
+              Protect this week
+            </Link>
           </div>
         </div>
         <aside className="grid grid-cols-2 gap-3 self-start">
