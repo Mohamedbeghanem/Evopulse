@@ -16,6 +16,8 @@ Persistent. Wraps every destination.
 
 Artifacts: `shell.html` · `command-overlay.html` · `inspector.html`
 
+Open via `file://` from the repo, or serve the repo / `design/` root so `../../AURORA_TOKENS.css` resolves. Do not serve only this folder.
+
 ## PURPOSE
 
 Hide architectural complexity. Present five destinations. Make Command and the Inspector the ways depth appears.

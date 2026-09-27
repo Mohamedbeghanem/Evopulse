@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap");
-@import url("../../AURORA_TOKENS.css");
 
 *,
 *::before,
@@ -233,7 +232,11 @@ button {
 
 .nav-item svg,
 .control svg,
-.icon {
+.icon-btn svg,
+.brand-mark svg,
+.send svg,
+.result-kind svg,
+.reopen svg {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
@@ -281,6 +284,30 @@ button {
 .collapse {
   display: none;
   margin-left: auto;
+}
+
+.os.sidebar-collapsed .sidebar {
+  display: none;
+}
+
+.reopen {
+  display: none;
+  color: var(--aurora-ink);
+}
+
+.os.sidebar-collapsed .reopen {
+  display: inline-flex;
+  position: fixed;
+  left: 8px;
+  top: 12px;
+  z-index: 30;
+  width: 40px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  background: var(--aurora-surface-raised);
+  border-radius: var(--radius-control);
+  box-shadow: var(--elevate-inspector);
 }
 
 /* ------------------------------------------------------------------ */
@@ -409,12 +436,14 @@ button {
 .composer {
   display: grid;
   gap: 10px;
-  width: min(var(--os-composer-max-width), 100%);
+  width: 100%;
+  max-width: 840px;
   margin: 0 auto;
   padding: 14px 14px 12px;
   background: var(--aurora-surface-raised);
-  border: var(--border-hairline);
+  border: 1px solid var(--aurora-hairline-strong);
   border-radius: var(--radius-panel);
+  box-shadow: var(--elevate-inspector);
 }
 
 .composer-input {
@@ -662,29 +691,6 @@ body.artifact-command .command-layer {
 @media (max-width: 1024px) {
   .collapse {
     display: inline-flex;
-  }
-
-  .os.sidebar-collapsed .sidebar {
-    display: none;
-  }
-
-  .reopen {
-    display: none;
-  }
-
-  .os.sidebar-collapsed .reopen {
-    display: inline-flex;
-    position: fixed;
-    left: 8px;
-    top: 12px;
-    z-index: 30;
-    width: 40px;
-    height: 32px;
-    align-items: center;
-    justify-content: center;
-    background: var(--aurora-surface-raised);
-    border-radius: var(--radius-control);
-    box-shadow: var(--elevate-inspector);
   }
 
   .os--inspector .inspector {

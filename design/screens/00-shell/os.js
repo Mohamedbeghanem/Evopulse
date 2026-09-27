@@ -3,7 +3,6 @@
   const layer = document.querySelector(".command-layer");
   const field = document.querySelector("#command-query");
   const dock = document.querySelector("#composer-query");
-  const reopen = document.querySelector("[data-reopen-sidebar]");
 
   const openCommand = () => {
     if (!layer) return;
@@ -46,11 +45,12 @@
     if (event.target === layer) closeCommand();
   });
 
-  document.querySelectorAll("[data-collapse]").forEach((el) => {
-    el.addEventListener("click", toggleSidebar);
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-collapse]") || event.target.closest("[data-reopen-sidebar]")) {
+      event.preventDefault();
+      toggleSidebar();
+    }
   });
-
-  reopen?.addEventListener("click", toggleSidebar);
 
   document.addEventListener("keydown", (event) => {
     const metaK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
