@@ -15,11 +15,9 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
   const executed: ActionRow[] = [];
+  // `auto` is already filtered to policy_outcome === "AUTO", so the re-checks that used to sit here
+  // were unreachable — and the compiler flagged them as comparisons that can never hold.
   for (const action of auto) {
-    if (action.policy_outcome !== "AUTO") continue;
-    if (action.policy_outcome === "APPROVAL_REQUIRED" || action.policy_outcome === "BLOCKED") {
-      throw new Error("Safe execution refused a non-AUTO action.");
-    }
     executed.push(executeAction(db, action.id, now, actor)!);
   }
 
