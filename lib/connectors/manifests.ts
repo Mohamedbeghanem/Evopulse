@@ -49,20 +49,44 @@ export const WHATSAPP_CLOUD: ConnectorManifest = {
   ],
 };
 
+export const MCP_TRANSPORTS = ["auto", "streamable-http", "sse", "stdio"] as const;
+export const MCP_AUTH_TYPES = ["none", "bearer", "oauth"] as const;
+
 export const MCP_SERVER: ConnectorManifest = {
   id: "mcp",
   name: "MCP server",
   kinds: ["tool"],
   category: "Plugins",
-  summary: "Register a Model Context Protocol server (Streamable HTTP). Its tools become plugin tools: reads run, writes wait for your approval.",
-  capabilities: ["tools.list", "tools.call"],
+  summary:
+    "Register a Model Context Protocol server (Streamable HTTP, legacy SSE, or allowlisted stdio). Its tools become plugin tools: reads run, writes wait for your approval.",
+  capabilities: ["tools.list", "tools.call", "resources.list", "prompts.list", "oauth2.1"],
   readScopes: ["tools:read"],
   writeScopes: ["tools:write"],
   multiInstance: true,
   config: [
     { key: "label", label: "Name", type: "text", required: true, placeholder: "Accounting MCP" },
-    { key: "url", label: "Server URL", type: "url", required: true, placeholder: "https://mcp.example.com/mcp" },
-    { key: "authorization", label: "Authorization header (optional)", type: "secret", placeholder: "Bearer …" },
+    { key: "transport", label: "Transport", type: "select", options: MCP_TRANSPORTS, placeholder: "auto" },
+    {
+      key: "url",
+      label: "Server URL",
+      type: "url",
+      required: true,
+      placeholder: "https://mcp.example.com/mcp",
+      when: { key: "transport", notIn: ["stdio"] },
+    },
+    { key: "authType", label: "Authentication", type: "select", options: MCP_AUTH_TYPES, placeholder: "none", when: { key: "transport", notIn: ["stdio"] } },
+    {
+      key: "authorization",
+      label: "API key / bearer token",
+      type: "secret",
+      placeholder: "Bearer …",
+      when: { key: "authType", in: ["bearer"] },
+    },
+    { key: "clientId", label: "OAuth client ID (optional, if the server has no dynamic registration)", type: "text", advanced: true, when: { key: "authType", in: ["oauth"] } },
+    { key: "clientSecret", label: "OAuth client secret (optional)", type: "secret", advanced: true, when: { key: "authType", in: ["oauth"] } },
+    { key: "scope", label: "OAuth scopes (optional)", type: "text", advanced: true, when: { key: "authType", in: ["oauth"] } },
+    { key: "command", label: "Command (stdio, allowlisted)", type: "text", required: true, placeholder: "npx", when: { key: "transport", in: ["stdio"] } },
+    { key: "args", label: "Arguments", type: "text", placeholder: "-y @modelcontextprotocol/server-everything", when: { key: "transport", in: ["stdio"] } },
   ],
 };
 

@@ -10,7 +10,7 @@
 export const CONNECTOR_KINDS = ["source", "outbound", "tool"] as const;
 export type ConnectorKind = (typeof CONNECTOR_KINDS)[number];
 
-export type ConfigFieldType = "text" | "url" | "number" | "boolean" | "secret";
+export type ConfigFieldType = "text" | "url" | "number" | "boolean" | "secret" | "select";
 
 export type ConfigField = {
   key: string;
@@ -21,6 +21,12 @@ export type ConfigField = {
   env?: string;
   placeholder?: string;
   help?: string;
+  /** For `select` fields. */
+  options?: readonly string[];
+  /** Field applies (shown + required-checked) only when another field has one of these values. */
+  when?: { key: string; in?: readonly string[]; notIn?: readonly string[] };
+  /** Admin-only / advanced fields are hidden from the simple connect form. */
+  advanced?: boolean;
 };
 
 export type ConnectorScope =
@@ -48,7 +54,9 @@ export type ConnectorManifest = {
   multiInstance?: boolean;
 };
 
-export type ConnectorState = "connected" | "not_configured" | "error" | "disabled";
+export type ConnectorState = "connected" | "not_configured" | "needs_auth" | "needs_grant" | "error" | "disabled";
+
+export type AuthStatus = "none" | "needs_auth" | "authorized" | "needs_grant";
 
 export type ConnectorView = {
   installId: string;
@@ -74,6 +82,17 @@ export type ConnectorView = {
   lastError: string | null;
   lastResult: string | null;
   tools: PluginToolView[];
+  catalogId: string;
+  authType: "none" | "bearer" | "oauth" | "api_key";
+  authStatus: AuthStatus;
+  /** Admin-authored guidance the agent receives with this connector's tools. */
+  instructions: string;
+  disabledTools: string[];
+  lastUsedAt: string | null;
+  transport: string;
+  resources: { uri: string; name?: string }[];
+  prompts: { name: string; description?: string }[];
+  serverName: string;
 };
 
 export type PluginPermission = "READ" | "WRITE";
@@ -85,6 +104,8 @@ export type PluginToolSpec = {
   /** JSON schema for arguments (OpenManus `parameters`). */
   inputSchema: Record<string, unknown>;
   permission: PluginPermission;
+  title?: string;
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean; openWorldHint?: boolean };
 };
 
 export type PluginToolView = PluginToolSpec & {
@@ -92,4 +113,6 @@ export type PluginToolView = PluginToolSpec & {
   qualifiedName: string;
   installId: string;
   connectorId: string;
+  /** Per-tool admin toggle. Disabled tools are never offered to the agent. */
+  enabled: boolean;
 };

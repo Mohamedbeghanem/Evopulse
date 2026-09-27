@@ -104,3 +104,28 @@ idempotent on the WhatsApp message id). Outbound is the `whatsapp-cloud` adapter
 `POST /api/connectors/mcp` · `POST /api/connectors/import/preview|commit` (multipart `file`, optional `type`) ·
 `POST /api/connectors/actions/:actionId {decision}` · WhatsApp webhook above. Configure / remove / MCP need owner or
 admin; the rest need a writer. The demo company is read-only.
+
+## Admin plugins & modern MCP (feat/admin-plugins-mcp)
+
+**Admin UX** (`/connectors`, `/connectors/[installId]`): searchable catalog (built-ins + remote MCP presets: Stripe, Notion,
+Linear, Jira & Confluence, Asana, GitHub, custom), status chips (Connected, Needs auth, Needs access grant, Not configured,
+Error, Disabled, Loading), connect flow (OAuth 2.1 or masked API key + Test connection), detail page (tools with read/write
+badges, full description + input schema, per-tool toggle, custom instructions sent to the agent with the tools, account
+rename/remove, last used, activity log of tool calls with policy outcome). Owners/admins manage; members and viewers see
+enabled connectors only, without configuration (`lib/connectors/permissions.ts`).
+
+**Protocols** (`lib/connectors/mcp/*`):
+- Streamable HTTP (protocol `2025-06-18`, negotiates down to `2025-03-26`), JSON or SSE-framed replies, `Mcp-Session-Id`,
+  `MCP-Protocol-Version` header, session DELETE on close.
+- Legacy HTTP+SSE (`2024-11-05`) fallback when POST initialize answers 400/404/405 (`transport: auto`), same-origin endpoint only.
+- stdio for local servers: `EVOPULSE_MCP_STDIO=true` + `EVOPULSE_MCP_STDIO_ALLOWLIST`, no shell, minimal env, disabled on
+  serverless (VERCEL / Lambda / Netlify / Cloud Run).
+- Authorization: OAuth 2.1 + PKCE S256, RFC 9728 protected-resource metadata (from `WWW-Authenticate resource_metadata` or
+  `/.well-known/oauth-protected-resource`), RFC 8414 / OIDC authorization-server metadata, RFC 7591 dynamic client
+  registration, RFC 8707 `resource`, refresh tokens (auto-refresh + one retry on 401), tokens AES-GCM sealed per install,
+  one-time `state` rows (10 min TTL). 403 `insufficient_scope` → Needs access grant.
+- `tools/list` (paginated), `tools/call`, `resources/list` and `prompts/list` when the server advertises them.
+- Gating: `readOnlyHint: true` (and not `destructiveHint`) → READ runs; everything else → proposed `connector_write`
+  action → Policy → human approval (AI actors refused) → policy recheck → execute → EXECUTED (never HANDLED).
+- Network: every hop (MCP + OAuth) uses `safeFetch`: no redirects, 1 MB cap, and a connect-time pinned DNS lookup that
+  refuses private/loopback/link-local answers (DNS-rebinding mitigation). `EVOPULSE_MCP_ALLOW_PRIVATE=true` for local dev.
