@@ -76,7 +76,7 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
 
   it("does not treat a missing key as a configured gateway", () => {
     clearProviderEnv();
-    process.env.OPENROUTER_MODEL = "openrouter/auto";
+    process.env.OPENROUTER_MODEL = "test/router:free";
     process.env.DEEPSEEK_API_KEY = "ds-key";
     const missing = createOpenRouterProvider();
     assert.equal(missing.available(), false);
@@ -95,8 +95,8 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
   it("retries OPENROUTER_FALLBACK_MODEL when the primary model fails", async () => {
     clearProviderEnv();
     process.env.OPENROUTER_API_KEY = "sk-or-secret-fallback";
-    process.env.OPENROUTER_MODEL = "test/primary";
-    process.env.OPENROUTER_FALLBACK_MODEL = "test/fallback";
+    process.env.OPENROUTER_MODEL = "test/primary:free";
+    process.env.OPENROUTER_FALLBACK_MODEL = "test/fallback:free";
     const models: string[] = [];
     const urls: string[] = [];
     realFetch = globalThis.fetch;
@@ -105,14 +105,14 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
       urls.push(url);
       const body = JSON.parse(String(init?.body || "{}")) as { model?: string };
       models.push(body.model || "");
-      if (body.model === "test/primary") {
+      if (body.model === "test/primary:free") {
         return new Response("unavailable", { status: 503 });
       }
       return completion({ toolCalls: [{ name: "get_attention", arguments: {} }], stop: false });
     }) as typeof fetch;
     try {
       const result = await createOpenRouterProvider().complete(sampleRequest);
-      assert.deepEqual(models, ["test/primary", "test/fallback"]);
+      assert.deepEqual(models, ["test/primary:free", "test/fallback:free"]);
       assert.ok(urls.every((url) => url === OPENROUTER_CHAT_COMPLETIONS_URL));
       assert.equal(result.toolCalls[0]?.name, "get_attention");
       assert.equal(result.stop, false);
@@ -124,8 +124,8 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
   it("throws after fallback failure so Harness/deterministic fallback can run", async () => {
     clearProviderEnv();
     process.env.OPENROUTER_API_KEY = "sk-or-secret-both-fail";
-    process.env.OPENROUTER_MODEL = "test/primary";
-    process.env.OPENROUTER_FALLBACK_MODEL = "test/fallback";
+    process.env.OPENROUTER_MODEL = "test/primary:free";
+    process.env.OPENROUTER_FALLBACK_MODEL = "test/fallback:free";
     realFetch = globalThis.fetch;
     globalThis.fetch = (async () => new Response("down", { status: 500 })) as typeof fetch;
     try {
@@ -139,7 +139,7 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
     clearProviderEnv();
     const key = "sk-or-secret-TESTKEY-do-not-leak";
     process.env.OPENROUTER_API_KEY = key;
-    process.env.OPENROUTER_MODEL = "test/primary";
+    process.env.OPENROUTER_MODEL = "test/primary:free";
     realFetch = globalThis.fetch;
     globalThis.fetch = (async () => {
       throw new Error(`upstream 401 unauthorized key=${key} Bearer ${key}`);
@@ -175,17 +175,17 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
     assert.equal(resolveConfiguredProvider()?.name, "deepseek-compatible");
 
     process.env.OPENROUTER_API_KEY = "sk-or-secret-precedence";
-    process.env.OPENROUTER_MODEL = "openrouter/auto";
+    process.env.OPENROUTER_MODEL = "test/router:free";
     const openrouter = resolveConfiguredProvider();
     assert.equal(openrouter?.name, "openrouter");
-    assert.equal(openrouter?.model, "openrouter/auto");
+    assert.equal(openrouter?.model, "test/router:free");
     assert.equal(openrouter?.available(), true);
   });
 
   it("presents only safe observability fields and never the key", () => {
     clearProviderEnv();
     process.env.OPENROUTER_API_KEY = "sk-or-secret-present";
-    process.env.OPENROUTER_MODEL = "openrouter/auto";
+    process.env.OPENROUTER_MODEL = "test/router:free";
     const run: AgentRun = {
       id: "run_1",
       sessionId: "s1",
@@ -231,7 +231,7 @@ describe("OpenRouter gateway", { concurrency: 1 }, () => {
     const response = toAskResponse(run, "What needs me?");
     assert.equal(response.agent.runtime, "deepseek");
     assert.equal(response.agent.provider, "openrouter");
-    assert.equal(response.agent.model, "openrouter/auto");
+    assert.equal(response.agent.model, "test/router:free");
     assert.equal(response.agent.duration, 3000);
     assert.equal(response.agent.toolCalls[0]?.tool, "get_attention");
     const serialized = JSON.stringify(response);
