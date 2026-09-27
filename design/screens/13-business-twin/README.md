@@ -176,6 +176,8 @@ Owned directory only. No production, core-logic, or other-agent files.
 
 ## Verification
 
+Browser-tested at 1440 / 1280 / 1024 (Chrome headless). Screenshots: `design/screens/13-business-twin/screenshots/` and `/opt/cursor/artifacts/screenshots/`.
+
 Open `business-twin.html` at 1440 / 1280 / 1024. Confirm:
 
 - Opening sentence names Atlas, 850K associated, 540K cash timing, 320K miss.
