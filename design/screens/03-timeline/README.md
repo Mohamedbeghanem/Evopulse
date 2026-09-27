@@ -159,3 +159,4 @@ The **160,000 DZD Invoice C** move is from the *after supplier-delay* +3 run. It
 - Shell chrome is a local sketch of the locked Control OS. Do not treat this file as a new shell source of truth.
 - Supplier delay (850K NEEDS YOU) is a second scenario, not the primary NOW.
 - Image generation was not used; see `timeline-image-prompt.md`.
+- Verified in Chrome at 1440 / 1280 / 1024. Screenshots: `/opt/cursor/artifacts/screenshots/timeline-*.png` and `design/screens/03-timeline/previews/` (local, not committed).

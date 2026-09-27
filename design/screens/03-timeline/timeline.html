@@ -101,11 +101,12 @@
         grid-template-columns: var(--os-sidebar-width) minmax(0, 1fr);
         min-height: 100vh;
       }
-      .os.inspector-open {
+      .os[data-bp="1440"].inspector-open {
         grid-template-columns: var(--os-sidebar-width) minmax(0, 1fr) var(--os-inspector-width);
       }
-      .os.sidebar-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
-      .os.sidebar-collapsed.inspector-open { grid-template-columns: 0 minmax(0, 1fr) min(320px, 90vw); }
+      .os[data-bp="1280"] { --os-sidebar-width: 220px; }
+      .os[data-bp="1024"] { grid-template-columns: minmax(0, 1fr); }
+      .os.sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
 
       .sidebar {
         background: var(--aurora-nav);
@@ -517,6 +518,29 @@
         min-height: 100vh;
       }
       .os.inspector-open .inspector { display: block; }
+      .os[data-bp="1280"].inspector-open .inspector,
+      .os[data-bp="1024"].inspector-open .inspector {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: min(320px, 92vw);
+        height: 100vh;
+        z-index: 10;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+      }
+      .os[data-bp="1024"] .sidebar {
+        display: none;
+      }
+      .os[data-bp="1024"]:not(.sidebar-collapsed) .sidebar {
+        display: flex;
+        position: fixed;
+        z-index: 9;
+        height: 100vh;
+        width: 240px;
+      }
+      .os[data-bp="1024"] .reopen,
+      .os.sidebar-collapsed .reopen { display: inline-flex; align-items: center; justify-content: center; }
+      .os[data-bp="1024"] .page-header { padding-left: 56px; }
       .inspector h2 { margin: 0 0 4px; font-size: 16px; }
       .kv { display: grid; grid-template-columns: 96px 1fr; gap: 8px 10px; margin-top: 14px; }
       .kv dt {
@@ -535,14 +559,12 @@
       }
 
       .ask-bar {
-        position: sticky;
-        bottom: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
         max-width: 840px;
-        margin: 0 auto;
+        margin: 0;
         padding: 8px 10px 8px 14px;
         background: var(--aurora-surface);
         border: 1px solid var(--aurora-hairline-strong);
@@ -612,34 +634,15 @@
         .workspace-body, .page-header { padding-left: 20px; padding-right: 20px; }
         .delta-grid { grid-template-columns: 1fr; }
         .mark { width: 88px; }
+        .situation .amount { font-size: 24px; }
       }
       @media (max-width: 1100px) {
         .tape { grid-template-columns: 1fr; }
         .lane + .lane { border-left: 0; border-top: 1px solid var(--aurora-panel-line); }
         .rail { height: 84px; }
       }
-      @media (max-width: 1024px) {
-        .os, .os.inspector-open { grid-template-columns: 0 minmax(0, 1fr); }
-        .sidebar { display: none; }
-        .os:not(.sidebar-collapsed) .sidebar {
-          display: flex;
-          position: fixed;
-          z-index: 9;
-          height: 100vh;
-          width: 240px;
-        }
-        .reopen { display: inline-flex; align-items: center; justify-content: center; }
-        .os.inspector-open .inspector {
-          position: fixed;
-          right: 0;
-          top: 0;
-          width: min(320px, 92vw);
-          height: 100vh;
-          z-index: 10;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
-        }
-        .page-header { padding-left: 56px; }
-      }
+      .os[data-bp="1024"] .tape { grid-template-columns: 1fr; }
+      .os[data-bp="1024"] .lane + .lane { border-left: 0; border-top: 1px solid var(--aurora-panel-line); }
     </style>
   </head>
   <body>
@@ -1095,6 +1098,16 @@
       const body = document.getElementById("body");
       const toast = document.getElementById("toast");
 
+      function syncBreak() {
+        const w = window.innerWidth;
+        const bp = w >= 1360 ? "1440" : w >= 1100 ? "1280" : "1024";
+        os.dataset.bp = bp;
+        if (bp === "1024") os.classList.add("sidebar-collapsed");
+        else os.classList.remove("sidebar-collapsed");
+      }
+      window.addEventListener("resize", syncBreak);
+      syncBreak();
+
       function openInspector(id) {
         const fact = FACTS[id];
         if (!fact) return;
@@ -1176,6 +1189,7 @@
         document.getElementById("toggle-sim").textContent = sim.classList.contains("is-open")
           ? "Hide SIMULATION"
           : "Show SIMULATION";
+        if (sim.classList.contains("is-open")) sim.scrollIntoView({ block: "nearest" });
       });
 
       function setPhase(phase) {
@@ -1242,6 +1256,20 @@
           if (e.key === "ArrowUp") { e.preventDefault(); spots[Math.max(0, i - 1)]?.focus(); }
         });
       });
+
+      const params = new URLSearchParams(location.search);
+      const view = params.get("view");
+      if (view && document.getElementById("view-state").querySelector(`[value="${view}"]`)) {
+        document.getElementById("view-state").value = view;
+        document.getElementById("view-state").dispatchEvent(new Event("change"));
+      }
+      if (params.get("sim") === "1") {
+        const sim = document.getElementById("sim");
+        sim.classList.add("is-open");
+        document.getElementById("toggle-sim").textContent = "Hide SIMULATION";
+        sim.scrollIntoView({ block: "center" });
+      }
+      if (params.get("inspect")) openInspector(params.get("inspect"));
     </script>
   </body>
 </html>
