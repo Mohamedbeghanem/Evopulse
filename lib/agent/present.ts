@@ -19,6 +19,8 @@ export function toAskResponse(run: AgentRun, message: string) {
       runtime: run.runtime,
       provider: observed?.provider ?? null,
       model: observed?.model ?? null,
+      /** Model that actually answered this run; null when the deterministic runtime answered. */
+      modelUsed: run.fallbackUsed || run.runtime !== "deepseek" ? null : (run.report.modelUsed ?? null),
       duration: runDurationMs(run),
       fallbackUsed: run.fallbackUsed,
       summary: run.summary,

@@ -39,7 +39,7 @@ afterEach(() => {
 function setEnv(values: Partial<Record<(typeof ENV)[number], string>>) {
   for (const key of ENV) delete process.env[key];
   process.env.OPENROUTER_API_KEY = "sk-or-routing-test";
-  process.env.OPENROUTER_MODEL = "test/model";
+  process.env.OPENROUTER_MODEL = "test/model:free";
   Object.assign(process.env, values);
 }
 
@@ -90,13 +90,13 @@ describe("OpenRouter routing and data policy (salvaged from #43)", { concurrency
     setEnv({
       OPENROUTER_DATA_POLICY: "allowlisted_only",
       OPENROUTER_ALLOWED_PROVIDERS: "azure",
-      OPENROUTER_FALLBACK_MODEL: "test/fallback",
+      OPENROUTER_FALLBACK_MODEL: "test/fallback:free",
     });
     const bodies: Record<string, unknown>[] = [];
     globalThis.fetch = (async (_input, init) => {
       const body = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
       bodies.push(body);
-      if (body.model === "test/model") return new Response("unavailable", { status: 503 });
+      if (body.model === "test/model:free") return new Response("unavailable", { status: 503 });
       return new Response(
         JSON.stringify({ choices: [{ message: { content: JSON.stringify({ toolCalls: [], stop: true }) } }] }),
         { status: 200, headers: { "Content-Type": "application/json" } },

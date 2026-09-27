@@ -90,14 +90,40 @@ When `OPENROUTER_API_KEY` is set, `resolveConfiguredProvider()` prefers OpenRout
 
 ```bash
 OPENROUTER_API_KEY=
+# Optional. Free-only defaults apply when unset (see below).
 OPENROUTER_MODEL=
-# Optional. Tried only after the primary model fails.
+# Optional comma list, tried after the primary and before the free defaults.
 OPENROUTER_FALLBACK_MODEL=
+# Explicit opt-in for non-free model ids. Default: refused.
+OPENROUTER_ALLOW_PAID=false
+# Optional gateway base URL (default https://openrouter.ai/api/v1).
+OPENROUTER_BASE_URL=
 ```
 
-The key stays on the server. It is never sent to the client and must not be prefixed `NEXT_PUBLIC_`. Requests go to `https://openrouter.ai/api/v1/chat/completions` using the existing OpenAI-compatible JSON tool protocol: `{"toolCalls":[...],"stop":false}`.
+The key stays on the server. It is never sent to the client and must not be prefixed `NEXT_PUBLIC_`. Requests go to `<OPENROUTER_BASE_URL>/chat/completions` using the existing OpenAI-compatible JSON tool protocol: `{"toolCalls":[...],"stop":false}`.
 
-If the primary model fails, the gateway tries `OPENROUTER_FALLBACK_MODEL` when configured, then throws. `DeepSeekHarnessRuntime` still falls back to `DeterministicRuntime`. Observability may include runtime, provider, model, duration, and tool names — never API keys or hidden chain-of-thought.
+### Free-only models (default)
+
+EvoPulse uses **free OpenRouter models only** unless the operator explicitly opts in to paid ones.
+
+| Slot | Model id | Why |
+| --- | --- | --- |
+| Primary | `nvidia/nemotron-3-super-120b-a12b:free` | 120B hybrid MoE (12B active) built for multi-agent / tool use; 262K context; supports `tools`, `response_format` and `structured_outputs`, so the JSON tool protocol is honoured natively. |
+| Fallback 1 | `google/gemma-4-31b-it:free` | Dense 31B, native function calling, `response_format`, 262K context; different upstream provider, so a rate limit on the primary does not hit it. |
+| Fallback 2 | `qwen/qwen3.8-27b:free` | Strong agentic/tool-use model, `structured_outputs`, 262K context; third independent provider. |
+
+Selected on 2026-09-27 from the live list (`GET https://openrouter.ai/api/v1/models`): ids ending `:free` (pricing 0) whose `supported_parameters` include `tools`. Anonymous "stealth" models (pricing 0 but no `:free` id, prompts may be logged) and the random `openrouter/free` router are not defaults.
+
+Rules:
+
+- **Default model is free.** With no `OPENROUTER_MODEL`, the chain is primary → fallback 1 → fallback 2.
+- **Paid ids are refused.** Any configured id that is not free (`:free` suffix, or the `openrouter/free` router) is dropped from the chain with a warning naming the id (never the key) and is never sent upstream — including `openrouter/auto`. `OPENROUTER_ALLOW_PAID=true` is the explicit override.
+- **Chain.** Configured free ids first, then the free defaults; at most 4 models per completion.
+- **Rate limits.** A free-tier `429` (or 5xx / 404 / 408, or unusable JSON) moves to the next free model. When the chain is exhausted the provider throws and `DeepSeekHarnessRuntime` falls back to `DeterministicRuntime`.
+- **Not retried across models.** `401` / `403` (bad key), `400`, network errors (unreachable base URL) and timeouts go straight to the deterministic runtime — the next model would fail the same way.
+- **Observability.** `/api/ask` returns `agent.model` (configured primary) and `agent.modelUsed` (the model id from the OpenRouter response metadata that actually answered; `null` when the deterministic runtime answered). The server logs `[agent] run=… provider=openrouter model=…`. Never the key.
+
+The same `OPENROUTER_DATA_POLICY` / provider preferences apply to every model in the chain. `DeepSeekHarnessRuntime` still falls back to `DeterministicRuntime`. Observability may include runtime, provider, model, duration, and tool names — never API keys or hidden chain-of-thought.
 
 ### Provider routing and data policy
 
@@ -111,7 +137,7 @@ Calling a model sends business data (supplier, customer, and email text) to an u
 | `OPENROUTER_ALLOWED_PROVIDERS=a,b` | With `standard` / `no_training`: `provider.order = [a, b]`. |
 | `OPENROUTER_ALLOW_PROVIDER_FALLBACK=false` | With an ordered list: `allow_fallbacks = false`. |
 
-`allowlisted_only` without an allowlist fails closed: no request is sent, and the Harness falls back to the deterministic runtime. The same preferences apply to `OPENROUTER_FALLBACK_MODEL`.
+`allowlisted_only` without an allowlist fails closed: no request is sent, and the Harness falls back to the deterministic runtime. The same preferences apply to every fallback model.
 
 ## Tools
 
@@ -171,8 +197,10 @@ The Command Center trace is product language: inspecting business, tracing depen
 EVOPULSE_AGENT_RUNTIME=deterministic
 # Optional inference gateway (server-side only)
 # OPENROUTER_API_KEY=
-# OPENROUTER_MODEL=
-# OPENROUTER_FALLBACK_MODEL=
+# OPENROUTER_MODEL=            # free default when unset
+# OPENROUTER_FALLBACK_MODEL=   # comma list, free only
+# OPENROUTER_ALLOW_PAID=false
+# OPENROUTER_BASE_URL=
 # Optional when EVOPULSE_AGENT_RUNTIME=deepseek
 # DEEPSEEK_API_KEY=
 # DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions

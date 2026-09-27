@@ -97,6 +97,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
 
     const history: { role: "assistant" | "tool"; tool?: string; content: string }[] = [];
     let safety = 0;
+    let modelUsed: string | undefined;
     while (safety < host.limits.maxToolCalls) {
       safety += 1;
       if (cancelled.has(runId)) return loadRun(this.db, runId);
@@ -110,6 +111,11 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
         },
         AbortSignal.timeout(8_000),
       );
+      if (response.model && response.model !== modelUsed) {
+        modelUsed = response.model;
+        // Observability only: provider + model id. Never the key or model reasoning.
+        console.info(`[agent] run=${runId} provider=${provider.name} model=${modelUsed}`);
+      }
       if (response.stop || !response.toolCalls.length) break;
       for (const call of response.toolCalls) {
         const result = await invokeTool(host, call.name, call.arguments || {});
@@ -127,7 +133,13 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
           }),
         });
         if (result.status === "failed" && result.data.loopLimit) {
-          return finishRun(host, { summary: result.error || "Loop limit", intent: playbook.intent }, "failed", "FAILED", result.error);
+          return finishRun(
+            host,
+            { summary: result.error || "Loop limit", intent: playbook.intent, modelUsed },
+            "failed",
+            "FAILED",
+            result.error,
+          );
         }
         if ((call.name === "request_action_approval" || call.name.startsWith("plugin__")) && result.requiresApproval) {
           return finishRun(
@@ -136,6 +148,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
               summary: "Waiting for your approval.",
               intent: playbook.intent,
               approval: Array.isArray(result.data.approvals) ? result.data.approvals.length : 0,
+              modelUsed,
             },
             "waiting_for_approval",
             "WAITING_FOR_APPROVAL",
@@ -162,6 +175,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
         simulationUnchanged: dataOf(live, "simulate_change")?.realityUnchanged === true,
         executed: arrayLen(live, "execute_safe_actions", "executed"),
         approval: live.approvals.length,
+        modelUsed,
       },
       live.approvals.some((item) => item.status === "pending") ? "waiting_for_approval" : "complete",
       live.approvals.some((item) => item.status === "pending") ? "WAITING_FOR_APPROVAL" : "COMPLETE",
