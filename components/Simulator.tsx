@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import type { EntityChange, ProjectionMetrics, SimulationResult } from "@/lib/simulation/types";
+import { useMemo, useState } from "react";
+import { presentSimulation, SIMULATION_BANNER } from "@/components/sim/copy";
+import { StatusBadge } from "@/components/ui/badges";
+import { SectionHeader } from "@/components/ui/chrome";
+import { Button } from "@/components/ui/primitives";
+import type { EntityChange, SimulationResult } from "@/lib/simulation/types";
 
 type Shipment = {
   id: string;
@@ -32,7 +36,8 @@ export function Simulator({
     null,
   );
 
-  const target = shipments.find((s) => s.id === targetId);
+  const target = shipments.find((shipment) => shipment.id === targetId);
+  const view = useMemo(() => (result ? presentSimulation(result) : null), [result]);
 
   async function run() {
     setBusy(true);
@@ -46,10 +51,10 @@ export function Simulator({
         body: JSON.stringify({ type: "supplier_delay", targetId, days }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Simulation failed");
+      if (!res.ok) throw new Error(data.error || "Simulation did not run. The twin was not changed.");
       setResult(data as SimulationResult);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Simulation failed");
+      setError(err instanceof Error ? err.message : "Simulation did not run. The twin was not changed.");
     } finally {
       setBusy(false);
     }
@@ -62,7 +67,7 @@ export function Simulator({
     try {
       const res = await fetch("/api/simulations");
       const data = (await res.json()) as { fingerprint: string; shipments: Shipment[] };
-      const real = data.shipments.find((s) => s.id === targetId);
+      const real = data.shipments.find((shipment) => shipment.id === targetId);
       setExitCheck({
         unchanged: data.fingerprint === fingerprintBefore,
         fingerprint: data.fingerprint,
@@ -79,139 +84,142 @@ export function Simulator({
 
   return (
     <div className="space-y-8">
-      <section
-        className={`rounded-2xl border p-5 ${result ? "border-ice/50 bg-ice/5" : "border-white/10 bg-ink-800/50"}`}
-      >
+      <section className={`rounded-md border p-5 ${result ? "sim-banner" : "border-hairline bg-ink-800/50"}`}>
         <div className="flex flex-wrap items-end gap-4">
           <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Scenario</span>
-            <select disabled className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper">
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Scenario</span>
+            <select disabled className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper">
               <option>Supplier delay</option>
             </select>
           </label>
           <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Shipment</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Shipment</span>
             <select
               value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
+              onChange={(event) => setTargetId(event.target.value)}
               disabled={Boolean(result)}
-              className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper"
+              className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper"
             >
-              {shipments.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.supplier ? `${s.supplier} · ` : ""}
-                  {s.label}
+              {shipments.map((shipment) => (
+                <option key={shipment.id} value={shipment.id}>
+                  {shipment.supplier ? `${shipment.supplier} · ` : ""}
+                  {shipment.label}
                 </option>
               ))}
             </select>
           </label>
           <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Additional delay</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Additional delay</span>
             <select
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              onChange={(event) => setDays(Number(event.target.value))}
               disabled={Boolean(result)}
-              className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper"
+              className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper"
             >
-              {DAY_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  +{d} day{d === 1 ? "" : "s"}
+              {DAY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  +{option} day{option === 1 ? "" : "s"}
                 </option>
               ))}
             </select>
           </label>
           {result ? (
-            <button
-              onClick={exit}
-              className="rounded-full border border-ice/60 px-5 py-2.5 text-sm font-medium text-ice hover:bg-ice hover:text-ink-950"
-            >
+            <Button type="button" variant="ghost" onClick={exit}>
               EXIT SIMULATION
-            </button>
+            </Button>
           ) : (
-            <button
-              onClick={run}
-              disabled={busy || !targetId}
-              className="rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
-            >
+            <Button type="button" variant="attention" onClick={run} disabled={busy || !targetId}>
               {busy ? "Simulating…" : "RUN SIMULATION"}
-            </button>
+            </Button>
           )}
         </div>
         {target ? (
           <p className="mt-4 text-sm text-sand">
-            Live: {target.label} expected <span className="text-paper">{day(target.expectedAt)}</span>
+            LIVE: {target.label} expected <span className="text-paper">{day(target.expectedAt)}</span>
             {target.originalExpectedAt && target.originalExpectedAt !== target.expectedAt
               ? ` (originally ${day(target.originalExpectedAt)})`
               : ""}
             <span className="ml-2 font-mono text-[11px] text-mute">source: {source}</span>
           </p>
         ) : null}
+        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-mute" aria-live="polite">
+          {busy
+            ? "Simulating recovery. Twin not written."
+            : result
+              ? SIMULATION_BANNER
+              : "Idle. Twin not cloned. Run the scenario to open LIVE / SIMULATION / DELTA."}
+        </p>
         {error ? <p className="mt-3 text-sm text-miss">{error}</p> : null}
       </section>
 
       {exitCheck ? (
         <section
-          className={`rounded-2xl border p-5 text-sm ${exitCheck.unchanged ? "border-ok/40 bg-ok/5" : "border-miss/40 bg-miss/5"}`}
+          className={`rounded-md border p-5 text-sm ${exitCheck.unchanged ? "border-ice/40 bg-ice/5" : "border-miss/40 bg-miss/5"}`}
+          aria-live="polite"
         >
-          <p className={`font-mono text-xs ${exitCheck.unchanged ? "text-ok" : "text-miss"}`}>
+          <p className={`font-mono text-xs uppercase tracking-[0.14em] ${exitCheck.unchanged ? "text-ice" : "text-miss"}`}>
             {exitCheck.unchanged ? "SIMULATION DISCARDED · REALITY UNCHANGED" : "WARNING · REAL STATE CHANGED"}
           </p>
           <p className="mt-2 text-sand">
             {target?.label} is still expected <span className="text-paper">{day(exitCheck.expectedAt)}</span>. State
-            fingerprint <span className="font-mono">{exitCheck.fingerprint}</span>
+            fingerprint <span className="font-mono text-paper">{exitCheck.fingerprint}</span>
             {exitCheck.unchanged ? " matches the pre-simulation snapshot." : " differs from the pre-simulation snapshot."}
           </p>
         </section>
       ) : null}
 
-      {result ? <Results result={result} why={why} setWhy={setWhy} /> : null}
+      {result && view ? <Results result={result} view={view} why={why} setWhy={setWhy} /> : null}
     </div>
   );
 }
 
 function Results({
   result,
+  view,
   why,
   setWhy,
 }: {
   result: SimulationResult;
+  view: ReturnType<typeof presentSimulation>;
   why: string | null;
   setWhy: (id: string | null) => void;
 }) {
-  const { baseline, simulated, delta } = result;
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-ice px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink-950">
-          Simulation mode
-        </span>
+        <StatusBadge value="SIMULATION" />
         <span className="text-sm text-sand">
           {result.scope.origin.label} +{result.scenario.days} days · {result.scope.nodes} entities ·{" "}
           {result.scope.edges} dependencies cloned
         </span>
-        <span className={`ml-auto font-mono text-[11px] ${result.isolation.unchanged ? "text-ok" : "text-miss"}`}>
-          isolation {result.isolation.unchanged ? "verified" : "FAILED"} · {result.isolation.tablesChecked} tables ·{" "}
-          {result.isolation.fingerprintAfter}
-        </span>
       </div>
 
-      <section className="rounded-2xl border border-need/40 bg-need/5 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Delta</p>
-        <ul className="mt-3 space-y-1 font-serif text-2xl text-paper">
-          {delta.headline.map((line) => (
+      <section className="rounded-md border border-watch/40 bg-watch/10 p-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-watch">DELTA · if this runs</p>
+        <ul className="mt-3 space-y-1 text-2xl text-paper">
+          {view.headlines.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
+        <p className="mt-3 text-sm text-sand">{view.cashTiming.note}</p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Column title="Baseline" subtitle="current business" metrics={baseline} />
-        <Column title="Simulation" subtitle={`+${result.scenario.days} days · not real`} metrics={simulated} simulated />
+      <section className="grid gap-4 xl:grid-cols-3" aria-label="Live versus simulation versus delta">
+        {view.worlds.map((world) => (
+          <WorldColumn key={world.kind} world={world} />
+        ))}
       </section>
+
+      <p
+        className={`font-mono text-[11px] ${result.isolation.unchanged ? "text-ice" : "text-miss"}`}
+        aria-live="polite"
+      >
+        {view.isolationLine}
+      </p>
 
       <section className="space-y-3">
-        <h2 className="font-serif text-3xl">What changes</h2>
-        <div className="divide-y divide-white/5 rounded-2xl border border-white/10">
+        <SectionHeader title="What changes" count={`${result.changes.length} objects`} />
+        <div className="divide-y divide-hairline rounded-md border border-hairline">
           {result.changes.map((change) => (
             <ChangeRow key={change.id} change={change} open={why === change.id} toggle={setWhy} />
           ))}
@@ -221,50 +229,34 @@ function Results({
   );
 }
 
-function Column({
-  title,
-  subtitle,
-  metrics,
-  simulated,
-}: {
-  title: string;
-  subtitle: string;
-  metrics: ProjectionMetrics;
-  simulated?: boolean;
-}) {
-  const money = (n: number) => `${n.toLocaleString("en-US")} ${metrics.currency}`;
-  return (
-    <div className={`rounded-2xl border p-5 ${simulated ? "border-ice/50 bg-ice/5" : "border-white/10 bg-ink-800/50"}`}>
-      <div className="flex items-baseline justify-between">
-        <p className="font-serif text-2xl">{title}</p>
-        <p className={`font-mono text-[11px] uppercase ${simulated ? "text-ice" : "text-mute"}`}>{subtitle}</p>
-      </div>
-      <dl className="mt-4 space-y-3 text-sm">
-        <Metric k="Shipment arrives" v={day(metrics.shipmentArrival)} />
-        <Metric k="Commitments missed" v={String(metrics.commitmentsMissed.length)} list={metrics.commitmentsMissed} />
-        <Metric k="Orders late" v={String(metrics.ordersLate.length)} list={metrics.ordersLate} />
-        <Metric
-          k="Customer deadlines affected"
-          v={String(metrics.customersAffected.length)}
-          list={metrics.customersAffected}
-        />
-        <Metric k="Revenue on late orders" v={money(metrics.revenueAtRisk)} />
-        <Metric k="Cash this period" v={money(metrics.cashInPeriod)} />
-        <Metric k="Cash pushed to next period" v={money(metrics.cashNextPeriod)} />
-      </dl>
-    </div>
-  );
-}
+function WorldColumn({ world }: { world: ReturnType<typeof presentSimulation>["worlds"][number] }) {
+  const surface =
+    world.kind === "LIVE"
+      ? "border-hairline bg-[#0a0d11]"
+      : world.kind === "SIMULATION"
+        ? "border-dashed border-ice/50 bg-ice/[0.08]"
+        : "border-watch/50 bg-watch/10";
 
-function Metric({ k, v, list }: { k: string; v: string; list?: { id: string; label: string }[] }) {
   return (
-    <div>
-      <div className="flex justify-between gap-4">
-        <dt className="text-mute">{k}</dt>
-        <dd className="font-mono text-paper">{v}</dd>
+    <article className={`min-w-0 rounded-md border p-5 ${surface}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <StatusBadge value={world.kind} />
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-mute">{world.word}</p>
       </div>
-      {list?.length ? <p className="mt-0.5 text-xs text-sand">{list.map((x) => x.label).join(" · ")}</p> : null}
-    </div>
+      <h2 className="mt-3 text-2xl text-paper">{world.title}</h2>
+      <dl className="mt-4 space-y-3 text-sm">
+        {world.facts.map((fact) => (
+          <div key={fact.label}>
+            <div className="flex justify-between gap-4">
+              <dt className="text-mute">{fact.label}</dt>
+              <dd className="font-mono text-paper">{fact.value}</dd>
+            </div>
+            {fact.detail ? <p className="mt-0.5 text-xs text-sand">{fact.detail}</p> : null}
+          </div>
+        ))}
+      </dl>
+      <p className="mt-4 text-xs text-sand">{world.note}</p>
+    </article>
   );
 }
 
@@ -286,12 +278,9 @@ function ChangeRow({
           <p className="text-paper">{change.label}</p>
           <p className={`text-sm ${worsened ? "text-need" : "text-sand"}`}>{change.consequence}</p>
         </div>
-        <button
-          onClick={() => toggle(open ? null : change.id)}
-          className="rounded-full border border-white/15 px-3 py-1 font-mono text-[11px] text-sand hover:border-paper hover:text-paper"
-        >
+        <Button type="button" variant="quiet" onClick={() => toggle(open ? null : change.id)}>
           {open ? "HIDE" : "WHY"}
-        </button>
+        </Button>
       </div>
       {open ? (
         <ol className="mt-4 space-y-2 border-l border-ice/40 pl-4 text-sm">
