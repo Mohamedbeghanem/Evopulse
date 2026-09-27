@@ -57,6 +57,24 @@ export type CommitmentRow = {
   created_at: string;
 };
 
+export type ExpectationSourceType =
+  | "commitment"
+  | "contract"
+  | "workflow"
+  | "goal"
+  | "historical_pattern"
+  | "manual"
+  | "verification";
+
+export type ExceptionType =
+  | "missed_commitment"
+  | "late_payment"
+  | "missing_response"
+  | "delivery_delay"
+  | "goal_drift"
+  | "dependency_failure"
+  | "unexpected_change";
+
 export type ExpectationRow = {
   id: string;
   commitment_id: string;
@@ -66,6 +84,16 @@ export type ExpectationRow = {
   actual: string;
   created_at: string;
   updated_at: string;
+  /** PLAN §4 — event-shaped expectation. Seed-era rows stay commitment-tied. */
+  type?: string;
+  entity_id?: string | null;
+  expected_event?: string;
+  expected_at?: string;
+  source_type?: ExpectationSourceType | string;
+  source_id?: string | null;
+  confidence?: number;
+  condition?: string;
+  resolved_at?: string | null;
 };
 
 export type DependencyRow = {
@@ -91,6 +119,8 @@ export type ExceptionRow = {
   confidence: number;
   status: string;
   created_at: string;
+  /** PLAN §5 — when the miss was detected. Falls back to created_at on seed-era rows. */
+  detected_at?: string | null;
 };
 
 export type PlanRow = {

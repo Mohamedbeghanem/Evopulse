@@ -76,6 +76,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - **Business Simulator (what-if)** lives at `lib/simulation/`. It reads the Business Graph into a detached snapshot, clones the slice downstream of the scenario target, applies one change (e.g. supplier delay +3 days), and propagates it deterministically through real edges. Baseline and simulation use the same propagator. Nothing is written — a content hash of every table is taken before and after each run to prove it.
 - **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
+- **Expectation + Pulse/Exception (product P5–P6)** lives at `lib/engine/expectations.ts` and `lib/engine/matcher.ts`. `ExpectedEventMatcher` consumes the Event Layer dispatcher (`registerEngineHook`). Software decides miss vs match from event type, entity scope, and the clock — never an LLM. Control’s `VerificationService` table is unchanged; Detect exports `applyVerificationOutcome` so verify SUCCESS/FAIL can share the same matcher later.
 - Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
 
 ## Stack

@@ -11,6 +11,7 @@ export const SEED_FOLLOWUP_CONTEXT: ContextFields = {
 
 export const COMPATIBLE_EXCEPTION_KINDS = new Set([
   "commitment_missed",
+  "missed_commitment",
   "stale_opportunity",
   "customer_no_response",
   "missing_response",
@@ -34,7 +35,12 @@ export function valueBand(amount: number): string {
 }
 
 export function mapExceptionKindToProblem(kind: string): string {
-  if (kind === "commitment_missed" || kind === "missing_response" || kind === "customer_no_response") {
+  if (
+    kind === "commitment_missed" ||
+    kind === "missed_commitment" ||
+    kind === "missing_response" ||
+    kind === "customer_no_response"
+  ) {
     return "stale_opportunity";
   }
   return kind;

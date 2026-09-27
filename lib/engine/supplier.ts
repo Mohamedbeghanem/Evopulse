@@ -77,7 +77,8 @@ export function triggerSupplierDelay(db: DatabaseSync) {
       SUPPLIER_MSG_ISO,
     ],
   );
-  run(db, "UPDATE expectations SET due_at = ?, status = ?, actual = ?, updated_at = ? WHERE id = ?", [
+  run(db, "UPDATE expectations SET due_at = ?, expected_at = ?, status = ?, actual = ?, updated_at = ? WHERE id = ?", [
+    SHIP_DELAYED_ISO,
     SHIP_DELAYED_ISO,
     "AT_RISK",
     "Supplier moved arrival Monday → Wednesday (+2 days)",

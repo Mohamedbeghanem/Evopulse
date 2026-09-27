@@ -1,89 +1,19 @@
 import type { DatabaseSync } from "node:sqlite";
-import { all, one, run } from "../db";
-import { EVENT_TYPES, eventsFor } from "../events";
-import { id, IDS } from "../ids";
-import { calculateImpact } from "./impact";
+import { all, one } from "../db";
+import { IDS } from "../ids";
 import { businessTwin } from "./twin";
-import { refreshExpectations } from "./expectations";
+import { detectFromClock } from "./matcher";
+import { canonicalExceptionType } from "./exception-types";
 import type {
   Attention,
-  CommitmentRow,
   EntityRow,
   EvidencePack,
   ExceptionRow,
-  ExpectationRow,
   Impact,
 } from "../types";
 
 export function detectExceptions(db: DatabaseSync, now: string) {
-  refreshExpectations(db, now);
-  const missed = all<ExpectationRow>(
-    db,
-    "SELECT * FROM expectations WHERE status = 'MISSED'",
-  );
-
-  for (const exp of missed) {
-    const existing = one<ExceptionRow>(
-      db,
-      "SELECT * FROM exceptions WHERE expectation_id = ? AND status != 'resolved'",
-      [exp.id],
-    );
-    if (existing) continue;
-
-    const commitment = one<CommitmentRow>(db, "SELECT * FROM commitments WHERE id = ?", [exp.commitment_id]);
-    if (commitment?.actor !== "company") continue;
-    const impact = calculateImpact(db);
-    const evidence: EvidencePack = {
-      source: "Customer conversation",
-      quote: commitment?.evidence || "",
-      expected: exp.description,
-      actual: exp.actual || "No fulfilment event recorded",
-      deal: `${impact.revenueAssociated.toLocaleString("en-US")} ${impact.currency}`,
-      confidence: commitment?.confidence ?? 0.9,
-    };
-
-    const isOurs = commitment?.actor === "company";
-    run(
-      db,
-      `INSERT INTO exceptions
-        (id, title, kind, expectation_id, opportunity_id, attention, severity, urgency, impact_json, evidence_json, confidence, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        exp.id === IDS.expectOurs ? IDS.excMissed : id("exc"),
-        isOurs
-          ? "Our commitment missed — revised proposal never sent"
-          : "Customer decision blocked by our missed proposal",
-        "commitment_missed",
-        exp.id,
-        IDS.opportunity,
-        "NEEDS_YOU",
-        "critical",
-        "high",
-        JSON.stringify(impact),
-        JSON.stringify(evidence),
-        evidence.confidence,
-        "open",
-        now,
-      ],
-    );
-    eventsFor(db).append({
-      type: EVENT_TYPES.COMMITMENT_MISSED,
-      source: "pulse-engine",
-      source_id: exp.id,
-      actor_id: commitment?.actor_entity_id || IDS.company,
-      entity_type: "commitment",
-      entity_id: commitment?.id || exp.commitment_id,
-      payload: {
-        expectationId: exp.id,
-        expected: exp.description,
-        actual: exp.actual || "No fulfilment event recorded",
-      },
-      occurred_at: exp.due_at,
-      received_at: now,
-      confidence: evidence.confidence,
-      idempotent: true,
-    });
-  }
+  detectFromClock(db, now);
 }
 
 export function pulseSummary(db: DatabaseSync, now: string) {
@@ -129,6 +59,9 @@ export function pulseSummary(db: DatabaseSync, now: string) {
 export function serializeException(row: ExceptionRow) {
   return {
     ...row,
+    kind: canonicalExceptionType(row.kind),
+    type: canonicalExceptionType(row.kind),
+    detected_at: row.detected_at || row.created_at,
     impact: JSON.parse(row.impact_json) as Impact,
     evidence: JSON.parse(row.evidence_json) as EvidencePack,
     attention: row.attention as Attention,

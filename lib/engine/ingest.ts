@@ -9,6 +9,7 @@ import { buildDiscountAlternative } from "./recovery";
 import { calculateImpact } from "./impact";
 import type { CommitmentRow, EvidencePack } from "../types";
 import { handleLearningEvent } from "../learning";
+import { inferredExpectedEvent, upsertExpectation } from "./expectations";
 
 export async function ingestMessage(
   db: DatabaseSync,
@@ -83,12 +84,22 @@ export async function ingestMessage(
           now,
         ],
       );
-      run(
-        db,
-        `INSERT INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id("exp"), cid, c.description, c.deadline, "ON_TRACK", "", now, now],
-      );
+      upsertExpectation(db, {
+        commitment_id: cid,
+        description: c.description,
+        due_at: c.deadline,
+        status: "ON_TRACK",
+        created_at: now,
+        updated_at: now,
+        type: "event",
+        entity_id: c.actor === "customer" ? IDS.contact : IDS.opportunity,
+        expected_event: inferredExpectedEvent(c.action),
+        expected_at: c.deadline,
+        source_type: "commitment",
+        source_id: cid,
+        confidence: c.confidence,
+        condition: { event_type: inferredExpectedEvent(c.action) },
+      });
       events.append({
         type: EVENT_TYPES.COMMITMENT_CREATED,
         source: "ingest",
