@@ -9,11 +9,28 @@ export type ExpectationStatus =
   | "BLOCKED"
   | "CANCELLED";
 export type PolicyOutcome = "AUTO" | "APPROVAL_REQUIRED" | "BLOCKED";
+export type GoalStatus = "DRAFT" | "ACTIVE" | "AT_RISK" | "COMPLETED" | "CANCELLED";
+export type GoalType =
+  | "protect_business"
+  | "protect_revenue"
+  | "protect_cash"
+  | "recover_opportunities"
+  | "protect_customer_commitments";
+
 export type ActionType =
   | "prepare_proposal"
   | "draft_message"
   | "send_message"
+  | "send_simulated_message"
   | "create_checkpoint"
+  | "create_task"
+  | "schedule_followup"
+  | "update_expectation"
+  | "prioritize_order"
+  | "prepare_customer_notice"
+  | "escalate"
+  | "monitor"
+  | "update_record"
   | "apply_discount"
   | "offer_alternative";
 
@@ -93,11 +110,33 @@ export type ExceptionRow = {
   created_at: string;
 };
 
+export type GoalRow = {
+  id: string;
+  name: string;
+  target: string;
+  payload: string;
+  objective: string;
+  goal_type: string;
+  scope: string;
+  metric: string;
+  deadline: string;
+  constraints: string;
+  priority: number;
+  status: GoalStatus;
+  source: string;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  metadata: string;
+};
+
 export type PlanRow = {
   id: string;
   exception_id: string;
+  goal_id?: string | null;
   title: string;
   summary: string;
+  expected_impact?: string;
   status: string;
   model: string;
   created_at: string;
@@ -116,6 +155,13 @@ export type ActionRow = {
   status: string;
   evidence_json: string;
   created_at: string;
+  domain?: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  priority?: number;
+  risk?: string;
+  confidence?: number;
+  dependencies_json?: string;
 };
 
 export type PolicyRow = {
@@ -153,6 +199,8 @@ export type Impact = {
   cashTimingAffected: boolean;
   urgency: string;
   notes: string;
+  affectedOrders?: number;
+  cashTimingAmount?: number;
 };
 
 export type EvidencePack = {

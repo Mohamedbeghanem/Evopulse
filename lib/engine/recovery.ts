@@ -194,8 +194,16 @@ export function buildDiscountAlternative(db: DatabaseSync, exceptionId: string, 
 }
 
 export function getPlanBundle(db: DatabaseSync, exceptionId: string) {
-  const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE exception_id = ?", [exceptionId]);
-  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE exception_id = ? ORDER BY created_at", [exceptionId]);
+  const plan = one<PlanRow>(
+    db,
+    "SELECT * FROM plans WHERE exception_id = ? AND (goal_id IS NULL OR goal_id = '')",
+    [exceptionId],
+  );
+  const actions = plan
+    ? all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? ORDER BY created_at", [plan.id])
+    : all<ActionRow>(db, "SELECT * FROM actions WHERE exception_id = ? AND plan_id IS NULL ORDER BY created_at", [
+        exceptionId,
+      ]);
   const exception = one<ExceptionRow>(db, "SELECT * FROM exceptions WHERE id = ?", [exceptionId]);
   const historicalEvidence = exception ? evidenceForCompatibleKind(db, exception.kind) : null;
   return {
