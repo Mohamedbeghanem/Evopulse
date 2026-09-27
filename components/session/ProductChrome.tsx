@@ -9,7 +9,7 @@ import { UserAppShell } from "@/components/user/UserAppShell";
 import type { PublicUser, PublicWorkspace, SessionMode } from "@/lib/auth/types";
 
 const PUBLIC = new Set([
-  "/",
+  "/welcome",
   "/product",
   "/how-it-works",
   "/security",
@@ -24,6 +24,11 @@ function isPublic(path: string) {
   return PUBLIC.has(path);
 }
 
+/** "/" is the hackathon Home (Create a company / Open demo company); "/demo" is its alias. Always the Control OS shell. */
+function isDemo(path: string) {
+  return path === "/" || path === "/demo" || path.startsWith("/demo/");
+}
+
 function isOnboarding(path: string) {
   return path.startsWith("/onboarding");
 }
@@ -33,11 +38,13 @@ export function ProductChrome({
   mode,
   user,
   workspace,
+  workspaceMode = "entry",
 }: {
   children: ReactNode;
   mode: SessionMode | "anon";
   user: PublicUser | null;
   workspace: PublicWorkspace | null;
+  workspaceMode?: "entry" | "running";
 }) {
   const path = usePathname() || "/";
 
@@ -47,12 +54,12 @@ export function ProductChrome({
   if (isOnboarding(path)) {
     return <OnboardingShell>{children}</OnboardingShell>;
   }
-  if (mode === "user" && user && workspace && !path.startsWith("/demo")) {
+  if (mode === "user" && user && workspace && !isDemo(path)) {
     return (
       <UserAppShell user={user} workspace={workspace}>
         {children}
       </UserAppShell>
     );
   }
-  return <AppShell>{children}</AppShell>;
+  return <AppShell workspaceMode={workspaceMode}>{children}</AppShell>;
 }

@@ -40,7 +40,7 @@ export function PulseAvatar({
 
   return (
     <span
-      className={`pulse-avatar ${hidden ? "is-paused" : ""} ${className}`}
+      className={`pulse-glyph ${hidden ? "is-paused" : ""} ${className}`}
       data-state={state}
       data-size={px}
       style={{ width: px, height: px }}

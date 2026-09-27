@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import { ProductChrome } from "@/components/session/ProductChrome";
 import { resolveRequestContext } from "@/lib/auth";
+import { workspaceMode } from "@/lib/company";
+import { getDb } from "@/lib/db";
 import { toPlain } from "@/lib/plain";
 import "./globals.css";
 
@@ -23,6 +25,7 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// The shell reads workspace mode (entry vs running) and the session, so no route may be prerendered.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -39,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           mode={ctx.user ? ctx.mode : "anon"}
           user={toPlain(ctx.user)}
           workspace={toPlain(ctx.workspace)}
+          workspaceMode={workspaceMode(getDb())}
         >
           {children}
         </ProductChrome>

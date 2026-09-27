@@ -29,19 +29,19 @@ export function DemoBar() {
       <div className="flex flex-wrap items-center gap-3 px-4 py-2 text-xs lg:px-8">
         <span className="font-mono text-need">DEMO</span>
         <span className="text-mute">
-          Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded
+          Algeria · Atlas Medical Distribution · Sun 27 Sep 2026
         </span>
         <span className="ml-auto flex flex-wrap gap-2">
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/autopilot/handle-safe", "safe", "/demo")}
+            onClick={() => post("/api/autopilot/handle-safe", "safe", "/")}
             className="rounded-full border border-ok/40 px-3 py-1 text-ok hover:bg-ok hover:text-ink-950 disabled:opacity-50"
           >
             {busy === "safe" ? "Handling…" : "Handle safe actions"}
           </button>
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/reset", "reset", "/demo")}
+            onClick={() => post("/api/demo/reset", "reset", "/")}
             className="rounded-full border border-white/15 px-3 py-1 text-sand hover:border-paper hover:text-paper disabled:opacity-50"
           >
             {busy === "reset" ? "Resetting…" : "Reset demo"}

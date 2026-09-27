@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const PRIMARY = [
-  { href: "/demo", label: "Pulse", match: (path: string) => path === "/demo" || path === "/" || path.startsWith("/situations") },
+  { href: "/", label: "Pulse", match: (path: string) => path === "/demo" || path === "/" || path.startsWith("/situations") },
   { href: "/command", label: "Command", match: (path: string) => path.startsWith("/command") },
   { href: "/timeline", label: "Timeline", match: (path: string) => path.startsWith("/timeline") },
 ];
@@ -26,7 +26,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       aria-label="Control OS"
     >
       <div className="flex h-14 items-center justify-between px-4">
-        <Link href="/demo" className="flex items-center gap-2" onClick={onClose}>
+        <Link href="/" className="flex items-center gap-2" onClick={onClose}>
           <span className="h-2 w-2 rounded-full bg-need" aria-hidden />
           <span className="text-sm font-medium tracking-tight text-paper">EvoPulse</span>
         </Link>
@@ -39,6 +39,18 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <button
           type="button"
           className="flex min-h-[34px] w-full items-center justify-between rounded-md bg-ink-600 px-3 text-sm text-paper"
+          onClick={async () => {
+            onClose();
+            await fetch("/api/company/new", { method: "POST" });
+            window.location.assign("/");
+          }}
+        >
+          + New company
+          <span className="font-mono text-[10px] text-mute">+</span>
+        </button>
+        <button
+          type="button"
+          className="flex min-h-[34px] w-full items-center justify-between rounded-md border border-hairline px-3 text-sm text-sand hover:text-paper"
           onClick={() => {
             onClose();
             router.push("/command");

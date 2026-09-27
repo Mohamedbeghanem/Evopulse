@@ -9,6 +9,7 @@ import { withPageContext } from "@/lib/auth/page";
 import { eventsFor } from "@/lib/events";
 import { buildTimeline } from "@/lib/engine/timeline";
 import { IDS } from "@/lib/ids";
+import { tapeKindForEvent } from "@/lib/ui/event-kind";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function TimelinePage() {
             <EventRow
               key={event.id}
               time={formatDay(event.occurred_at)}
-              kind={event.type}
+              kind={`${tapeKindForEvent(event.type, event.source)} · ${event.type}`}
               statement={`${event.source}${event.entity_type ? ` · ${event.entity_type}` : ""}${event.entity_id ? `/${event.entity_id}` : ""}`}
             />
           ))}

@@ -1,12 +1,3 @@
-import { PulseBoard } from "@/components/pulse/PulseBoard";
-import { getDb, getMeta } from "@/lib/db";
-import { pulseSummary } from "@/lib/engine/pulse";
-import { toPlain } from "@/lib/plain";
-
+// "/demo" is an alias of Home, so #51's "Explore demo" links land in the same Create company / demo company flow.
 export const dynamic = "force-dynamic";
-
-export default function DemoPulsePage() {
-  const db = getDb();
-  const pulse = pulseSummary(db, getMeta(db, "demo_now"));
-  return <PulseBoard pulse={toPlain({ headline: pulse.headline, attention: pulse.attention })} />;
-}
+export { default } from "../page";

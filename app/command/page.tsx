@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { Inspector } from "@/components/shell/Inspector";
 import { Workspace } from "@/components/shell/Workspace";
-import { PulseAvatar } from "@/components/pulse-avatar/PulseAvatar";
 import { CommandComposer } from "@/components/ui/CommandComposer";
-import { avatarStateFromRuntime } from "@/lib/pulse-avatar/states";
 import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { ActionBar, PageHeader } from "@/components/ui/chrome";
 import { Button } from "@/components/ui/primitives";
+import { avatarStateFromAgent } from "@/lib/company/avatar";
 import { COMMAND_PROMPTS, USER_COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {
@@ -78,6 +78,21 @@ export default function CommandPage() {
   const [busy, setBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const latest = turns[turns.length - 1];
+  const avatar = avatarStateFromAgent(
+    busy ? latest?.result.agent?.phase || "RUNNING_TOOL" : latest?.result.agent?.phase,
+    latest?.result.agent?.status,
+  );
+
+  const startedQuery = useRef(false);
+  useEffect(() => {
+    if (startedQuery.current) return;
+    const query = new URLSearchParams(window.location.search).get("q");
+    if (!query) return;
+    startedQuery.current = true;
+    void ask(query);
+    // Run once for the judge path from Pulse chips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function ask(text: string) {
     const trimmed = text.trim();
@@ -129,30 +144,23 @@ export default function CommandPage() {
         </Inspector>
       }
     >
-      <PageHeader kicker="Command · Operating console" title="Ask your business.">
-        <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
-      </PageHeader>
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <PageHeader kicker="Command · Operating console" title="Ask your business.">
+          <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
+        </PageHeader>
+        <PulseAvatar state={avatar} size="sm" />
+      </div>
 
-      <div className="mt-8 flex items-end gap-3">
-        <PulseAvatar
-          size={48}
-          state={
-            busy
-              ? avatarStateFromRuntime(latest?.result.agent?.phase || "INTERPRETING")
-              : avatarStateFromRuntime(latest?.result.agent?.phase)
-          }
+      <div className="mt-8">
+        <CommandComposer
+          value={message}
+          onChange={setMessage}
+          onSubmit={(value) => void ask(value)}
+          busy={busy}
+          placeholder="Ask Pulse anything about your business..."
+          suggestions={[...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]}
+          onSuggestion={(value) => void ask(value)}
         />
-        <div className="min-w-0 flex-1">
-          <CommandComposer
-            value={message}
-            onChange={setMessage}
-            onSubmit={(value) => void ask(value)}
-            busy={busy}
-            placeholder="Ask Pulse anything about your business..."
-            suggestions={[...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]}
-            onSuggestion={(value) => void ask(value)}
-          />
-        </div>
       </div>
 
       <div className="mt-8 space-y-6">

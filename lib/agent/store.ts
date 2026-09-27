@@ -111,6 +111,11 @@ export function createRun(
   return loadRun(db, runId);
 }
 
+export function loadLatestRun(db: DatabaseSync): AgentRun | null {
+  const row = one<RunRow>(db, "SELECT * FROM agent_runs ORDER BY started_at DESC LIMIT 1");
+  return row ? loadRun(db, row.id) : null;
+}
+
 export function loadRun(db: DatabaseSync, runId: string): AgentRun {
   const row = one<RunRow>(db, "SELECT * FROM agent_runs WHERE id = ?", [runId]);
   if (!row) throw new Error("Agent run not found");
