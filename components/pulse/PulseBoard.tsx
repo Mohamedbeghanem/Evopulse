@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { useAgentAvatar } from "@/components/pulse/useAgentAvatar";
 import { Inspector } from "@/components/shell/Inspector";
@@ -33,7 +32,6 @@ type PulseView = {
 };
 
 export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }: { pulse: PulseView; companyName?: string }) {
-  const router = useRouter();
   const avatar = useAgentAvatar();
   const items = useMemo(
     () => [...pulse.attention.needsMe, ...pulse.attention.watching, ...pulse.attention.handled],
@@ -50,7 +48,7 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
   async function newCompany() {
     setSwitching(true);
     await fetch("/api/company/new", { method: "POST" });
-    router.refresh();
+    window.location.assign("/");
   }
 
   return (

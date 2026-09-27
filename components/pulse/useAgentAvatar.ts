@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { avatarStateFromAgent, type PulseAvatarState } from "@/lib/company";
+import { avatarStateFromAgent, type PulseAvatarState } from "@/lib/company/avatar";
 
 export function useAgentAvatar(initial: PulseAvatarState = "IDLE") {
   const [state, setState] = useState<PulseAvatarState>(initial);

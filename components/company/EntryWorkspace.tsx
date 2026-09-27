@@ -1,21 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { Button } from "@/components/ui/primitives";
+import { type PulseAvatarState } from "@/lib/company/avatar";
 import {
   COMPANY_TEMPLATES,
   CREATE_COMPANY_PREFILL,
   GENERATION_STEPS,
   type CompanyTemplateId,
-  type PulseAvatarState,
-} from "@/lib/company";
+} from "@/lib/company/templates";
 
 type Surface = "home" | "create" | "generating";
 
 export function EntryWorkspace() {
-  const router = useRouter();
   const [surface, setSurface] = useState<Surface>("home");
   const [prompt, setPrompt] = useState(CREATE_COMPANY_PREFILL);
   const [template, setTemplate] = useState<CompanyTemplateId>("distribution");
@@ -32,7 +30,7 @@ export function EntryWorkspace() {
       const res = await fetch("/api/company/demo", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not open demo company");
-      router.refresh();
+      window.location.assign("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
       setBusy(false);
@@ -68,7 +66,7 @@ export function EntryWorkspace() {
       setStep(GENERATION_STEPS.length - 1);
       setDone(true);
       await new Promise((resolve) => window.setTimeout(resolve, 700));
-      router.refresh();
+      window.location.assign("/");
     } catch (err) {
       window.clearInterval(tick);
       setError(err instanceof Error ? err.message : "Failed");

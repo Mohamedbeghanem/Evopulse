@@ -12,5 +12,19 @@ export default function HomePage() {
     return <EntryWorkspace />;
   }
   const pulse = pulseSummary(db, getMeta(db, "demo_now"));
-  return <PulseBoard pulse={pulse} companyName={getMeta(db, "company_name", "Atlas Medical Distribution")} />;
+  const board = {
+    headline: pulse.headline,
+    attention: {
+      needsMe: pulse.attention.needsMe,
+      watching: pulse.attention.watching,
+      handled: pulse.attention.handled,
+      summary: pulse.attention.summary,
+    },
+  };
+  return (
+    <PulseBoard
+      pulse={JSON.parse(JSON.stringify(board))}
+      companyName={getMeta(db, "company_name", "Atlas Medical Distribution")}
+    />
+  );
 }

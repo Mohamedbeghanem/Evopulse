@@ -9,7 +9,7 @@ import { CommandComposer } from "@/components/ui/CommandComposer";
 import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { ActionBar, PageHeader } from "@/components/ui/chrome";
 import { Button } from "@/components/ui/primitives";
-import { avatarStateFromAgent } from "@/lib/company";
+import { avatarStateFromAgent } from "@/lib/company/avatar";
 import { COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {

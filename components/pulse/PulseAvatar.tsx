@@ -1,6 +1,6 @@
 "use client";
 
-import { avatarLabel, type PulseAvatarState } from "@/lib/company";
+import { avatarLabel, type PulseAvatarState } from "@/lib/company/avatar";
 
 const TONE: Record<PulseAvatarState, string> = {
   IDLE: "avatar-idle",

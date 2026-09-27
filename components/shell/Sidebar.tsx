@@ -42,8 +42,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           onClick={async () => {
             onClose();
             await fetch("/api/company/new", { method: "POST" });
-            router.push("/");
-            router.refresh();
+            window.location.assign("/");
           }}
         >
           + New company
