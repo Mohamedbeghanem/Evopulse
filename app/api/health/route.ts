@@ -7,6 +7,7 @@ export async function GET() {
     ok: true,
     now: getMeta(db, "demo_now"),
     phase: getMeta(db, "demo_phase"),
+    supplier_phase: getMeta(db, "supplier_phase", "stable"),
     brev: "not used",
   });
 }

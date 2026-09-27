@@ -18,6 +18,7 @@ import { EXCEPTION_TYPES } from "./engine/exception-types";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 import { wipeAutopilotTables } from "./autopilot";
 import { wipeWarningTables } from "./warnings";
+import { wipeAgentTables } from "./agent/schema";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -362,6 +363,7 @@ export function wipeAndSeed(db: DatabaseSync) {
   wipeWarningTables(db);
   wipeAutopilotTables(db);
   wipeCommandTables(db);
+  wipeAgentTables(db);
   const tables = [
     "audit_logs",
     "approvals",
