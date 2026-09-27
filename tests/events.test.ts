@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { getDb, resetDbFile } from "../lib/db";
 import { EVENT_TYPES, EventRepository, EventService, eventsFor, getDispatcher } from "../lib/events";
+import { ingestMessage, ingestSeedDiscount } from "../lib/engine/ingest";
 import { IDS } from "../lib/ids";
 
 process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), "evopulse-evt-")), "events.db");
@@ -96,6 +97,53 @@ describe("EventRepository + EventService", { concurrency: 1 }, () => {
     });
     assert.equal(first.id, second.id);
     assert.equal(service.listByType(EVENT_TYPES.PAYMENT_EXPECTED).length, 1);
+  });
+
+  it("rejects a second write of the same id unless the call is idempotent", () => {
+    const service = eventsFor(getDb());
+    const first = service.append({
+      id: "evt_dup_guard",
+      type: EVENT_TYPES.ORDER_CREATED,
+      source: "test",
+      entity_type: "order",
+      entity_id: "ord_dup",
+      payload: { sku: "original" },
+    });
+    assert.throws(
+      () =>
+        service.append({
+          id: first.id,
+          type: EVENT_TYPES.ORDER_CREATED,
+          source: "test",
+          entity_type: "order",
+          entity_id: "ord_dup",
+          payload: { sku: "overwrite" },
+        }),
+      /already exists/,
+    );
+    assert.equal(service.getById(first.id)?.payload.sku, "original");
+
+    const replayed = service.append({
+      id: first.id,
+      type: EVENT_TYPES.ORDER_CREATED,
+      source: "test",
+      entity_type: "order",
+      entity_id: "ord_dup",
+      payload: { sku: "ignored" },
+      idempotent: true,
+    });
+    assert.equal(replayed.payload.sku, "original");
+  });
+
+  it("keeps the demo discount event when another message mentions 10%", async () => {
+    const db = getDb();
+    await ingestSeedDiscount(db);
+    const other = await ingestMessage(db, "Volume is up 10% this week. No discount requested.", {
+      source: "api",
+    });
+    assert.notEqual(other.eventId, IDS.message2);
+    const seed = eventsFor(db).getById(IDS.message2);
+    assert.match(String(seed?.payload.text ?? ""), /I'll sign today/);
   });
 });
 

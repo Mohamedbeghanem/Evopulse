@@ -1,10 +1,11 @@
 import { z } from "zod";
 import {
+  addDays,
+  atLocalHour,
   DECISION_DUE_ISO,
   DEMO_NOW_ISO,
   MESSAGE_ONE_ISO,
   nextWeekday,
-  parseIso,
   PROPOSAL_DUE_ISO,
 } from "../clock";
 import type { ExtractionResult } from "../types";
@@ -38,10 +39,7 @@ const ExtractedSchema = z.object({
 });
 
 function tomorrowFrom(iso: string): string {
-  const d = parseIso(iso);
-  d.setUTCDate(d.getUTCDate() + 1);
-  d.setUTCHours(17, 0, 0, 0);
-  return d.toISOString();
+  return addDays(iso, 1, 17, 0);
 }
 
 function fridayFrom(iso: string): string {
@@ -49,9 +47,7 @@ function fridayFrom(iso: string): string {
 }
 
 function todayEnd(iso: string): string {
-  const d = parseIso(iso);
-  d.setUTCHours(17, 0, 0, 0);
-  return d.toISOString();
+  return atLocalHour(iso, 17, 0);
 }
 
 function parseAmount(text: string): { amount: number | null; currency: string | null } {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { eventsFor } from "@/lib/events";
+import { DuplicateEventError, eventsFor } from "@/lib/events";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -40,7 +40,9 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "failed" }, { status: 400 });
+    const message = error instanceof Error ? error.message : "failed";
+    const status = error instanceof DuplicateEventError ? 409 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 

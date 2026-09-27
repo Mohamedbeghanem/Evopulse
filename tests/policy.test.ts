@@ -30,6 +30,20 @@ describe("policy engine", () => {
     assert.equal(result.outcome, "AUTO");
   });
 
+  it("blocks customer data deletion only when that policy forbids it", () => {
+    const blocked = evaluatePolicy(
+      { type: "delete_customer_data", payload: {} },
+      { ...policies, customer_data_deletion: "forbidden" },
+    );
+    assert.equal(blocked.outcome, "BLOCKED");
+
+    const allowed = evaluatePolicy(
+      { type: "delete_customer_data", payload: {} },
+      { ...policies, customer_data_deletion: "allowed" },
+    );
+    assert.equal(allowed.outcome, "AUTO");
+  });
+
   it("rolls a mixed plan up to BLOCKED if any action is blocked", () => {
     assert.equal(planOutcome(["AUTO", "APPROVAL_REQUIRED", "BLOCKED"]), "BLOCKED");
     assert.equal(planOutcome(["AUTO", "APPROVAL_REQUIRED"]), "APPROVAL_REQUIRED");

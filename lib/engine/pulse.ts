@@ -30,18 +30,17 @@ export function detectExceptions(db: DatabaseSync, now: string) {
     if (existing) continue;
 
     const commitment = one<CommitmentRow>(db, "SELECT * FROM commitments WHERE id = ?", [exp.commitment_id]);
-    if (commitment?.actor !== "company") continue;
+    if (!commitment || commitment.actor !== "company") continue;
     const impact = calculateImpact(db);
     const evidence: EvidencePack = {
       source: "Customer conversation",
-      quote: commitment?.evidence || "",
+      quote: commitment.evidence || "",
       expected: exp.description,
       actual: exp.actual || "No fulfilment event recorded",
       deal: `${impact.revenueAssociated.toLocaleString("en-US")} ${impact.currency}`,
-      confidence: commitment?.confidence ?? 0.9,
+      confidence: commitment.confidence ?? 0.9,
     };
 
-    const isOurs = commitment?.actor === "company";
     run(
       db,
       `INSERT INTO exceptions
@@ -49,9 +48,7 @@ export function detectExceptions(db: DatabaseSync, now: string) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         exp.id === IDS.expectOurs ? IDS.excMissed : id("exc"),
-        isOurs
-          ? "Our commitment missed — revised proposal never sent"
-          : "Customer decision blocked by our missed proposal",
+        "Our commitment missed — revised proposal never sent",
         "commitment_missed",
         exp.id,
         IDS.opportunity,
@@ -69,9 +66,9 @@ export function detectExceptions(db: DatabaseSync, now: string) {
       type: EVENT_TYPES.COMMITMENT_MISSED,
       source: "pulse-engine",
       source_id: exp.id,
-      actor_id: commitment?.actor_entity_id || IDS.company,
+      actor_id: commitment.actor_entity_id || IDS.company,
       entity_type: "commitment",
-      entity_id: commitment?.id || exp.commitment_id,
+      entity_id: commitment.id,
       payload: {
         expectationId: exp.id,
         expected: exp.description,

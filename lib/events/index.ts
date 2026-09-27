@@ -1,6 +1,6 @@
 export { EventDispatcher, getDispatcher, registerEngineHook } from "./dispatcher";
 export { EventRepository, toEvent } from "./repository";
-export { EventService, eventsFor, REPLAY_LIMITS } from "./service";
+export { DuplicateEventError, EventService, eventsFor, REPLAY_LIMITS } from "./service";
 export {
   EVENT_TYPE_PATTERN,
   EVENT_TYPES,

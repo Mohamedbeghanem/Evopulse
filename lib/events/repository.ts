@@ -17,16 +17,6 @@ export class EventRepository {
           (id, type, source, source_id, actor_id, entity_type, entity_id, payload, occurred_at, received_at, confidence, metadata)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
-           type = excluded.type,
-           source = excluded.source,
-           source_id = excluded.source_id,
-           actor_id = excluded.actor_id,
-           entity_type = excluded.entity_type,
-           entity_id = excluded.entity_id,
-           payload = excluded.payload,
-           occurred_at = excluded.occurred_at,
-           received_at = excluded.received_at,
-           confidence = excluded.confidence,
            metadata = excluded.metadata`,
         [
           event.id,
@@ -55,7 +45,7 @@ export class EventRepository {
       this.db,
       `INSERT INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, type = excluded.type`,
+       ON CONFLICT(id) DO NOTHING`,
       [event.id, event.type, event.entity_id, event.occurred_at, payload, event.source, event.received_at],
     );
   }

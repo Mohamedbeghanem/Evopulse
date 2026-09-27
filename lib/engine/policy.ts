@@ -50,10 +50,8 @@ export function evaluatePolicy(
     };
   }
 
-  if (action.type === "delete_customer_data" || policies.customer_data_deletion === "forbidden") {
-    if (action.type === "delete_customer_data") {
-      return { outcome: "BLOCKED", reason: "Customer data deletion is forbidden." };
-    }
+  if (action.type === "delete_customer_data" && policies.customer_data_deletion === "forbidden") {
+    return { outcome: "BLOCKED", reason: "Customer data deletion is forbidden." };
   }
 
   return { outcome: "AUTO", reason: "Action is inside policy bounds." };

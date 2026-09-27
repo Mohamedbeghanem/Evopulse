@@ -11,11 +11,19 @@ export function parseIso(iso: string): Date {
   return new Date(iso);
 }
 
+const TUNIS_OFFSET_HOURS = 1;
+
+/** Set a wall-clock hour in Africa/Tunis (UTC+1, no daylight saving). */
+export function atLocalHour(iso: string, hour: number, minute = 0): string {
+  const d = parseIso(iso);
+  d.setUTCHours(hour - TUNIS_OFFSET_HOURS, minute, 0, 0);
+  return d.toISOString().replace("Z", "+00:00");
+}
+
 export function addDays(iso: string, days: number, hour = 18, minute = 0): string {
   const d = parseIso(iso);
   d.setUTCDate(d.getUTCDate() + days);
-  d.setUTCHours(hour - 1, minute, 0, 0);
-  return d.toISOString().replace("Z", "+00:00");
+  return atLocalHour(d.toISOString(), hour, minute);
 }
 
 export function nextWeekday(fromIso: string, weekday: number, hour = 17): string {

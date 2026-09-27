@@ -13,11 +13,17 @@ import { handleLearningEvent } from "../learning";
 export async function ingestMessage(
   db: DatabaseSync,
   text: string,
-  options: { occurredAt?: string; source?: string } = {},
+  options: {
+    occurredAt?: string;
+    source?: string;
+    eventId?: string;
+    replyEventId?: string;
+    policyEventId?: string;
+  } = {},
 ) {
   const now = getMeta(db, "demo_now", DEMO_NOW_ISO);
   const occurredAt = options.occurredAt || now;
-  const eventId = /10%/.test(text) ? IDS.message2 : id("evt");
+  const eventId = options.eventId || id("evt");
   const events = eventsFor(db);
 
   events.append({
@@ -35,8 +41,8 @@ export async function ingestMessage(
     idempotent: true,
   });
   if (/10%/.test(text)) {
-    events.append({
-      id: IDS.evtCustomerReplied,
+    const replied = events.append({
+      id: options.replyEventId || id("evt"),
       type: EVENT_TYPES.CUSTOMER_REPLIED,
       source: options.source || "inbox",
       source_id: eventId,
@@ -49,8 +55,7 @@ export async function ingestMessage(
       confidence: 0.93,
       idempotent: true,
     });
-    const replied = events.getById(IDS.evtCustomerReplied);
-    if (replied) handleLearningEvent(db, replied);
+    handleLearningEvent(db, replied);
   }
   audit(db, "ingest", "message.received", "event", eventId, { text });
 
@@ -158,7 +163,7 @@ export async function ingestMessage(
     );
     buildDiscountAlternative(db, IDS.excDiscount, now);
     events.append({
-      id: IDS.evtPolicyBlocked,
+      id: options.policyEventId || id("evt"),
       type: EVENT_TYPES.POLICY_BLOCKED,
       source: "policy-engine",
       source_id: IDS.excDiscount,
@@ -185,7 +190,13 @@ export async function ingestMessage(
 }
 
 export async function ingestSeedDiscount(db: DatabaseSync) {
-  return ingestMessage(db, SEED_MESSAGE_TWO, { occurredAt: MESSAGE_TWO_ISO, source: "demo" });
+  return ingestMessage(db, SEED_MESSAGE_TWO, {
+    occurredAt: MESSAGE_TWO_ISO,
+    source: "demo",
+    eventId: IDS.message2,
+    replyEventId: IDS.evtCustomerReplied,
+    policyEventId: IDS.evtPolicyBlocked,
+  });
 }
 
 export async function ingestFromScratch(db: DatabaseSync, text: string, occurredAt = MESSAGE_ONE_ISO) {

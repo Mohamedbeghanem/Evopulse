@@ -11,18 +11,23 @@ export function ApproveButton({ planId }: { planId: string }) {
   async function run() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/plans/${planId}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ execute: true }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Could not approve");
-      return;
+    try {
+      const res = await fetch(`/api/plans/${planId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ execute: true }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(data.error || "Could not approve");
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not approve");
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
   }
 
   return (

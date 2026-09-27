@@ -20,6 +20,14 @@ describe("extractHeuristic", () => {
     assert.equal(result.dependencies[0].dependentAction, "provide_decision");
   });
 
+  it("puts tomorrow and Friday deadlines on the same Tunis hour", () => {
+    const occurredAt = "2026-09-23T16:42:00+01:00";
+    const tomorrow = extractHeuristic("Please send the proposal tomorrow.", occurredAt);
+    const friday = extractHeuristic("I will confirm Friday.", occurredAt);
+    assert.equal(new Date(tomorrow.commitments[0].deadline).getUTCHours(), 16);
+    assert.equal(new Date(friday.commitments[0].deadline).getUTCHours(), 16);
+  });
+
   it("extracts a 10% discount request from the later message", () => {
     const result = extractHeuristic(SEED_MESSAGE_TWO);
     assert.equal(result.requestedDiscountPct, 10);

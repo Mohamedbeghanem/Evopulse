@@ -38,6 +38,13 @@ const EventInputSchema = z.object({
 export const REPLAY_LIMITS =
   "Replay re-notifies in-process handlers only. It does not clone the event, re-ingest messages, or re-execute actions. Handlers must be idempotent on event.id.";
 
+export class DuplicateEventError extends Error {
+  constructor(eventId: string) {
+    super(`Event ${eventId} already exists`);
+    this.name = "DuplicateEventError";
+  }
+}
+
 export class EventService {
   constructor(
     private readonly repo: EventRepository,
@@ -63,7 +70,10 @@ export class EventService {
     }
     if (parsed.id) {
       const existing = this.repo.getById(parsed.id);
-      if (existing && parsed.idempotent) return existing;
+      if (existing) {
+        if (parsed.idempotent) return existing;
+        throw new DuplicateEventError(parsed.id);
+      }
     }
 
     const now = new Date().toISOString();
