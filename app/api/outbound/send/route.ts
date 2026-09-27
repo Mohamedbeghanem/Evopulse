@@ -10,7 +10,8 @@ export const POST = withWorkspace(async (ctx, req) => {
   }
   try {
     const actor = ctx.user?.name || body.actor || "operator";
-    return NextResponse.json(approveAndSendDraft(ctx.db, body.draftId, actor), { status: 201 });
+    const result = await approveAndSendDraft(ctx.db, body.draftId, actor, { workspaceId: ctx.workspace?.id });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     const status = error instanceof OutboundError ? error.status : 400;
     return NextResponse.json({ error: error instanceof Error ? error.message : "failed" }, { status });

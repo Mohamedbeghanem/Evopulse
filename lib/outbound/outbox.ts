@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, getMeta, run } from "../db";
-import type { OutboundDraft, OutboundMessage, OutboundProvider } from "./types";
+import type { OutboundDraft, OutboundMessage } from "./types";
 
 export function ensureOutboxSchema(db: DatabaseSync) {
   db.exec(`
@@ -20,7 +20,8 @@ export function ensureOutboxSchema(db: DatabaseSync) {
       subject TEXT NOT NULL,
       body TEXT NOT NULL,
       approved_by TEXT NOT NULL,
-      recorded_at TEXT NOT NULL
+      recorded_at TEXT NOT NULL,
+      provider_ref TEXT
     );
   `);
 }
@@ -30,38 +31,39 @@ export function wipeOutbox(db: DatabaseSync) {
   db.exec("DELETE FROM outbound_messages");
 }
 
-/** Default provider: records the message locally. Nothing leaves the workspace. */
-export const localOutboxProvider: OutboundProvider = {
-  id: "local-outbox",
-  label: "Local outbox — not sent externally",
-  external: false,
-  deliver(db, draft, approvedBy) {
-    ensureOutboxSchema(db);
-    run(
-      db,
-      `INSERT INTO outbound_messages (id, draft_id, action_id, exception_id, intent, channel, provider, external, status,
-         to_entity_id, to_name, to_address, subject, body, approved_by, recorded_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'recorded_local', ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        `out_${draft.id}`,
-        draft.id,
-        draft.actionId,
-        draft.exceptionId,
-        draft.intent,
-        draft.channel,
-        this.id,
-        draft.toEntityId,
-        draft.toName,
-        draft.toAddress,
-        draft.subject,
-        draft.body,
-        approvedBy,
-        getMeta(db, "demo_now") || new Date().toISOString(),
-      ],
-    );
-    return { status: "recorded_local" };
-  },
-};
+/** Ledger row for a human-approved draft after the outbound adapter accepted it. */
+export function recordOutbound(
+  db: DatabaseSync,
+  draft: OutboundDraft,
+  delivery: { provider: string; external: boolean; approvedBy: string; providerRef: string | null },
+) {
+  ensureOutboxSchema(db);
+  run(
+    db,
+    `INSERT INTO outbound_messages (id, draft_id, action_id, exception_id, intent, channel, provider, external, status,
+       to_entity_id, to_name, to_address, subject, body, approved_by, recorded_at, provider_ref)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `out_${draft.id}`,
+      draft.id,
+      draft.actionId,
+      draft.exceptionId,
+      draft.intent,
+      draft.channel,
+      delivery.provider,
+      delivery.external ? 1 : 0,
+      delivery.external ? "sent" : "recorded_local",
+      draft.toEntityId,
+      draft.toName,
+      draft.toAddress,
+      draft.subject,
+      draft.body,
+      delivery.approvedBy,
+      getMeta(db, "demo_now") || new Date().toISOString(),
+      delivery.providerRef,
+    ],
+  );
+}
 
 type OutboxRow = {
   draft_id: string;

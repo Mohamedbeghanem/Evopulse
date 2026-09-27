@@ -110,22 +110,27 @@ describe("demo loop: inbox, outcomes, outbound drafts, demo path", () => {
     assert.equal(listOutbox(db()).length, 0);
   });
 
-  it("an agent cannot approve a send; a person can, and the local outbox never sends externally", () => {
+  it("an agent cannot approve a send; a person can, and the local outbox never sends externally", async () => {
     const before = allAttention();
     const draft = outboundView(db()).drafts[0];
     for (const actor of ["agent", "pulse", "ai", "system", "autopilot", "planner-agent", "", undefined]) {
       assert.equal(isHumanActor(actor), false);
-      assert.throws(() => approveAndSendDraft(db(), draft.id, actor), (e: unknown) => e instanceof OutboundError && e.status === 403);
+      await assert.rejects(approveAndSendDraft(db(), draft.id, actor), (e: unknown) => e instanceof OutboundError && e.status === 403);
     }
     assert.equal(listOutbox(db()).length, 0);
-    assert.throws(() => approveAndSendDraft(db(), "act_offer_terms:ent_amine", "operator"), (e: unknown) => e instanceof OutboundError && e.status === 404);
+    await assert.rejects(approveAndSendDraft(db(), "act_offer_terms:ent_amine", "operator"), (e: unknown) => e instanceof OutboundError && e.status === 404);
+    const connectorRows = () => (db().prepare("SELECT COUNT(*) AS n FROM connector_outbox WHERE action_id = ?").get(draft.actionId) as { n: number }).n;
+    assert.equal(connectorRows(), 0);
 
-    const sent = approveAndSendDraft(db(), draft.id, "operator");
+    const sent = await approveAndSendDraft(db(), draft.id, "operator");
     assert.equal(sent.duplicate, false);
     assert.equal(sent.message.provider, "local-outbox");
     assert.equal(sent.message.external, false);
     assert.equal(sent.message.status, "recorded_local");
-    assert.equal(approveAndSendDraft(db(), draft.id, "operator").duplicate, true);
+    assert.equal((await approveAndSendDraft(db(), draft.id, "operator")).duplicate, true);
+    // Delivered through the connectors registry's local-outbox adapter, exactly once.
+    assert.equal(connectorRows(), 1);
+    assert.ok(sent.message.provider === "local-outbox");
     assert.equal(listOutbox(db()).length, 1);
     assert.ok(!outboundView(db()).drafts.some((d) => d.id === draft.id));
     // Recording a message is not verification: nothing turns HANDLED.
