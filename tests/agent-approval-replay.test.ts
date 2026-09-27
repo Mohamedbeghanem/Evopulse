@@ -50,4 +50,42 @@ describe("agent approval replay", { concurrency: 1 }, () => {
     const after = db.prepare("SELECT status FROM agent_approvals WHERE id = ?").get(approval.id) as { status: string };
     assert.equal(after.status, "rejected");
   });
+
+  it("an unknown approvalId or actionId is refused, never resolved to another pending approval", async () => {
+    const db = getDb();
+    const agent = new DeterministicRuntime(db);
+    const started = await agent.run({ command: "Protect everything at risk this week." });
+    const pending = started.approvals.filter((item) => item.status === "pending");
+    assert.ok(pending.length >= 2, "scenario must produce at least two pending approvals");
+    const statuses = () =>
+      pending.map(
+        (item) => (db.prepare("SELECT status FROM actions WHERE id = ?").get(item.actionId) as { status: string }).status,
+      );
+    const actionsBefore = statuses();
+    const approvalsBefore = pending.map(
+      (item) => (db.prepare("SELECT status FROM agent_approvals WHERE id = ?").get(item.id) as { status: string }).status,
+    );
+
+    await assert.rejects(
+      async () => agent.resumeAfterApproval(started.id, { approvalId: "apr_does_not_exist", decision: "approve" }),
+      /Approval not found/,
+    );
+    await assert.rejects(
+      async () => agent.resumeAfterApproval(started.id, { actionId: "act_does_not_exist", decision: "approve" }),
+      /Approval not found/,
+    );
+    const res = await approveRoute(
+      new Request("http://local/api", { method: "POST", body: JSON.stringify({ approvalId: "apr_does_not_exist" }) }),
+      { params: Promise.resolve({ id: started.id }) },
+    );
+    assert.equal(res.status, 404);
+
+    assert.deepEqual(statuses(), actionsBefore);
+    assert.deepEqual(
+      pending.map(
+        (item) => (db.prepare("SELECT status FROM agent_approvals WHERE id = ?").get(item.id) as { status: string }).status,
+      ),
+      approvalsBefore,
+    );
+  });
 });

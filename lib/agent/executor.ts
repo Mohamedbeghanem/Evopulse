@@ -245,10 +245,14 @@ export function finishRun(host: ExecutorHost, report: AgentRunReport, status: Ag
 
 export function applyHumanDecision(db: DatabaseSync, runId: string, decision: ApprovalDecision, now: string): AgentRun {
   const run = loadRun(db, runId);
-  const approval =
-    run.approvals.find((item) => item.id === decision.approvalId) ||
-    run.approvals.find((item) => item.actionId === decision.actionId) ||
-    run.approvals.find((item) => item.status === "pending");
+  // Only fall back to "the first pending approval" when the caller named none. A named approval or
+  // action that does not exist must never resolve to some other approval nobody chose.
+  const approval = decision.approvalId
+    ? run.approvals.find((item) => item.id === decision.approvalId)
+    : decision.actionId
+      ? run.approvals.find((item) => item.actionId === decision.actionId && (item.status === "pending" || item.status === "edited")) ||
+        run.approvals.find((item) => item.actionId === decision.actionId)
+      : run.approvals.find((item) => item.status === "pending");
   if (!approval) throw new Error("Approval not found");
   // A decided approval is final: never re-decide it, and never execute a rejected action.
   if (approval.status !== "pending" && approval.status !== "edited") {
