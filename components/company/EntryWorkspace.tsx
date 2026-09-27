@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { Button } from "@/components/ui/primitives";
 import { type PulseAvatarState } from "@/lib/company/avatar";
@@ -23,6 +23,11 @@ export function EntryWorkspace() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const selected = useMemo(() => COMPANY_TEMPLATES.find((item) => item.id === template), [template]);
+
+  // Deep link from the public landing page: /?create=1 opens the Create a company surface.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("create") === "1") setSurface("create");
+  }, []);
 
   async function openDemo() {
     setBusy(true);
