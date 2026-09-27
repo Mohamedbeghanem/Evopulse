@@ -205,6 +205,8 @@ function migrate(db: DatabaseSync) {
   migrateExceptionsTable(db);
   const { migrateLearningTables } = require("./learning/schema") as typeof import("./learning/schema");
   migrateLearningTables(db);
+  const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
+  migrateGoalTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {

@@ -11,12 +11,12 @@ GitHub PR numbers and plan section numbers diverged. This is the order to build 
 | On main | #3 | §1 Event layer | Everything becomes an event |
 | On main | #4 | §2–§3 Graph, Twin, partial Impact | Atlas SH-204 cascade, 850K / 540K from stored amounts |
 | On main | #5 | §15–§17 | Verification, outcome ledger, learning foundation (landed early) |
-| Building now | — | §7 Causal Explorer | Clickable cause → event → dependency → consequence. Route `/explore` |
-| Open, rebase onto explorer | #8 | §9 Impact Simulator | Read-only what-if. Land before the matcher so `dueAt` / `leadDays` are already on the graph seed |
-| Open, fix then land | #7 draft | §4–§5 | Expectation matcher. Broken on an existing SQLite file, and a miss is not decided by type + entity + clock |
-| Open, land last | #6 draft | §11–§12 | Goal planner. Do not merge until it stops firing the supplier delay and fulfilling quotes while planning |
+| On `fix/review-bugs` | — | §7 Causal Explorer | `/explore`. Click a node for source, evidence, timestamp, confidence |
+| On `fix/review-bugs` | #8 | §9 Impact Simulator | Read-only what-if. Missing payment terms no longer invent a day. Slice keeps every predecessor |
+| On `fix/review-bugs` | #7 | §4–§5 | Expectation matcher. Index after migration. Match requires both entity ids. Clock owns MISSED |
+| On `fix/review-bugs` | #6 | §11–§12 | Goal planner. Creating a goal does not fire the supplier delay. Net-14 needs approval. Safe-execute rechecks policy |
 
-Merge order for the three open PRs, after `/explore` is on the branch: **#8, then #7, then #6**. #7 and #6 auto-merge in git, but the combined `execute.ts` fulfills expectations with prose instead of an event. Learning stays on main and must not train on simulated rows.
+Learning stays on main and must not train on simulated rows.
 
 Sections below keep their original numbers. Treat this table as the sequence.
 

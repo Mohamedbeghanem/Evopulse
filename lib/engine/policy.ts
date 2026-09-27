@@ -16,6 +16,13 @@ export function evaluatePolicy(
   action: ProposedAction,
   policies: Record<string, string>,
 ): { outcome: PolicyOutcome; reason: string } {
+  if (action.type === "offer_alternative" && policies.financial_commitment_requires_approval === "true") {
+    return {
+      outcome: "APPROVAL_REQUIRED",
+      reason: "Payment terms are a financial commitment and need approval.",
+    };
+  }
+
   if (action.type === "apply_discount") {
     const requested = Number(action.payload.percent ?? 0);
     const max = Number(policies.discount_max ?? 5);
@@ -33,7 +40,11 @@ export function evaluatePolicy(
     }
   }
 
-  if (action.type === "send_message" || action.type === "draft_message") {
+  if (
+    action.type === "send_message" ||
+    action.type === "send_simulated_message" ||
+    action.type === "draft_message"
+  ) {
     if (policies.external_message_requires_approval === "true") {
       return {
         outcome: "APPROVAL_REQUIRED",

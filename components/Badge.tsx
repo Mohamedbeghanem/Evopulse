@@ -24,6 +24,14 @@ const TONES: Record<string, string> = {
   RELIABLE_PATTERN: "bg-ok/20 text-ok",
   EMERGING_PATTERN: "bg-ice/20 text-ice",
   INSUFFICIENT_DATA: "bg-white/10 text-sand",
+  ACTIVE: "bg-need/20 text-need",
+  DRAFT: "bg-white/10 text-sand",
+  COMPLETED: "bg-ok/20 text-ok",
+  OBSERVED_FACT: "bg-ice/20 text-ice",
+  CALCULATED_IMPACT: "bg-need/20 text-need",
+  HISTORICAL_EVIDENCE: "bg-ok/20 text-ok",
+  POLICY_DECISION: "bg-white/10 text-sand",
+  AI_RECOMMENDATION: "bg-white/10 text-sand",
 };
 
 export function Badge({ children }: { children: string }) {

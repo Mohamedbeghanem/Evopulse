@@ -60,7 +60,8 @@ export function executeAction(db: DatabaseSync, actionId: string, now: string, a
   const remaining = siblings.filter(
     (a) => a.policy_outcome !== "BLOCKED" && a.status !== "executed" && a.id !== actionId,
   );
-  if (remaining.length === 0 && action.plan_id) {
+  const planRow = action.plan_id ? one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [action.plan_id]) : undefined;
+  if (!planRow?.goal_id && remaining.length === 0 && action.plan_id) {
     run(db, "UPDATE plans SET status = ? WHERE id = ?", ["executed", action.plan_id]);
     markExceptionAwaitingVerification(db, action.exception_id);
     if (action.exception_id === IDS.excMissed) setMeta(db, "demo_phase", "recovered");
@@ -106,6 +107,9 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
         now,
       ],
     );
+    const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [action.plan_id]);
+    if (plan?.goal_id) return;
+
     eventsFor(db).append({
       type: EVENT_TYPES.QUOTE_SENT,
       source: "action-engine",
@@ -176,4 +180,79 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
       IDS.opportunity,
     ]);
   }
+
+  applyCatalogSideEffects(db, action, now);
+}
+
+function applyCatalogSideEffects(db: DatabaseSync, action: ActionRow, now: string) {
+  const payload = (() => {
+    try {
+      return JSON.parse(action.payload) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  })();
+
+  if (action.type === "prioritize_order") {
+    const orderId = String(payload.orderId || action.target_id || IDS.orderA);
+    const existing = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [orderId]);
+    const current = existing ? (JSON.parse(existing.payload) as Record<string, unknown>) : {};
+    run(db, "UPDATE entities SET payload = ? WHERE id = ?", [
+      JSON.stringify({ ...current, priority: "critical" }),
+      orderId,
+    ]);
+  }
+
+  if (action.type === "update_expectation") {
+    const expectationId = String(payload.expectationId || "");
+    if (!expectationId) return;
+    const current = one<{ due_at: string; expected_at: string }>(
+      db,
+      "SELECT due_at, expected_at FROM expectations WHERE id = ?",
+      [expectationId],
+    );
+    if (!current) return;
+    let explicit = "";
+    if (typeof payload.dueAt === "string") explicit = payload.dueAt;
+    else if (typeof payload.expectedAt === "string") explicit = payload.expectedAt;
+    const shipment = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [IDS.shipment]);
+    const shipPayload = shipment ? (JSON.parse(shipment.payload) as { deltaDays?: number }) : {};
+    const delta = typeof payload.deltaDays === "number" ? payload.deltaDays : Number(shipPayload.deltaDays || 0);
+    const nextDue = explicit || (delta > 0 ? shiftIso(current.expected_at || current.due_at, delta) : "");
+    if (nextDue) {
+      run(db, "UPDATE expectations SET due_at = ?, expected_at = ?, actual = ?, updated_at = ? WHERE id = ?", [
+        nextDue,
+        nextDue,
+        "Cash timing moved with the shipment delay",
+        now,
+        expectationId,
+      ]);
+    }
+  }
+
+  if (action.type === "create_task" || action.type === "monitor" || action.type === "schedule_followup") {
+    const taskId = `ent_${action.id}`;
+    run(
+      db,
+      `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [taskId, "task", action.title, JSON.stringify({ actionId: action.id, ...payload }), now],
+    );
+  }
+
+  if (action.type === "prepare_customer_notice" || action.type === "update_record") {
+    const docId = `ent_notice_${action.id}`;
+    run(
+      db,
+      `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [docId, "document", action.title, JSON.stringify({ actionId: action.id, status: "prepared", ...payload }), now],
+    );
+  }
+}
+
+function shiftIso(iso: string, days: number): string {
+  const shifted = new Date(Date.parse(iso) + days * 86_400_000);
+  if (iso.endsWith("Z")) return shifted.toISOString();
+  const offset = iso.slice(-6);
+  const local = new Date(shifted.getTime() + 3_600_000);
+  return local.toISOString().replace(".000Z", offset);
 }
