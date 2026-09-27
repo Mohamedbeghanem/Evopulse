@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { projectAttention } from "../lib/attention";
+import { projectAttention, type AttentionItem } from "../lib/attention";
 import { CommandRouter } from "../lib/command";
 import { getDb, getMeta, resetDbFile, run } from "../lib/db";
 import { executePlan } from "../lib/engine/execute";
@@ -35,7 +35,7 @@ function quietProposal(db: ReturnType<typeof getDb>) {
   run(db, "DELETE FROM exceptions WHERE id IN (?, ?)", [IDS.excMissed, IDS.excDiscount]);
 }
 
-function situationOf(items: { id: string; sourceExceptionId: string | null; sourceWarningId: string | null }[], exceptionId?: string, warningId?: string) {
+function situationOf(items: AttentionItem[], exceptionId?: string, warningId?: string) {
   return items.filter(
     (item) =>
       item.id === (exceptionId ? `exception:${exceptionId}` : undefined) ||
