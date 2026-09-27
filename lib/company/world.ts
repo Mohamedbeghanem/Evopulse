@@ -163,27 +163,6 @@ export function expandDistributionWorld(db: DatabaseSync) {
     });
   }
 
-  const extraInvoices: [string, number][] = [
-    [WORLD.invoices[0], 190000],
-    [WORLD.invoices[1], 210000],
-    [WORLD.invoices[2], 85000],
-  ];
-  for (const [invoiceId, amount] of extraInvoices) {
-    events.append({
-      id: `evt_${invoiceId}`,
-      type: EVENT_TYPES.PAYMENT_EXPECTED,
-      source: "seed",
-      source_id: invoiceId,
-      actor_id: IDS.company,
-      entity_type: "invoice",
-      entity_id: invoiceId,
-      payload: { amount, currency: "DZD" },
-      occurred_at: CREATED,
-      received_at: CREATED,
-      confidence: 1,
-      idempotent: true,
-    });
-  }
 }
 
 export function countEntities(db: DatabaseSync, type: string): number {
