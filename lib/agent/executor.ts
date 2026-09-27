@@ -250,6 +250,10 @@ export function applyHumanDecision(db: DatabaseSync, runId: string, decision: Ap
     run.approvals.find((item) => item.actionId === decision.actionId) ||
     run.approvals.find((item) => item.status === "pending");
   if (!approval) throw new Error("Approval not found");
+  // A decided approval is final: never re-decide it, and never execute a rejected action.
+  if (approval.status !== "pending" && approval.status !== "edited") {
+    throw new Error(`Approval ${approval.id} is no longer pending (${approval.status}).`);
+  }
   const actor = decision.actor || "operator";
   if (decision.decision === "edit") {
     updateApproval(db, approval.id, "edited", now, actor);
