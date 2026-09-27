@@ -75,6 +75,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - **Business Graph + Impact (product P3)** lives at `lib/graph/` and `lib/engine/impact.ts`. SQLite `graph_nodes` / `graph_edges`; traversal is relational. Impact sums seeded order/invoice amounts — it does not hardcode 850K / 540K.
 - **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
 - **Early Warning (product P22)** lives at `lib/warnings/`. Deterministic buffer math (`available` vs `required`) decides AT RISK before a deadline is missed. Detect still owns MISSED. LLM does not classify the warning.
+- **Exception Autopilot (product P26)** lives at `lib/autopilot/`. It orchestrates existing engines. Policy still decides AUTO / APPROVAL / BLOCKED. Verification SUCCESS is the only HANDLED.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
 - Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
 
@@ -99,10 +100,11 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | `/goals` · `/goals/:id` | Cross-business goal + structured plan |
 | `/graph` | Commitment graph |
 | `/warnings` · `/warnings/:id` | Early warning — AT RISK, not missed |
+| `/autopilot/:id` | Autopilot provenance — why EvoPulse classified this |
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation` · `GET /api/autopilot` · `GET /api/autopilot/summary` · `GET /api/autopilot/decisions` · `POST /api/autopilot/evaluate` · `POST /api/autopilot/handle-safe`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `POST /api/demo/shipment-earlier` · `GET /api/health`
 

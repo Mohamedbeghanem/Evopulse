@@ -5,6 +5,7 @@ import { id, IDS } from "../ids";
 import { calculateImpact } from "./impact";
 import { businessTwin } from "./twin";
 import { refreshExpectations } from "./expectations";
+import { ExceptionAutopilotService } from "../autopilot";
 import { EarlyWarningEngine } from "../warnings";
 import type {
   Attention,
@@ -135,6 +136,7 @@ export function pulseSummary(db: DatabaseSync, now: string) {
     twin: businessTwin(db),
     supplierPhase: one<{ value: string }>(db, "SELECT value FROM meta WHERE key = ?", ["supplier_phase"])?.value || "stable",
     comingNext: warningEngine.getActiveWarnings().map((row) => warningEngine.summarize(row)),
+    autopilot: ExceptionAutopilotService.for(db).evaluateSituation(now),
   };
 }
 

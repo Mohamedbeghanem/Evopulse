@@ -1,23 +1,40 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
 import { executeAction } from "../engine/execute";
-import type { ActionRow, PlanRow } from "../types";
+import { evaluatePolicy, loadPolicies } from "../engine/policy";
+import type { ActionRow, PlanRow, PolicyOutcome } from "../types";
 import { hydratePlan } from "./planner";
 import { refreshGoalStatus } from "./status";
+
+function recheckAction(db: DatabaseSync, action: ActionRow): ActionRow {
+  const payload = JSON.parse(action.payload || "{}") as Record<string, unknown>;
+  const current = evaluatePolicy({ type: action.type, payload }, loadPolicies(db));
+  if (current.outcome !== action.policy_outcome || current.reason !== action.policy_reason) {
+    run(db, "UPDATE actions SET policy_outcome = ?, policy_reason = ? WHERE id = ?", [
+      current.outcome,
+      current.reason,
+      action.id,
+    ]);
+    return { ...action, policy_outcome: current.outcome, policy_reason: current.reason };
+  }
+  return action;
+}
 
 export function executeSafeActions(db: DatabaseSync, planId: string, now: string, actor = "operator") {
   const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]);
   if (!plan) throw new Error("Plan not found");
 
-  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? ORDER BY priority, created_at", [planId]);
+  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? ORDER BY priority, created_at", [planId]).map(
+    (action) => recheckAction(db, action),
+  );
   const auto = actions.filter((action) => action.policy_outcome === "AUTO" && action.status !== "executed");
   const skippedApproval = actions.filter((action) => action.policy_outcome === "APPROVAL_REQUIRED");
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
   const executed: ActionRow[] = [];
   for (const action of auto) {
-    if (action.policy_outcome !== "AUTO") continue;
-    if (action.policy_outcome === "APPROVAL_REQUIRED" || action.policy_outcome === "BLOCKED") {
+    const outcome: PolicyOutcome = action.policy_outcome;
+    if (outcome !== "AUTO") {
       throw new Error("Safe execution refused a non-AUTO action.");
     }
     executed.push(executeAction(db, action.id, now, actor)!);

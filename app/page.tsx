@@ -4,6 +4,7 @@ import { formatDay, formatMoney } from "@/lib/clock";
 import { getDb, getMeta } from "@/lib/db";
 import { pulseSummary } from "@/lib/engine/pulse";
 import { IDS } from "@/lib/ids";
+import type { AutopilotCard } from "@/lib/autopilot";
 import { formatHours } from "@/lib/warnings";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,10 @@ export default function PulsePage() {
             {pulse.headline}
           </h1>
           <p className="mt-4 max-w-xl text-sand">
-            What requires your attention. Expected versus actual — not a dashboard of charts.
+            Your business is running. {pulse.autopilot?.summary.eventsProcessed ?? 0} events understood ·{" "}
+            {pulse.autopilot?.summary.autoHandled ?? 0} handled automatically ·{" "}
+            {pulse.autopilot?.summary.monitoring ?? 0} monitoring ·{" "}
+            {(pulse.autopilot?.summary.needsYou ?? 0) + (pulse.autopilot?.summary.needsApproval ?? 0)} need you.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             {delay ? (
@@ -56,10 +60,10 @@ export default function PulsePage() {
           </div>
         </div>
         <aside className="grid grid-cols-2 gap-3 self-start">
-          <Stat label="NEEDS YOU" count={pulse.counts.NEEDS_YOU} className="text-need" />
-          <Stat label="HANDLED" count={pulse.counts.HANDLED} className="text-ok" />
-          <Stat label="MONITORING" count={pulse.counts.MONITORING} className="text-ice" />
-          <Stat label="HEALTHY" count={pulse.counts.HEALTHY} className="text-mute" />
+          <Stat label="NEEDS YOU" count={pulse.autopilot?.summary.needsYou ?? pulse.counts.NEEDS_YOU} className="text-need" />
+          <Stat label="APPROVAL" count={pulse.autopilot?.summary.needsApproval ?? 0} className="text-need" />
+          <Stat label="MONITORING" count={pulse.autopilot?.summary.monitoring ?? pulse.counts.MONITORING} className="text-ice" />
+          <Stat label="HANDLED" count={pulse.autopilot?.summary.handled ?? pulse.counts.HANDLED} className="text-ok" />
         </aside>
       </section>
 
@@ -74,6 +78,39 @@ export default function PulsePage() {
       </section>
 
       <div className="rule" />
+
+      {pulse.autopilot?.cards?.length ? (
+        <section className="space-y-4">
+          <h2 className="font-serif text-3xl">What needs me?</h2>
+          {pulse.autopilot.cards
+            .filter((card: AutopilotCard) => ["NEEDS_YOU", "NEEDS_APPROVAL", "BLOCKED"].includes(card.classification))
+            .map((card: AutopilotCard) => (
+              <article key={card.id} className="rounded-2xl border border-need/30 bg-need/5 p-5">
+                <div className="flex flex-wrap gap-2">
+                  <Badge>{card.classification}</Badge>
+                  <Badge>{card.reasonCode}</Badge>
+                </div>
+                <h3 className="mt-3 font-serif text-2xl">{card.title}</h3>
+                <p className="mt-2 text-sm text-sand">{card.whyItMatters}</p>
+                <ul className="mt-3 space-y-1 text-sm text-mute">
+                  {card.alreadyDone.map((item: string) => (
+                    <li key={item}>✓ {item}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-sm text-paper">Needs you: {card.needsFromYou}</p>
+                <Link
+                  href={card.href}
+                  className="mt-4 inline-flex rounded-full bg-need px-4 py-2 text-sm font-medium text-ink-950"
+                >
+                  Review
+                </Link>
+                <Link href={`/autopilot/${card.id}`} className="ml-3 text-sm underline underline-offset-4">
+                  Why?
+                </Link>
+              </article>
+            ))}
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">

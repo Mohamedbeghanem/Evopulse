@@ -35,7 +35,9 @@ export function businessTwin(db: DatabaseSync) {
     id: "SALES",
     status: salesOpen.length ? "ATTENTION" : phase === "recovered" ? "HANDLED" : "STABLE",
     headline: salesOpen.length
-      ? "320K commitment exception"
+      ? phase === "discount_blocked"
+        ? "1 blocked by policy"
+        : "1 needs approval"
       : phase === "discount_blocked"
         ? "10% blocked — alternative ready"
         : phase === "recovered"
@@ -54,9 +56,7 @@ export function businessTwin(db: DatabaseSync) {
     id: "OPERATIONS",
     status: delayed ? "AT_RISK" : "STABLE",
     headline: delayed
-      ? `${activeWarnings.length} active early warning · ${impact?.affected_orders.length ?? 0} affected orders · ${
-          activeWarnings.length
-        } customer commitment at risk`
+      ? `1 needs you · ${activeWarnings.length} active early warning · ${impact?.affected_orders.length ?? 0} affected orders · ${activeWarnings.length} customer commitment at risk`
       : "Shipment SH-204 still expected Monday",
     exceptions: delay ? 1 : 0,
     commitments: delayed ? 1 : 0,
@@ -104,7 +104,7 @@ export function businessTwin(db: DatabaseSync) {
   const suppliers: TwinDomain = {
     id: "SUPPLIERS",
     status: delayed ? "AT_RISK" : "STABLE",
-    headline: delayed ? "1 shipment delayed · +2 days" : "Atlas Supply on the Monday slot",
+    headline: delayed ? "1 active cascade" : "Atlas Supply on the Monday slot",
     exceptions: delay ? 1 : 0,
     commitments: 1,
     dependencies: 1,
