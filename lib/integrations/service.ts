@@ -1,4 +1,7 @@
+import type { DatabaseSync } from "node:sqlite";
 import { id } from "../ids";
+import { ConnectorRegistry } from "../connectors/registry";
+import type { ConnectorView as RegistryConnectorView } from "../connectors/types";
 import { getControlDb } from "../auth/control-db";
 import { CONNECTOR_CATALOG, type ConnectorStatus } from "./catalog";
 
@@ -46,7 +49,17 @@ export const IntegrationService = {
     return this.list(workspaceId);
   },
 
-  connectedCount(workspaceId: string) {
-    return this.list(workspaceId).filter((item) => item.connected).length;
+  /**
+   * Real connectors (CSV / Excel, IMAP, WhatsApp, MCP, outbound) live in the workspace DB registry
+   * (lib/connectors). This catalog keeps the manual sources and the honest "coming soon" list.
+   */
+  connectors(db: DatabaseSync, workspaceId: string): RegistryConnectorView[] {
+    return ConnectorRegistry.for(db, workspaceId).list();
+  },
+
+  connectedCount(workspaceId: string, db?: DatabaseSync) {
+    const manual = this.list(workspaceId).filter((item) => item.connected).length;
+    if (!db) return manual;
+    return manual + this.connectors(db, workspaceId).filter((item) => item.state === "connected").length;
   },
 };

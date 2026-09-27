@@ -12,12 +12,16 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "imapflow": "^1.7.8",
+    "mailparser": "^3.9.28",
     "next": "^15.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "read-excel-file": "^9.3.10",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^22.13.14",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",

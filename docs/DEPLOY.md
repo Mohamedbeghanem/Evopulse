@@ -21,6 +21,8 @@ No deploy target or account exists yet. Nothing in this repo creates one.
 | `NODE_ENV` | `production` | secure session cookies (HTTPS required for login) |
 | `NODE_OPTIONS` | `--disable-warning=ExperimentalWarning` | hides the `node:sqlite` experimental notice |
 | LLM keys (optional) | unset | see `.env.example`; the demo is fully deterministic without them |
+| `EVOPULSE_SECRETS_KEY` (recommended) | unset | encrypts connector secrets; without it a 0600 key file is created next to `CONTROL_DB_PATH` (on the `/data` volume, so it persists) |
+| Connector env (optional) | unset | IMAP / WhatsApp / MCP — see [CONNECTORS.md](./CONNECTORS.md). WhatsApp webhooks need the public HTTPS URL of the deploy |
 
 - Start command: `next start --hostname 0.0.0.0 --port $PORT` (production build, not dev).
 - Health check: `GET /api/health` → `200 {"ok":true,"db":"sqlite",…}`; `503` if the DB cannot be opened. Read-only.
@@ -49,6 +51,7 @@ fly launch --no-deploy --copy-config --name <your-app-name> --region cdg
 # 2. Create the 1 GB volume that holds every SQLite file (same region as primary_region):
 fly volumes create evopulse_data --size 1 --region cdg
 # 3. Optional LLM keys (never commit them):
+fly secrets set EVOPULSE_SECRETS_KEY=$(openssl rand -hex 32)   # recommended
 fly secrets set OPENROUTER_API_KEY=...        # optional
 # 4. Deploy and check:
 fly deploy
@@ -68,7 +71,7 @@ this GitHub repo connected to Render.
 
 1. Render dashboard → **New → Blueprint** → select `Mohamedbeghanem/Evopulse` → it reads `render.yaml`.
 2. Confirm the `evopulse` web service (Docker, `starter` plan, Frankfurt), the 1 GB disk mounted at `/data`,
-   and health check `/api/health`. Add optional LLM keys as environment variables in the dashboard.
+   and health check `/api/health`. Add `EVOPULSE_SECRETS_KEY` (random 32+ bytes) and optional LLM/connector keys as environment variables in the dashboard.
 3. **Apply**. Render builds the Dockerfile and deploys. Every push to `main` redeploys (auto-deploy).
 4. Verify: `curl -s https://<service>.onrender.com/api/health` then
    `node scripts/smoke-http.mjs https://<service>.onrender.com`.

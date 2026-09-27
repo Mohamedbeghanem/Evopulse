@@ -9,7 +9,7 @@ import { getDb, resetDbFile } from "../lib/db";
 import { calculateGraphImpact } from "../lib/engine/impact";
 import { triggerSupplierDelay } from "../lib/engine/supplier";
 import { IDS } from "../lib/ids";
-import { CONNECTOR_CATALOG } from "../lib/integrations/catalog";
+import { CONNECTOR_MANIFESTS } from "../lib/connectors/manifests";
 import { runSimulation } from "../lib/simulation";
 
 process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), "evopulse-landing-")), "landing.db");
@@ -71,16 +71,20 @@ describe("/welcome landing page", () => {
     assert.match(home, /params\.create === "1"/, "Home renders the entry surface for /?create=1 even when a company is running");
   });
 
-  it("connectors are honest: only backed connectors are Live; CSV/Excel, WhatsApp, MCP are not claimed live", () => {
-    const names = LANDING_CONNECTORS.map((c) => c.name);
-    for (const required of ["CSV / Excel", "Email", "WhatsApp", "MCP plugins"]) assert.ok(names.includes(required), required);
-    const live = LANDING_CONNECTORS.filter((c) => c.state === "Live");
-    const backed = CONNECTOR_CATALOG.filter((c) => c.backend).map((c) => c.id);
-    assert.ok(backed.includes("manual-profile") && backed.includes("manual-notes"));
-    assert.deepEqual(live.map((c) => c.name), ["Business profile & notes"]);
-    for (const name of ["CSV / Excel", "WhatsApp", "MCP plugins"]) {
-      assert.notEqual(LANDING_CONNECTORS.find((c) => c.name === name)?.state, "Live", name);
+  it("connectors are honest: statuses match the real connector manifests", () => {
+    const byName = Object.fromEntries(LANDING_CONNECTORS.map((c) => [c.name, c]));
+    for (const required of ["CSV / Excel", "Email", "WhatsApp", "MCP plugins"]) assert.ok(byName[required], required);
+    const manifestIds = new Set(CONNECTOR_MANIFESTS.map((m) => m.id));
+    for (const connector of LANDING_CONNECTORS) {
+      if (connector.state === "Coming") {
+        assert.equal(connector.manifestId, null, `${connector.name} has no adapter, so it cannot claim one`);
+      } else {
+        assert.ok(connector.manifestId && manifestIds.has(connector.manifestId), `${connector.name} must have a real adapter`);
+      }
     }
+    // Only connectors that need no credentials may say Live.
+    assert.deepEqual(LANDING_CONNECTORS.filter((c) => c.state === "Live").map((c) => c.manifestId), ["csv-import"]);
+    for (const name of ["Email", "WhatsApp", "MCP plugins"]) assert.equal(byName[name].state, "Configure", name);
   });
 
   it("contains no testimonials, customer logos or invented metrics", () => {

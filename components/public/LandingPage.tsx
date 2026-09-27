@@ -21,13 +21,17 @@ export const ATLAS_COPY = {
 
 export type ConnectorState = "Live" | "Coming" | "Configure";
 
-/** Honest status for this build. Only move an item to Live when a working adapter ships. */
-export const LANDING_CONNECTORS: { name: string; state: ConnectorState; body: string }[] = [
-  { name: "Business profile & notes", state: "Live", body: "Tell Pulse your customers, suppliers and promises. Governed notes, not a spreadsheet." },
-  { name: "Email", state: "Configure", body: "Paste a customer or supplier message today; commitments are extracted with evidence. Inbox sync is coming." },
-  { name: "CSV / Excel", state: "Coming", body: "Import orders, shipments and invoices from the exports you already have." },
-  { name: "WhatsApp", state: "Coming", body: "Where distributors actually make promises. Messages will arrive as data, never as instructions." },
-  { name: "MCP plugins", state: "Coming", body: "Let other tools read Pulse and propose actions — still under the same policy and approvals." },
+/**
+ * Honest status for this build (docs/CONNECTORS.md). Live = works with no credentials.
+ * Configure = a working adapter that does nothing until you add your own credentials (never fake data).
+ * Coming = no adapter yet.
+ */
+export const LANDING_CONNECTORS: { name: string; manifestId: string | null; state: ConnectorState; body: string }[] = [
+  { name: "CSV / Excel", manifestId: "csv-import", state: "Live", body: "Import customers, orders, invoices, suppliers and products from .csv or .xlsx. Preview first; nothing is written until you confirm." },
+  { name: "Email", manifestId: "email-imap", state: "Configure", body: "Connect an IMAP mailbox. Messages arrive as evidence and are matched to your customers and suppliers." },
+  { name: "WhatsApp", manifestId: "whatsapp-cloud", state: "Configure", body: "WhatsApp Business Cloud API with your own Meta credentials. Outbound replies still need your approval." },
+  { name: "MCP plugins", manifestId: "mcp", state: "Configure", body: "Add an MCP server by URL. Read tools return data; any write becomes an action under policy and approval." },
+  { name: "Gmail, QuickBooks, HubSpot…", manifestId: null, state: "Coming", body: "Native OAuth connectors for mail, accounting and CRM are not built yet. They show as coming, not connected." },
 ];
 
 const STEPS = [
@@ -148,7 +152,8 @@ export function LandingPage() {
           ))}
         </ul>
         <p className="mt-4 text-sm text-mute">
-          Every inbound message is treated as data. Text like “ignore policy” is recorded as evidence, never obeyed.
+          Configure means the adapter works once you add your own credentials; until then it does nothing. Every
+          inbound message is treated as data. Text like “ignore policy” is recorded as evidence, never obeyed.
         </p>
       </Section>
 
