@@ -1,10 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { DEMO_NOW_ISO, MESSAGE_ONE_ISO, MESSAGE_TWO_ISO } from "../clock";
 import { all, audit, getMeta, one, run, setMeta } from "../db";
+import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import { extractCommitments, SEED_MESSAGE_TWO } from "./extract";
 import { detectExceptions } from "./pulse";
-import { buildDiscountAlternative, buildRecoveryPlan } from "./recovery";
+import { buildDiscountAlternative } from "./recovery";
 import { calculateImpact } from "./impact";
 import type { CommitmentRow, EvidencePack } from "../types";
 
@@ -16,23 +17,39 @@ export async function ingestMessage(
   const now = getMeta(db, "demo_now", DEMO_NOW_ISO);
   const occurredAt = options.occurredAt || now;
   const eventId = /10%/.test(text) ? IDS.message2 : id("evt");
+  const events = eventsFor(db);
 
-  run(
-    db,
-    `INSERT INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET payload = excluded.payload`,
-    [
-      eventId,
-      "message_received",
-      IDS.contact,
-      occurredAt,
-      JSON.stringify({ text, from: "Amine Khelifi" }),
-      options.source || "inbox",
-      now,
-    ],
-  );
-  audit(db, "ingest", "message_received", "event", eventId, { text });
+  events.append({
+    id: eventId,
+    type: EVENT_TYPES.MESSAGE_RECEIVED,
+    source: options.source || "inbox",
+    source_id: eventId,
+    actor_id: IDS.contact,
+    entity_type: "contact",
+    entity_id: IDS.contact,
+    payload: { text, from: "Amine Khelifi" },
+    occurred_at: occurredAt,
+    received_at: now,
+    confidence: 1,
+    idempotent: true,
+  });
+  if (/10%/.test(text)) {
+    events.append({
+      id: IDS.evtCustomerReplied,
+      type: EVENT_TYPES.CUSTOMER_REPLIED,
+      source: options.source || "inbox",
+      source_id: eventId,
+      actor_id: IDS.contact,
+      entity_type: "contact",
+      entity_id: IDS.contact,
+      payload: { text, from: "Amine Khelifi", inReplyTo: IDS.message1 },
+      occurred_at: occurredAt,
+      received_at: now,
+      confidence: 0.93,
+      idempotent: true,
+    });
+  }
+  audit(db, "ingest", "message.received", "event", eventId, { text });
 
   const extraction = await extractCommitments(text, occurredAt, now);
 
@@ -69,6 +86,24 @@ export async function ingestMessage(
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [id("exp"), cid, c.description, c.deadline, "ON_TRACK", "", now, now],
       );
+      events.append({
+        type: EVENT_TYPES.COMMITMENT_CREATED,
+        source: "ingest",
+        source_id: cid,
+        actor_id: c.actor === "customer" ? IDS.contact : IDS.company,
+        entity_type: "commitment",
+        entity_id: cid,
+        payload: {
+          actor: c.actor,
+          action: c.action,
+          description: c.description,
+          deadline: c.deadline,
+        },
+        occurred_at: occurredAt,
+        received_at: now,
+        confidence: c.confidence,
+        idempotent: true,
+      });
     }
   }
 
@@ -119,6 +154,25 @@ export async function ingestMessage(
       ],
     );
     buildDiscountAlternative(db, IDS.excDiscount, now);
+    events.append({
+      id: IDS.evtPolicyBlocked,
+      type: EVENT_TYPES.POLICY_BLOCKED,
+      source: "policy-engine",
+      source_id: IDS.excDiscount,
+      actor_id: IDS.contact,
+      entity_type: "opportunity",
+      entity_id: IDS.opportunity,
+      payload: {
+        policy: "discount_max",
+        requested: extraction.requestedDiscountPct,
+        max: 5,
+        reason: `Policy discount_max=5% blocks a ${extraction.requestedDiscountPct}% discount.`,
+      },
+      occurred_at: occurredAt,
+      received_at: now,
+      confidence: 0.93,
+      idempotent: true,
+    });
     setMeta(db, "demo_phase", "discount_blocked");
   }
 

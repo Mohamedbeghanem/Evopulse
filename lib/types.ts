@@ -28,11 +28,18 @@ export type EntityRow = {
 export type EventRow = {
   id: string;
   type: string;
-  entity_id: string | null;
-  occurred_at: string;
-  payload: string;
   source: string;
-  created_at: string;
+  source_id: string | null;
+  actor_id: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  payload: string;
+  occurred_at: string;
+  received_at: string;
+  confidence: number;
+  metadata: string;
+  /** Present on DBs created before the unified event layer. */
+  created_at?: string;
 };
 
 export type CommitmentRow = {

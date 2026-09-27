@@ -6,6 +6,7 @@ import {
   MESSAGE_ONE_ISO,
   PROPOSAL_DUE_ISO,
 } from "./clock";
+import { EVENT_TYPES, eventsFor } from "./events";
 import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
@@ -75,20 +76,35 @@ export function seedWorld(db: DatabaseSync) {
     ]);
   }
 
-  run(
-    db,
-    `INSERT OR REPLACE INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      IDS.message1,
-      "message_received",
-      IDS.contact,
-      MESSAGE_ONE_ISO,
-      JSON.stringify({ text: SEED_MESSAGE_ONE, from: "Amine Khelifi" }),
-      "inbox",
-      MESSAGE_ONE_ISO,
-    ],
-  );
+  const events = eventsFor(db);
+  events.append({
+    id: IDS.evtDealCreated,
+    type: EVENT_TYPES.DEAL_CREATED,
+    source: "seed",
+    source_id: IDS.opportunity,
+    actor_id: IDS.company,
+    entity_type: "opportunity",
+    entity_id: IDS.opportunity,
+    payload: { amount: 320000, currency: "DZD", name: "Atlas Q4 warehouse fit-out" },
+    occurred_at: "2026-09-04T11:00:00+01:00",
+    received_at: "2026-09-04T11:00:00+01:00",
+    confidence: 1,
+    idempotent: true,
+  });
+  events.append({
+    id: IDS.message1,
+    type: EVENT_TYPES.MESSAGE_RECEIVED,
+    source: "inbox",
+    source_id: IDS.contact,
+    actor_id: IDS.contact,
+    entity_type: "contact",
+    entity_id: IDS.contact,
+    payload: { text: SEED_MESSAGE_ONE, from: "Amine Khelifi" },
+    occurred_at: MESSAGE_ONE_ISO,
+    received_at: MESSAGE_ONE_ISO,
+    confidence: 1,
+    idempotent: true,
+  });
 
   run(
     db,
@@ -110,6 +126,25 @@ export function seedWorld(db: DatabaseSync) {
       MESSAGE_ONE_ISO,
     ],
   );
+  events.append({
+    id: IDS.evtCommitOursCreated,
+    type: EVENT_TYPES.COMMITMENT_CREATED,
+    source: "seed",
+    source_id: IDS.commitOurs,
+    actor_id: IDS.company,
+    entity_type: "commitment",
+    entity_id: IDS.commitOurs,
+    payload: {
+      actor: "company",
+      action: "send_revised_proposal",
+      deadline: PROPOSAL_DUE_ISO,
+      description: "Send the revised 320,000 DZD proposal",
+    },
+    occurred_at: MESSAGE_ONE_ISO,
+    received_at: MESSAGE_ONE_ISO,
+    confidence: 0.94,
+    idempotent: true,
+  });
   run(
     db,
     `INSERT OR REPLACE INTO commitments
@@ -130,6 +165,25 @@ export function seedWorld(db: DatabaseSync) {
       MESSAGE_ONE_ISO,
     ],
   );
+  events.append({
+    id: IDS.evtCommitTheirsCreated,
+    type: EVENT_TYPES.COMMITMENT_CREATED,
+    source: "seed",
+    source_id: IDS.commitTheirs,
+    actor_id: IDS.contact,
+    entity_type: "commitment",
+    entity_id: IDS.commitTheirs,
+    payload: {
+      actor: "customer",
+      action: "provide_decision",
+      deadline: DECISION_DUE_ISO,
+      description: "Customer gives a decision on Friday",
+    },
+    occurred_at: MESSAGE_ONE_ISO,
+    received_at: MESSAGE_ONE_ISO,
+    confidence: 0.92,
+    idempotent: true,
+  });
 
   run(
     db,
@@ -229,25 +283,44 @@ export function seedWorld(db: DatabaseSync) {
 
   buildRecoveryPlan(db, IDS.excMissed, now);
 
-  run(
-    db,
-    `INSERT OR REPLACE INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      "evt_clock_skip",
-      "time_advanced",
-      IDS.opportunity,
-      now,
-      JSON.stringify({
-        from: MESSAGE_ONE_ISO,
-        to: now,
-        note: "Simulated: proposal was not sent. Thursday send and Friday decision both lapsed.",
-        checkpointPreview: CHECKPOINT_ISO,
-      }),
-      "pulse-engine",
-      now,
-    ],
-  );
+  events.append({
+    id: IDS.evtCommitMissed,
+    type: EVENT_TYPES.COMMITMENT_MISSED,
+    source: "pulse-engine",
+    source_id: IDS.expectOurs,
+    actor_id: IDS.company,
+    entity_type: "commitment",
+    entity_id: IDS.commitOurs,
+    payload: {
+      expectationId: IDS.expectOurs,
+      exceptionId: IDS.excMissed,
+      expected: "Revised proposal sent Thursday 24 Sep 18:00",
+      actual: "No proposal-sent event before Thursday 18:00",
+    },
+    occurred_at: PROPOSAL_DUE_ISO,
+    received_at: now,
+    confidence: 0.94,
+    idempotent: true,
+  });
+  events.append({
+    id: IDS.evtClockSkip,
+    type: EVENT_TYPES.TIME_ADVANCED,
+    source: "pulse-engine",
+    source_id: IDS.opportunity,
+    actor_id: IDS.company,
+    entity_type: "opportunity",
+    entity_id: IDS.opportunity,
+    payload: {
+      from: MESSAGE_ONE_ISO,
+      to: now,
+      note: "Simulated: proposal was not sent. Thursday send and Friday decision both lapsed.",
+      checkpointPreview: CHECKPOINT_ISO,
+    },
+    occurred_at: now,
+    received_at: now,
+    confidence: 1,
+    idempotent: true,
+  });
 }
 
 export function wipeAndSeed(db: DatabaseSync) {

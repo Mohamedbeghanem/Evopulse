@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
+import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import { calculateImpact } from "./impact";
 import { refreshExpectations } from "./expectations";
@@ -64,6 +65,23 @@ export function detectExceptions(db: DatabaseSync, now: string) {
         now,
       ],
     );
+    eventsFor(db).append({
+      type: EVENT_TYPES.COMMITMENT_MISSED,
+      source: "pulse-engine",
+      source_id: exp.id,
+      actor_id: commitment?.actor_entity_id || IDS.company,
+      entity_type: "commitment",
+      entity_id: commitment?.id || exp.commitment_id,
+      payload: {
+        expectationId: exp.id,
+        expected: exp.description,
+        actual: exp.actual || "No fulfilment event recorded",
+      },
+      occurred_at: exp.due_at,
+      received_at: now,
+      confidence: evidence.confidence,
+      idempotent: true,
+    });
   }
 }
 

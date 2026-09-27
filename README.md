@@ -69,6 +69,12 @@ Seed is already at the miss. Click through:
 
 Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
+## Architecture
+
+- **Event Layer** lives at `lib/events/` — `EventRepository`, `EventService`, and an in-process dispatcher. Everything entering EvoPulse becomes a row on the `events` table and is then dispatched to registered handlers. Later engines (graph, twin, pulse matchers) subscribe to this stream; they do not grow a second history.
+- Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
+- Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
+
 ## Stack
 
 - Next.js 15 + React 19 + TypeScript + Tailwind
@@ -82,7 +88,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | Route | Job |
 | --- | --- |
 | `/` | Pulse — attention, NEEDS YOU, impact currency |
-| `/timeline` | Business Time Machine — Past / Now / Future |
+| `/timeline` | Business Time Machine — Past / Now / Future + event stream |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
 | `/command` | Ask EvoPulse (grounded) |
@@ -90,7 +96,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/health`
 

@@ -7,6 +7,7 @@ import { getDb, getMeta } from "../lib/db";
 import { executePlan } from "../lib/engine/execute";
 import { ingestSeedDiscount } from "../lib/engine/ingest";
 import { pulseSummary } from "../lib/engine/pulse";
+import { EVENT_TYPES, eventsFor } from "../lib/events";
 import { IDS } from "../lib/ids";
 import { exceptionDetail } from "../lib/read";
 
@@ -18,6 +19,12 @@ describe("seeded 320K loop", () => {
     const pulse = pulseSummary(db, getMeta(db, "demo_now"));
     assert.match(pulse.headline, /320/);
     assert.ok(pulse.counts.NEEDS_YOU >= 1);
+    const seedTypes = new Set(eventsFor(db).list().map((e) => e.type));
+    assert.ok(seedTypes.has(EVENT_TYPES.MESSAGE_RECEIVED));
+    assert.ok(seedTypes.has(EVENT_TYPES.COMMITMENT_CREATED));
+    assert.ok(seedTypes.has(EVENT_TYPES.COMMITMENT_MISSED));
+    assert.ok(seedTypes.has(EVENT_TYPES.DEAL_CREATED));
+
     const miss = pulse.exceptions.find((e) => e.id === IDS.excMissed);
     assert.ok(miss);
     assert.equal(miss?.attention, "NEEDS_YOU");
@@ -38,6 +45,10 @@ describe("seeded 320K loop", () => {
     const pulseAfter = pulseSummary(db, getMeta(db, "demo_now"));
     assert.equal(pulseAfter.counts.NEEDS_YOU, 0);
     assert.equal(pulseAfter.counts.HANDLED, 1);
+    const recoveredTypes = new Set(eventsFor(db).list().map((e) => e.type));
+    assert.ok(recoveredTypes.has(EVENT_TYPES.ACTION_EXECUTED));
+    assert.ok(recoveredTypes.has(EVENT_TYPES.QUOTE_SENT));
+    assert.ok(recoveredTypes.has(EVENT_TYPES.COMMITMENT_FULFILLED));
 
     await ingestSeedDiscount(db);
     const detail = exceptionDetail(db, IDS.excDiscount);
@@ -49,5 +60,8 @@ describe("seeded 320K loop", () => {
     assert.ok(alt);
     assert.notEqual(alt?.policy_outcome, "BLOCKED");
     assert.equal(getMeta(db, "demo_phase"), "discount_blocked");
+    const blockedTypes = new Set(eventsFor(db).list().map((e) => e.type));
+    assert.ok(blockedTypes.has(EVENT_TYPES.POLICY_BLOCKED));
+    assert.ok(blockedTypes.has(EVENT_TYPES.CUSTOMER_REPLIED));
   });
 });
