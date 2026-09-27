@@ -63,8 +63,9 @@ function attrsFromMetadata(type: string, meta: Record<string, unknown>): SimAttr
 }
 
 /**
- * "Clone relevant state": the scenario target, everything downstream of it,
- * and its direct upstream (e.g. the supplier). Returned as a deep copy.
+ * Clone the target, everything downstream, then every predecessor of a kept
+ * node. Predecessors' other children stay out, so a sibling input is visible
+ * and a sibling's private downstream is not.
  */
 export function relevantSlice(snapshot: BusinessSnapshot, targetId: string): BusinessSnapshot {
   const keep = new Set<string>([targetId]);
@@ -78,7 +79,16 @@ export function relevantSlice(snapshot: BusinessSnapshot, targetId: string): Bus
       }
     }
   }
-  for (const edge of snapshot.edges) if (edge.to === targetId) keep.add(edge.from);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const edge of snapshot.edges) {
+      if (keep.has(edge.to) && !keep.has(edge.from)) {
+        keep.add(edge.from);
+        grew = true;
+      }
+    }
+  }
 
   return structuredClone({
     source: snapshot.source,

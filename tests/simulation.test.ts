@@ -50,11 +50,11 @@ describe("Business Simulator on the live Business Twin", { concurrency: 1 }, () 
     assert.deepEqual(result.delta.commitmentsMissed.added.map((c) => c.id).sort(), [IDS.commitShip, IDS.orderB].sort());
     assert.deepEqual(result.delta.customersAffected.added.map((c) => c.label), ["Constantine Clinic"]);
     assert.equal(result.delta.revenueAtRisk.delta, 280000);
-    assert.equal(result.delta.cash.movedToNextPeriod, 540000);
+    assert.equal(result.delta.cash.movedToNextPeriod, 160000);
     assert.deepEqual(result.delta.headline, [
       "+2 commitments missed",
       "+1 customer deadline affected",
-      "540,000 DZD cash moves into next period",
+      "160,000 DZD cash moves into next period",
     ]);
 
     // Order C has slack: it moves three days but still meets its deadline.

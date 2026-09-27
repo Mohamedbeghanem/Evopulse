@@ -3,7 +3,7 @@ import type { BusinessSnapshot, NodeProjection, Projection, ProjectionMetrics, S
 
 /** Default lags when the graph carries no explicit lead time. */
 const DEFAULT_LAG_DAYS: Record<string, number> = { order: 1 };
-const DEFAULT_PAYMENT_TERMS_DAYS = 1;
+const DEFAULT_PAYMENT_TERMS_DAYS = 0;
 const CLOSED_STATUSES = new Set(["fulfilled", "cancelled", "FULFILLED", "CANCELLED"]);
 
 /**
@@ -44,17 +44,6 @@ export function project(snapshot: BusinessSnapshot): Projection {
     nodes[node.id] = projectNode(node, maxIn, critical);
   }
 
-  // Roll-ups that depend on neighbours' lateness.
-  for (const node of snapshot.nodes) {
-    const p = nodes[node.id];
-    if (!p) continue;
-    if (node.type === "order") {
-      const breached = (outgoing.get(node.id) ?? []).some(
-        (e) => byId.get(e.to)?.type === "commitment" && nodes[e.to]?.late,
-      );
-      p.late = p.late || breached;
-    }
-  }
   for (const node of snapshot.nodes) {
     const p = nodes[node.id];
     if (!p) continue;

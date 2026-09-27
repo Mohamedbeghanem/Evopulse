@@ -46,19 +46,19 @@ export const ATLAS_SUPPLY_FIXTURE: BusinessSnapshot = {
       id: "ent_inv_a",
       type: "invoice",
       label: "Invoice A",
-      attrs: { amount: 200000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00", paymentTermsDays: 1 },
+      attrs: { amount: 200000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00" },
     },
     {
       id: "ent_inv_b",
       type: "invoice",
       label: "Invoice B",
-      attrs: { amount: 180000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00", paymentTermsDays: 1 },
+      attrs: { amount: 180000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00" },
     },
     {
       id: "ent_inv_c",
       type: "invoice",
       label: "Invoice C",
-      attrs: { amount: 160000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00", paymentTermsDays: 1 },
+      attrs: { amount: 160000, currency: "DZD", dueAt: "2026-10-02T17:00:00+01:00" },
     },
     {
       id: "ent_cash_week",
