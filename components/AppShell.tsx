@@ -7,6 +7,7 @@ import { DemoBar } from "./DemoBar";
 const NAV = [
   { href: "/", label: "Pulse" },
   { href: "/timeline", label: "Timeline" },
+  { href: "/simulate", label: "Simulate" },
   { href: "/command", label: "Command" },
 ];
 
