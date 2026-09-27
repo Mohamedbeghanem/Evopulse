@@ -8,6 +8,19 @@
   - Missing behaviour is recovered only through new, small PRs based on 42cc9a2.
   - Each salvage PR includes regression tests.
 
+> **Status update (2026-09-27): all salvage PRs are merged to main.**
+>
+> | PR | Merge commit |
+> |---|---|
+> | #45 fix/detect-reraise-resolved-320k | `93157faada47e5a6354ac072ec6803a196868a61` |
+> | #44 salvage/verification-reply-scope | `a0dc80677e994e047555bb0de738e134cd4510a6` |
+> | #46 salvage/openrouter-gap | `7a641acd3d75b74a0eef4d8466486a0a30217e2d` |
+> | #47 salvage/timeline-event-kinds | `6e6516fa57683cb5bd5200f8300c39b5af4eba16` |
+> | #48 salvage/cascade-followups-tests | `7f2350d46063d528432895f9b0e826c72c502da0` |
+> | #49 this audit document | `cc852acaee7ebfd63a162c96bac9fdaf2fdda8c3` |
+>
+> Bugs A and B below are fixed on main. The "main 42cc9a2" columns describe the audit baseline.
+
 ## Method
 
 1. Each PR head was fetched with `git fetch origin pull/<n>/head:pr-<n>`. Then:
@@ -304,7 +317,7 @@ These were reproduced with engine calls and over HTTP against `next start`.
   - Nothing else in the matcher changes.
 - **HTTP check:** with #44 and #45 applied, the same sequence returns 200, the 10% request stays BLOCKED, and `/timeline` shows `OBSERVED · customer.replied` and `VERIFIED · verification.resolved`.
 
-## Phase 6 — New PRs (all based on 42cc9a2, not merged)
+## Phase 6 — New PRs (all based on 42cc9a2; merged — see status update above)
 
 | PR | Branch | Capability | Files | Regression tests | Suite on branch |
 |---|---|---|---|---|---|
@@ -319,7 +332,7 @@ Every branch passes `tsc` and `lint` on its own. The new tests fail without thei
 - #45: both tests fail on main.
 - #48: reverting the `supplier.ts` `source_id` fix makes the first test fail (mutation check).
 
-## Phase 7 — Final validation (main + #44…#48, merged locally only)
+## Phase 7 — Final validation (main + #44…#48; validated locally before merge, since merged)
 
 | Check | Result |
 |---|---|
