@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
+import { agentNotFound } from "./errors";
 import { id } from "../ids";
 import type {
   AgentApproval,
@@ -113,7 +114,7 @@ export function createRun(
 
 export function loadRun(db: DatabaseSync, runId: string): AgentRun {
   const row = one<RunRow>(db, "SELECT * FROM agent_runs WHERE id = ?", [runId]);
-  if (!row) throw new Error("Agent run not found");
+  if (!row) throw agentNotFound("Agent run");
   return {
     id: row.id,
     sessionId: row.session_id,
@@ -157,7 +158,7 @@ export function patchRun(
   },
 ) {
   const current = one<RunRow>(db, "SELECT * FROM agent_runs WHERE id = ?", [runId]);
-  if (!current) throw new Error("Agent run not found");
+  if (!current) throw agentNotFound("Agent run");
   const context = patch.context
     ? { ...safeJson<RunContext>(current.context, {}), ...patch.context }
     : safeJson<RunContext>(current.context, {});

@@ -88,4 +88,44 @@ describe("agent approval replay", { concurrency: 1 }, () => {
       approvalsBefore,
     );
   });
+
+  it("a decision naming no approval is refused instead of deciding an arbitrary pending one", async () => {
+    const db = getDb();
+    const agent = new DeterministicRuntime(db);
+    const started = await agent.run({ command: "Protect everything at risk this week." });
+    const pending = started.approvals.filter((item) => item.status === "pending");
+    assert.ok(pending.length >= 2, "scenario must produce at least two pending approvals");
+    const approvalStatuses = () =>
+      pending.map(
+        (item) => (db.prepare("SELECT status FROM agent_approvals WHERE id = ?").get(item.id) as { status: string }).status,
+      );
+    const actionStatuses = () =>
+      pending.map(
+        (item) => (db.prepare("SELECT status FROM actions WHERE id = ?").get(item.actionId) as { status: string }).status,
+      );
+    const approvalsBefore = approvalStatuses();
+    const actionsBefore = actionStatuses();
+
+    await assert.rejects(
+      async () => agent.resumeAfterApproval(started.id, { decision: "approve" }),
+      /must name approvalId or actionId/,
+    );
+
+    // An empty body must not be read as "approve whatever is first in the queue".
+    const res = await approveRoute(new Request("http://local/api", { method: "POST" }), {
+      params: Promise.resolve({ id: started.id }),
+    });
+    assert.equal(res.status, 400);
+
+    assert.deepEqual(approvalStatuses(), approvalsBefore);
+    assert.deepEqual(actionStatuses(), actionsBefore);
+  });
+
+  it("maps an unknown run to 404 rather than blaming the caller with a 400", async () => {
+    const res = await approveRoute(
+      new Request("http://local/api", { method: "POST", body: JSON.stringify({ approvalId: "apr_x" }) }),
+      { params: Promise.resolve({ id: "run_does_not_exist" }) },
+    );
+    assert.equal(res.status, 404);
+  });
 });

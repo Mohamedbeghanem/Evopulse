@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { all } from "../db";
+import { agentBadRequest, agentConflict, agentInvariant, agentNotFound } from "./errors";
 import { recheckActionPolicy } from "../engine/policy";
 import { executeAction as runAction } from "../engine/execute";
 import { id } from "../ids";
@@ -245,18 +246,22 @@ export function finishRun(host: ExecutorHost, report: AgentRunReport, status: Ag
 
 export function applyHumanDecision(db: DatabaseSync, runId: string, decision: ApprovalDecision, now: string): AgentRun {
   const run = loadRun(db, runId);
-  // Only fall back to "the first pending approval" when the caller named none. A named approval or
-  // action that does not exist must never resolve to some other approval nobody chose.
+  // A decision must name what it decides. A run can hold several pending approvals at once, so
+  // falling back to "the first pending one" let a request that named nothing decide whichever
+  // approval happened to sort first — a human approving something they never chose.
+  if (!decision.approvalId && !decision.actionId) {
+    throw agentBadRequest("A decision must name approvalId or actionId.");
+  }
+  // A named approval or action that does not exist must never resolve to some other approval
+  // nobody chose.
   const approval = decision.approvalId
     ? run.approvals.find((item) => item.id === decision.approvalId)
-    : decision.actionId
-      ? run.approvals.find((item) => item.actionId === decision.actionId && (item.status === "pending" || item.status === "edited")) ||
-        run.approvals.find((item) => item.actionId === decision.actionId)
-      : run.approvals.find((item) => item.status === "pending");
-  if (!approval) throw new Error("Approval not found");
+    : run.approvals.find((item) => item.actionId === decision.actionId && (item.status === "pending" || item.status === "edited")) ||
+      run.approvals.find((item) => item.actionId === decision.actionId);
+  if (!approval) throw agentNotFound("Approval");
   // A decided approval is final: never re-decide it, and never execute a rejected action.
   if (approval.status !== "pending" && approval.status !== "edited") {
-    throw new Error(`Approval ${approval.id} is no longer pending (${approval.status}).`);
+    throw agentConflict(`Approval ${approval.id} is no longer pending (${approval.status}).`);
   }
   const actor = decision.actor || "operator";
   if (decision.decision === "edit") {
@@ -278,7 +283,9 @@ export function applyHumanDecision(db: DatabaseSync, runId: string, decision: Ap
   }
 
   const found = (all<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [approval.actionId])[0] || null) as ActionRow | null;
-  if (!found) throw new Error("Action not found");
+  // The approval exists, so its action must too. A gap here is our own inconsistency, not a bad
+  // request, so it must not be reported to the caller as a 4xx.
+  if (!found) throw agentInvariant(`Approval ${approval.id} references missing action ${approval.actionId}.`);
   const current = recheckActionPolicy(db, found);
   if (current.policy_outcome === "BLOCKED") {
     updateApproval(db, approval.id, "rejected", now, actor);
