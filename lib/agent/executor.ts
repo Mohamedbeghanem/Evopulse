@@ -18,6 +18,8 @@ import {
   type RunContext,
 } from "./store";
 import { getToolPermission, TOOL_DEFINITIONS, toolResultContract } from "./tools";
+import { pluginToolDefinition, PLUGIN_TOOL_PREFIX, workspaceIdFor } from "../connectors/agent-tools";
+import { approveConnectorAction, executeConnectorAction, isConnectorAction } from "../connectors/governance";
 import type {
   AgentApproval,
   AgentPhase,
@@ -135,7 +137,9 @@ export async function invokeTool(host: ExecutorHost, tool: string, args: Record<
     });
   }
 
-  const definition = TOOL_DEFINITIONS[tool];
+  // Core EvoPulse tools first; namespaced plugin tools (connectors / MCP) second. A plugin can never
+  // shadow a core tool because every plugin name starts with plugin__.
+  const definition = TOOL_DEFINITIONS[tool] ?? pluginToolDefinition(host.db, tool);
   if (!definition) {
     return toolResultContract({
       toolCallId: id("atc"),
@@ -169,7 +173,8 @@ export async function invokeTool(host: ExecutorHost, tool: string, args: Record<
     return forbidden;
   }
 
-  const key = CONSEQUENTIAL.has(tool) ? idempotencyKey(host.runId, tool, args, typeof args.idempotencyKey === "string" ? args.idempotencyKey : undefined) : undefined;
+  const consequential = CONSEQUENTIAL.has(tool) || (tool.startsWith(PLUGIN_TOOL_PREFIX) && permission === "HUMAN_REQUIRED");
+  const key = consequential ? idempotencyKey(host.runId, tool, args, typeof args.idempotencyKey === "string" ? args.idempotencyKey : undefined) : undefined;
   if (key) {
     const cached = loadIdempotent(host.db, key);
     if (cached) return cached;
@@ -279,6 +284,29 @@ export function applyHumanDecision(db: DatabaseSync, runId: string, decision: Ap
 
   const found = (all<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [approval.actionId])[0] || null) as ActionRow | null;
   if (!found) throw new Error("Action not found");
+  if (isConnectorAction(found)) {
+    // Connector writes: record the human approval here (AI actors are refused inside); the call itself
+    // runs in runApprovedConnectorWrites after a live policy recheck.
+    try {
+      approveConnectorAction(db, found.id, actor, now);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Blocked by policy.";
+      if (/AI cannot approve/.test(message)) throw error;
+      updateApproval(db, approval.id, "rejected", now, actor);
+      appendStep(db, runId, { kind: "blocked", label: "BLOCKED", detail: message, createdAt: now, policy: message });
+      return settleApprovals(db, runId, now);
+    }
+    updateApproval(db, approval.id, "approved", now, actor);
+    appendStep(db, runId, {
+      kind: "approval",
+      label: "APPROVED",
+      detail: `${approval.title} — policy is rechecked right before the connector call.`,
+      createdAt: now,
+      decision: "APPROVED",
+      policy: found.policy_reason,
+    });
+    return settleApprovals(db, runId, now);
+  }
   const current = recheckActionPolicy(db, found);
   if (current.policy_outcome === "BLOCKED") {
     updateApproval(db, approval.id, "rejected", now, actor);
@@ -311,6 +339,32 @@ export function applyHumanDecision(db: DatabaseSync, runId: string, decision: Ap
     policy: current.policy_reason,
   });
   return settleApprovals(db, runId, now);
+}
+
+/** Execute connector writes a human approved in this run. EXECUTED is recorded; HANDLED is not claimed. */
+export async function runApprovedConnectorWrites(db: DatabaseSync, run: AgentRun, now: string): Promise<AgentRun> {
+  for (const approval of run.approvals.filter((item) => item.status === "approved")) {
+    const action = all<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [approval.actionId])[0];
+    if (!action || !isConnectorAction(action) || action.status !== "approved") continue;
+    try {
+      const done = await executeConnectorAction(db, workspaceIdFor(db), action.id, now, approval.decidedBy || "operator");
+      appendStep(db, run.id, {
+        kind: done.status === "executed" ? "execute" : "fail",
+        label: done.status === "executed" ? "EXECUTED" : "FAILED",
+        detail: done.status === "executed" ? `${action.title}. Executed — not yet verified.` : `${action.title} failed.`,
+        createdAt: now,
+        decision: done.status === "executed" ? "EXECUTED" : "FAILED",
+      });
+    } catch (error) {
+      appendStep(db, run.id, {
+        kind: "blocked",
+        label: "BLOCKED",
+        detail: error instanceof Error ? error.message : "Connector call refused.",
+        createdAt: now,
+      });
+    }
+  }
+  return loadRun(db, run.id);
 }
 
 function settleApprovals(db: DatabaseSync, runId: string, now: string): AgentRun {
@@ -374,7 +428,7 @@ function appendVisibleStep(host: ExecutorHost, tool: string, args: Record<string
     policy: result.policy?.reason || result.policy?.outcome,
     createdAt: host.now,
   });
-  if (tool === "request_action_approval") {
+  if (tool === "request_action_approval" || (tool.startsWith(PLUGIN_TOOL_PREFIX) && result.status === "approval_required")) {
     insertApprovals(host.db, collectApprovals(host, result));
   }
 }
@@ -443,6 +497,13 @@ function describeTool(tool: string, args: Record<string, unknown>, result: ToolR
   }
   if (tool === "get_verification") {
     return { kind: "verify", label: "VERIFYING", detail: `${Number(result.data.pending || 0)} verification pending` };
+  }
+  if (tool.startsWith(PLUGIN_TOOL_PREFIX)) {
+    if (result.status === "approval_required") {
+      return { kind: "approval", label: "WAITING FOR YOUR APPROVAL", detail: "Plugin write needs a human", decision: "APPROVAL_REQUIRED" };
+    }
+    if (result.status === "blocked") return { kind: "blocked", label: "BLOCKED", detail: result.error || "Blocked by policy" };
+    if (result.status === "ok") return { kind: "inspect", label: "READING PLUGIN DATA", detail: tool.split("__").at(-1) || tool };
   }
   if (result.status === "forbidden") {
     return { kind: "blocked", label: "BLOCKED", detail: result.error || "Forbidden capability" };

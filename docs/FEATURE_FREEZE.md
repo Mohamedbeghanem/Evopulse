@@ -29,3 +29,8 @@ The agent runtime (`lib/agent/`) is an approved adapter **above** this loop. It 
 - New data model domains
 - Large architectural rewrites
 - New integrations / connectors
+
+## Approved exception: connectors & plugins
+
+Emma approved connectors and a plugin / MCP registry (2026-09-27). They sit around the loop, write only into the
+existing tables, and route every write through Policy + human approval. See [CONNECTORS.md](./CONNECTORS.md).

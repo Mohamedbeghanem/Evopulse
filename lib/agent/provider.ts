@@ -1,4 +1,4 @@
-import { createOpenRouterProvider } from "./openrouter";
+import { createOpenRouterProvider, resolveOpenRouterConfig } from "./openrouter";
 
 export type ProviderToolCall = {
   name: string;
@@ -17,6 +17,8 @@ export type ProviderResponse = {
   toolCalls: ProviderToolCall[];
   stop: boolean;
   note?: string;
+  /** Model id that actually answered (provider response metadata), when known. */
+  model?: string;
 };
 
 export type ModelProvider = {
@@ -54,13 +56,9 @@ function firstEnv(...names: string[]): string {
 export function resolveGatewayConfig(): GatewayConfig | null {
   const openRouterKey = envValue("OPENROUTER_API_KEY");
   if (openRouterKey) {
-    return {
-      name: "openrouter",
-      url: "https://openrouter.ai/api/v1/chat/completions",
-      key: openRouterKey,
-      model: firstEnv("OPENROUTER_MODEL", "EVOPULSE_LLM_MODEL"),
-      fallbackModel: envValue("OPENROUTER_FALLBACK_MODEL") || undefined,
-    };
+    // Free-only model chain, paid-id guard, and base URL are resolved inside the OpenRouter provider.
+    const { name, url, key, model, fallbackModel } = resolveOpenRouterConfig();
+    return { name, url, key, model, fallbackModel };
   }
 
   const deepseekKey = firstEnv("EVOPULSE_LLM_API_KEY", "DEEPSEEK_API_KEY");
@@ -106,7 +104,7 @@ export function resolveConfiguredProvider(): ModelProvider | null {
   const config = resolveGatewayConfig();
   if (!config) return null;
   if (config.name === "openrouter") {
-    return createOpenRouterProvider(config);
+    return createOpenRouterProvider();
   }
   return new OpenCompatibleProvider(config);
 }

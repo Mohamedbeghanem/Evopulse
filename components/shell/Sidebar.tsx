@@ -14,6 +14,7 @@ const WORKSPACE = [
   { href: "/business", label: "Business", match: (path: string) => path.startsWith("/business") || path.startsWith("/graph") },
   { href: "/agents", label: "Agents", match: (path: string) => path.startsWith("/agents") },
   { href: "/goals", label: "Goals", match: (path: string) => path.startsWith("/goals") },
+  { href: "/connectors", label: "Connectors", match: (path: string) => path.startsWith("/connectors") },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

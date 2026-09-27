@@ -3,7 +3,7 @@ import { getMeta } from "../db";
 import { evaluatePolicy, loadPolicies } from "../engine/policy";
 import type { CommandIntent } from "../command/types";
 import { appendStep, createRun, loadOrCreateSession, loadRun, patchRun } from "./store";
-import { applyHumanDecision, finishRun, hostFrom, invokeTool, looksLikeInjection } from "./executor";
+import { applyHumanDecision, finishRun, runApprovedConnectorWrites, hostFrom, invokeTool, looksLikeInjection } from "./executor";
 import { selectPlaybook } from "./playbooks";
 import type {
   AgentRun,
@@ -56,7 +56,7 @@ export class DeterministicRuntime implements AgentRuntime {
 
   async resumeAfterApproval(runId: string, decision: ApprovalDecision): Promise<AgentRun> {
     const now = getMeta(this.db, "demo_now") || new Date().toISOString();
-    return applyHumanDecision(this.db, runId, decision, now);
+    return runApprovedConnectorWrites(this.db, applyHumanDecision(this.db, runId, decision, now), now);
   }
 
   private async execute(runId: string, now: string): Promise<AgentRun> {

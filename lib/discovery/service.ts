@@ -43,7 +43,7 @@ export const DiscoveryService = {
   },
 
   discover(workspaceId: string, db: DatabaseSync, workspace: PublicWorkspace) {
-    const connected = IntegrationService.connectedCount(workspaceId);
+    const connected = IntegrationService.connectedCount(workspaceId, db);
     const observed = {
       customers: entityCount(db, "contact") + entityCount(db, "customer") + entityCount(db, "company"),
       suppliers: entityCount(db, "supplier"),

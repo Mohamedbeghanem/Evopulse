@@ -1,0 +1,4 @@
+Order Number,Customer,Amount,Currency,Due Date,Status
+SO-1001,Oran Fresh Market,320000,DZD,2026-10-05,open
+SO-1002,Constantine Clinic,280000,DZD,2026-10-09,open
+SO-1003,Setif Depot,250000,DZD,2026-09-20,delivered

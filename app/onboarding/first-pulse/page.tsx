@@ -3,8 +3,8 @@ import { OnboardingService } from "@/lib/onboarding/service";
 import { requireOnboarding } from "@/lib/onboarding/guard";
 
 export default async function OnboardingFirstPulsePage() {
-  const { workspace } = await requireOnboarding();
-  const first = OnboardingService.firstPulse(workspace.id);
+  const { workspace, db } = await requireOnboarding();
+  const first = OnboardingService.firstPulse(workspace.id, db);
   return (
     <FirstPulseStep
       empty={first.empty}
