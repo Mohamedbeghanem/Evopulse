@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
 import { executeAction } from "../engine/execute";
 import { evaluatePolicy, loadPolicies } from "../engine/policy";
-import type { ActionRow, PlanRow, PolicyOutcome } from "../types";
+import type { ActionRow, PlanRow } from "../types";
 import { hydratePlan } from "./planner";
 import { refreshGoalStatus } from "./status";
 
@@ -31,12 +31,10 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   const skippedApproval = actions.filter((action) => action.policy_outcome === "APPROVAL_REQUIRED");
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
+  // `auto` is already filtered to policy_outcome === "AUTO". The guard that used to sit here could
+  // never fire; it only compiled because the annotation widened the type back out.
   const executed: ActionRow[] = [];
   for (const action of auto) {
-    const outcome: PolicyOutcome = action.policy_outcome;
-    if (outcome !== "AUTO") {
-      throw new Error("Safe execution refused a non-AUTO action.");
-    }
     executed.push(executeAction(db, action.id, now, actor)!);
   }
 

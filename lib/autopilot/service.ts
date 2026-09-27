@@ -225,6 +225,12 @@ export class ExceptionAutopilotService {
       "INSERT OR IGNORE INTO approvals (id, plan_id, action_id, status, decided_at, decided_by) VALUES (?, ?, ?, ?, ?, ?)",
       [`apr_${actionId}`, action.plan_id, actionId, "approved", now, actor],
     );
+    // Approving used to mark the action approved and stop there, so re-evaluating classified the
+    // card as NEEDS_APPROVAL again and it stuck there forever — the human's decision had no
+    // effect. Run exactly the one action they approved. executeAction re-checks policy and
+    // requires status 'approved', and this deliberately does not touch executePlan: no other
+    // action on the plan is executed on the back of this approval.
+    if (action.status !== "executed") executeAction(this.db, actionId, now, actor);
     this.patchMeta(row.id, { human: "APPROVE", actor }, now);
     return this.evaluateSituation(now);
   }
@@ -301,10 +307,18 @@ export class ExceptionAutopilotService {
       [exception.id],
     );
     const latestVerification = verifications[0]?.status as "PENDING" | "SUCCESS" | "FAILED" | undefined;
+    // Read what this exception is actually worth instead of assuming every non-delay exception is
+    // the seeded 320,000 DZD deal.
+    const recorded = safeJson(exception.impact_json);
     const impact =
       exception.id === IDS.excDelay
         ? calculateGraphImpact(this.db, IDS.shipment)
-        : { affected_orders: [], associated_revenue: 320000, affected_customers: [], affected_expected_cash: 0 };
+        : {
+            affected_orders: [],
+            associated_revenue: Number(recorded.revenueAssociated) || 0,
+            affected_customers: [],
+            affected_expected_cash: Number(recorded.cashTimingAmount) || 0,
+          };
     const classified = classifySituation({
       hasException: true,
       exceptionKind: exception.kind,

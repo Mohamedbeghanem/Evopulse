@@ -90,6 +90,34 @@ describe("exception autopilot", { concurrency: 1 }, () => {
     assert.notEqual(draft.status, "executed");
   });
 
+  it("approving a NEEDS_APPROVAL card runs that one action and clears the card", () => {
+    const db = getDb();
+    wipeAndSeed(db);
+    const now = getMeta(db, "demo_now");
+    const service = ExceptionAutopilotService.for(db);
+    const before = service.evaluateSituation(now);
+    const card = before.cards.find((item: AutopilotCard) => item.exceptionId === IDS.excMissed);
+    assert.ok(card);
+    assert.equal(card.classification, "NEEDS_APPROVAL");
+
+    const statusOf = (id: string) =>
+      (db.prepare("SELECT status FROM actions WHERE id = ?").get(id) as { status: string }).status;
+    assert.notEqual(statusOf(IDS.actDraft), "executed");
+
+    service.approve(card.id, now);
+
+    // Approval used to mark the action approved without running it, so the card came back
+    // NEEDS_APPROVAL forever and the human's decision did nothing.
+    assert.equal(statusOf(IDS.actDraft), "executed");
+    const approval = db
+      .prepare("SELECT * FROM approvals WHERE action_id = ?")
+      .get(IDS.actDraft) as { status: string } | undefined;
+    assert.equal(approval?.status, "approved");
+    const after = ExceptionAutopilotService.for(db).evaluateSituation(now);
+    const same = after.cards.find((item: AutopilotCard) => item.exceptionId === IDS.excMissed);
+    assert.notEqual(same?.classification, "NEEDS_APPROVAL");
+  });
+
   it("10% BLOCK: policy_blocked stays BLOCKED with 5% intact", async () => {
     const db = getDb();
     wipeAndSeed(db);
