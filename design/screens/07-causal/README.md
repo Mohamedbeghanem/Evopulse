@@ -2,7 +2,7 @@
 
 ## SCREEN
 
-Causal workspace. Why, along the Business Graph.
+Causal Explorer. Reached through Why?
 
 ## USER QUESTION
 
@@ -10,60 +10,56 @@ Why did this happen, and what does it touch?
 
 ## ROUTE
 
-Target: `/causal/:id`
-
-Production today: `/explore`.
+`/causal/:id`. Production `/explore`. Not a sidebar item.
 
 ## PURPOSE
 
-Show cause → event → dependency → consequence without teaching graph theory. Opened from “Why?” or “View causal path,” not from the sidebar.
+CAUSE → EVENT → DEPENDENCY → CONSEQUENCE. Legacy 02 KEEP: layers, node anatomy, path, inspector.
 
 ## PRIMARY OBJECT
 
-A path (nodes + edges) rooted at a Situation or Entity.
+A path rooted at a Situation or Entity.
 
 ## PRIMARY ACTION
 
-Select a node to see source, evidence, timestamp, confidence.
+Select a node for source / evidence / confidence.
 
 ## SECONDARY ACTIONS
 
-Open Object · Simulate from a node · Open Situation · Zoom to full Graph.
+Generate plan · See on timeline · Replay / Simulate.
 
 ## DATA SOURCES
 
-`lib/engine/causal.ts` · `GET /api/graph/:entity` · dependencies · impact.
+causal.ts · graph GET · calculateGraphImpact.
 
 ## ENGINE OWNERS
 
-`lib/engine/causal.ts` · `lib/graph/traverse.ts` · impact for totals on the path.
+Graph + Impact. Detect for p. Events for BANK.
 
 ## STATES
 
-Path ready · node selected · no path (isolated object) · stale (event replayed).
-
-The Situation’s operational state is inherited, not restated as a sixth status.
+Path ready · node selected · no path.
 
 ## EMPTY STATE
 
-“No causal path stored. Open the object or the graph.”
+No causal path stored.
 
 ## ERROR STATE
 
-“The path could not be traced.” Fall back to the Situation page.
+Path could not be traced.
 
 ## LOADING STATE
 
-CANVAS with a quiet skeleton path. No physics animation required.
+CANVAS skeleton. Compute stamp when ready.
 
 ## RELATED SCREENS
 
-06 Situation · 05 Risk · 13 Graph · 08 Simulation · 16 Evidence.
+04 · 05 · 08 · 15 · 18.
 
 ## INSPECTOR BEHAVIOR
 
-Selected node → Inspector (source, evidence, timestamp, confidence). Workspace keeps the path.
+Selected node: CAUSED BY / AFFECTS / evidence chips.
 
 ## COMMANDS THAT OPEN IT
 
-`Why?` · `View causal path` · `Show why Atlas is late.`
+`Why?` · `What else does this delay touch?`

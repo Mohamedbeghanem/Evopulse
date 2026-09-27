@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>EvoPulse · Goal to Action</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07090C;color:#E8ECF1;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#FF7A45}a:hover{color:#FFA07A}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.rail{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7C8796;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em}
+.rail:hover{background:#141A22;color:#E8ECF1}
+.rail.on{background:#1A212B;color:#FF6A2B}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;height:34px;padding:0 14px;border-radius:6px;border:1px solid #2A333F;background:#141A22;color:#E8ECF1;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:#1C2430;color:#fff}
+.btn.pri{background:#FF5A1F;border-color:#FF5A1F;color:#0A0C0F}
+.btn.pri:hover{background:#FF7A45;color:#0A0C0F}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;padding:4px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.t-auto{background:rgba(127,178,224,.12);color:#7FB2E0;border:1px solid rgba(127,178,224,.3)}
+.t-appr{background:rgba(255,90,31,.14);color:#FF7A45;border:1px solid rgba(255,90,31,.45)}
+.t-blk{background:#141920;color:#8F9AA8;border:1px solid #2A333F}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;border-radius:4px;background:#141A22;border:1px solid #232B35;color:#C9D1DB}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,31,.6)}70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
+.pulse{animation:pulse 1.8s infinite}
+@keyframes blink{50%{opacity:.35}}
+.blink{animation:blink 1.2s infinite}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 900px; display: flex; background: #07090C; overflow: hidden">
+<nav aria-label="Primary" style="width: 64px; height: 900px; box-sizing: border-box; background: #090C10; border-right: 1px solid #1C232C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; flex-shrink: 0">
+<div style="width: 36px; height: 36px; border-radius: 8px; background: #FF5A1F; display: flex; align-items: center; justify-content: center; margin-bottom: 14px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0C0F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-7 4 14 3-7h6"></path></svg>
+</div>
+<a href="Main.dc.html" aria-label="Business Twin" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>TWIN</a>
+<a href="Causal.dc.html" aria-label="Causal Explorer" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4" r="2"></circle><circle cx="5" cy="20" r="2"></circle><circle cx="12" cy="20" r="2"></circle><circle cx="19" cy="20" r="2"></circle><path d="M12 6v12M12 11c0 3-7 3-7 7M12 11c0 3 7 3 7 7"></path></svg>CAUSE</a>
+<a href="Time.dc.html" aria-label="Time Machine" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>TIME</a>
+<a href="Actions.dc.html" aria-label="Actions" class="rail on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h6"></path><path d="m14 17 2.5 2.5L21 15"></path></svg>ACT</a>
+</nav>
+<div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+<header style="height: 56px; box-sizing: border-box; border-bottom: 1px solid #1C232C; display: flex; align-items: center; gap: 16px; padding: 0 24px; background: #090C10; flex-shrink: 0">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-weight: 700; font-size: 16px; letter-spacing: -0.01em">EvoPulse</span>
+<span class="mono" style="font-size: 12px; color: #7C8796">/ Atlas Steel Distribution / <span style="color: #C9D1DB">Goal → Action</span></span>
+</div>
+<div style="flex-grow: 1"></div>
+<label for="ask" class="sr">State a goal</label>
+<input id="ask" placeholder="State a goal… e.g. keep Friday's cash above the floor" style="width: 380px; height: 34px; box-sizing: border-box; background: #0E1217; border: 1px solid #232B35; border-radius: 6px; color: #E8ECF1; padding: 0 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px">
+<div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border: 1px solid #2A333F; border-radius: 14px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .1em">LIVE</span>
+</div>
+<span class="mono" style="font-size: 12px; color: #A3ADBA">SUN 27 SEP · 14:32:08 CET</span>
+<button aria-label="Account" style="width: 32px; height: 32px; border-radius: 16px; background: #1A212B; border: 1px solid #2A333F; color: #E8ECF1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer">MO</button>
+</header>
+
+<main style="flex-grow: 1; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 0">
+<div style="height: 48px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">GOAL → PLAN → POLICY → ACTION</span>
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em">EvoPulse is executing your plan. <span style="color: #FF7A45">2 steps wait on you.</span></h1>
+</div>
+<div class="mono" style="display: flex; gap: 22px">
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">AUTO</span><span style="font-size: 16px; color: #7FB2E0">3</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">NEED YOU</span><span style="font-size: 16px; color: #FF7A45">2</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">BLOCKED</span><span style="font-size: 16px; color: #A3ADBA">1</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="font-size: 10px; letter-spacing: .1em; color: #7C8796">POLICIES CHECKED</span><span style="font-size: 16px">14</span></div>
+</div>
+</div>
+
+<div style="flex-grow: 1; display: flex; gap: 18px; min-height: 0">
+<div style="width: 860px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px">
+<section aria-label="Goal" style="height: 104px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; padding: 16px 20px; display: flex; gap: 18px; align-items: center">
+<div class="mono" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 8px; border: 1px solid #2A333F; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span style="font-size: 18px; font-weight: 500">01</span><span style="font-size: 9px; letter-spacing: .12em; color: #8F9AA8">GOAL</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 22px; font-weight: 600; letter-spacing: -0.01em">“Protect this week's revenue”</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">SET BY MOHAMED · VOICE · 09:14</span>
+</div>
+<div style="display: flex; gap: 8px">
+<span class="chip"><span style="color: #7C8796">TARGET</span> ≥ 500K of 540K by Fri 2 Oct</span>
+<span class="chip"><span style="color: #7C8796">HORIZON</span> Mon 28 → Fri 2</span>
+<span class="chip"><span style="color: #7C8796">SCOPE</span> sales · ops · cash</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Plan" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">02 PLAN</span> · 6 ACTIONS · GENERATED IN 1.8s FROM CASCADE SUP-EVT-0927</span>
+<a href="Causal.dc.html" class="mono" style="font-size: 11px">VIEW CAUSE</a>
+</div>
+<div class="mono" style="height: 28px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; font-size: 10px; letter-spacing: .12em; color: #7C8796">
+<span style="width: 28px">#</span><span style="flex-grow: 1">ACTION · POLICY REASON</span><span style="width: 138px">DECISION</span><span style="width: 196px">EXECUTION</span>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: transparent">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">1</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #E8ECF1">Reserve 14t of HR sheet at Rouiba depot for Order C</span><span class="mono" style="font-size: 12px; color: #FF7A45"></span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">OPS-01 · </span>Stock reservations under 25t are pre-approved</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-auto">AUTO</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C9D1DB"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FB2E0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg>DONE · 09:16</span>
+
+
+
+</div>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: transparent">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">2</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #E8ECF1">Notify BatiCo and Oran Structures of revised ETAs</span><span class="mono" style="font-size: 12px; color: #FF7A45"></span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">CUS-02 · </span>Delay notices up to 2 days are sent automatically</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-auto">AUTO</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C9D1DB"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FB2E0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg>SENT · 09:17</span>
+
+
+
+</div>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: rgba(255,90,31,0.05)">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">3</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #E8ECF1">Expedite SHP-2291 customs via broker, fee 38,000 DZD</span><span class="mono" style="font-size: 12px; color: #FF7A45">+180K</span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">FIN-02 · </span>Spend above 25,000 DZD needs owner approval</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-appr">NEEDS APPROVAL</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+
+
+<span style="display: flex; gap: 8px"><button class="btn pri">Approve</button><button class="btn">Decline</button></span>
+
+</div>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: rgba(255,90,31,0.05)">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">4</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #E8ECF1">Ship 80% of Order C on Thursday from reserved stock</span><span class="mono" style="font-size: 12px; color: #FF7A45">+96K</span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">OPS-05 · </span>Changing confirmed order terms needs sign-off</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-appr">NEEDS APPROVAL</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+
+
+<span style="display: flex; gap: 8px"><button class="btn pri">Approve</button><button class="btn">Decline</button></span>
+
+</div>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: transparent">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">5</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #8F9AA8">Offer Oran Structures 2% early-payment discount</span><span class="mono" style="font-size: 12px; color: #FF7A45"></span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">FIN-07 · </span>Discounts above 1.5% are disabled by finance</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-blk">BLOCKED</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+
+
+
+<span class="mono" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8F9AA8"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>BLOCKED BY POLICY</span>
+</div>
+</div>
+
+<div style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 16px; background: transparent">
+<span class="mono" style="width: 28px; flex-shrink: 0; font-size: 14px; color: #8F9AA8">6</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 14.5px; font-weight: 600; color: #E8ECF1">Re-forecast cash hourly and watch Order B slack</span><span class="mono" style="font-size: 12px; color: #FF7A45"></span></span>
+<span class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8F9AA8; white-space: nowrap"><svg style="flex-shrink: 0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6l-8-3z"></path></svg><span style="color: #C9D1DB">MON-00 · </span>Monitoring actions are always allowed</span>
+</div>
+<span style="width: 138px; flex-shrink: 0"><span class="tag t-auto">AUTO</span></span>
+<div style="width: 196px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px">
+
+<span class="mono" style="display: flex; justify-content: space-between; font-size: 12px; color: #C9D1DB"><span class="blink">● RUNNING</span><span>42%</span></span><span style="height: 4px; background: #1F2630; border-radius: 2px; display: flex"><span style="width: 42%; height: 4px; background: #7FB2E0; border-radius: 2px; transition: width .6s"></span></span>
+
+
+</div>
+</div>
+
+</section>
+</div>
+
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<section aria-label="Outcome" style="flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid rgba(255,90,31,0.45); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">03 OUTCOME</span> · FRIDAY REVENUE</span>
+<span class="mono" style="font-size: 10.5px; font-weight: 600; letter-spacing: .08em; padding: 3px 8px; border-radius: 3px; background: rgba(255,90,31,0.16); color: #FF7A45">SHORT BY 260K</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span class="mono" style="font-size: 44px; font-weight: 500; letter-spacing: -0.03em; line-height: 1">240K</span>
+<span class="mono" style="font-size: 14px; color: #8F9AA8">/ 540K DZD secured</span>
+</div>
+<div style="position: relative; height: 12px; background: #1A2029; border-radius: 3px; display: flex; gap: 2px; overflow: visible">
+<span style="width: 44.4%; height: 12px; background: #5E6B7A; border-radius: 3px 0 0 3px; transition: width .5s"></span>
+<span style="width: 0%; height: 12px; background: #7FB2E0; transition: width .5s"></span>
+<span style="width: 0%; height: 12px; background: #7FB2E0; transition: width .5s"></span>
+<span style="position: absolute; left: 92.6%; top: -5px; width: 2px; height: 22px; background: #E8ECF1"></span>
+</div>
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 10.5px; color: #7C8796"><span>0</span><span style="margin-left: auto; margin-right: 14px; color: #E8ECF1">TARGET 500K</span><span>540K</span></div>
+<div class="mono" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; border-top: 1px solid #1A2029; padding-top: 12px">
+<div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order B · already safe</span><span>240K</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order A · via action 3</span><span style="color: #FF7A45">0 · pending</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Order C · via action 4</span><span style="color: #FF7A45">0 · pending</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #A3ADBA">Cost of plan</span><span>−38K</span></div>
+</div>
+</section>
+
+<section aria-label="Execution log" style="flex-grow: 1; box-sizing: border-box; background: #0A0D11; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; min-height: 0">
+<div style="height: 40px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #A3ADBA"><span style="color: #E8ECF1">04 EXECUTION LOG</span></span>
+<span class="mono blink" style="font-size: 10.5px; color: #7FB2E0">● STREAMING</span>
+</div>
+<div class="mono" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 9px; font-size: 11.5px; overflow: hidden">
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">14:31:52</span><span style="color: #7FB2E0; flex-shrink: 0; width: 44px">AUTO</span><span style="color: #C9D1DB">Cash re-forecast #7 · likely 240K, base 540K</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">14:21:08</span><span style="color: #FF7A45; flex-shrink: 0; width: 44px">WAIT</span><span style="color: #C9D1DB">Action 4 queued for owner sign-off (OPS-05)</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">14:21:08</span><span style="color: #FF7A45; flex-shrink: 0; width: 44px">WAIT</span><span style="color: #C9D1DB">Action 3 queued for owner approval (FIN-02)</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:18:40</span><span style="color: #8F9AA8; flex-shrink: 0; width: 44px">DENY</span><span style="color: #C9D1DB">Action 5 blocked by FIN-07 · discount 2% &gt; 1.5%</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:17:02</span><span style="color: #7FB2E0; flex-shrink: 0; width: 44px">DONE</span><span style="color: #C9D1DB">Delay notices sent · BatiCo, Oran Structures</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:16:31</span><span style="color: #7FB2E0; flex-shrink: 0; width: 44px">DONE</span><span style="color: #C9D1DB">Reserved 14t HR sheet · Rouiba depot</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:16:29</span><span style="color: #A3ADBA; flex-shrink: 0; width: 44px">CHECK</span><span style="color: #C9D1DB">14 policies evaluated across 6 actions</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:16:27</span><span style="color: #E8ECF1; flex-shrink: 0; width: 44px">PLAN</span><span style="color: #C9D1DB">Plan generated from SUP-EVT-0927 in 1.8s</span></div>
+
+<div style="display: flex; gap: 12px"><span style="color: #5E6B7A; flex-shrink: 0">09:14:10</span><span style="color: #E8ECF1; flex-shrink: 0; width: 44px">GOAL</span><span style="color: #C9D1DB">Owner: “Protect this week’s revenue”</span></div>
+
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 ## SCREEN
 
-Simulation. Read-only what-if on a detached graph slice.
+Simulation. Read-only what-if.
 
 ## USER QUESTION
 
@@ -10,60 +10,56 @@ What happens if Atlas is another 3 days late?
 
 ## ROUTE
 
-Target: `/simulate` or `/situations/:id/simulate`
-
-Production today: `/simulate` · `GET/POST /api/simulations`.
+`/simulate` or situation simulate. Production `/simulate`.
 
 ## PURPOSE
 
-Let the operator see baseline vs simulated consequence before acting. Nothing is written. This is a contextual capability, never a sidebar module.
+Baseline vs simulated. Same graph. No writes. Contextual.
 
 ## PRIMARY OBJECT
 
-A scenario (target entity + change + delta).
+A scenario.
 
 ## PRIMARY ACTION
 
-Run the scenario currently in the composer or inspector (`/simulate`).
+Run the scenario.
 
 ## SECONDARY ACTIONS
 
-Compare WHY paths · protect affected orders · discard (leave without write).
+Compare WHY paths · protect orders · discard.
 
 ## DATA SOURCES
 
-`lib/simulation/` snapshot of `lib/graph/` · content-hash proof of no writes.
+lib/simulation/ snapshot of lib/graph/.
 
 ## ENGINE OWNERS
 
-`lib/simulation/engine.ts` · `propagate.ts` · `source.ts`. Policy is not applied until an Act is proposed.
+Impact consumed by simulation. Policy not applied until Act.
 
 ## STATES
 
-Idle · running (agent trace: simulating recovery) · compared · failed · discarded.
-
-Use `--aurora-simulation` only as a quiet accent. Never green “success” for a worse delta.
+Idle · running · compared · discarded.
 
 ## EMPTY STATE
 
-Composer prompt: “What happens if…” Suggested: another 3 day delay on Atlas.
+What happens if…
 
 ## ERROR STATE
 
-“Simulation did not run. The twin was not changed.” 
+Simulation did not run. Twin unchanged.
 
 ## LOADING STATE
 
-Agent trace step “Simulating recovery” with Evidence closed.
+Simulating recovery.
 
 ## RELATED SCREENS
 
-06 Situation · 07 Causal · 09 Goals · 02 Command · 13 Graph.
+04 · 07 · 09 · 03.
 
 ## INSPECTOR BEHAVIOR
 
-Inspector lists delta objects (orders, cash timing). Workspace is CANVAS (baseline vs sim).
+Delta objects. Workspace CANVAS.
 
 ## COMMANDS THAT OPEN IT
 
-`Open Simulation` · `Simulate another 3 day delay` · `What happens if Atlas is another 3 days late?`
+`Simulate another 3 day delay` · `What if Atlas is another 3 days late?`

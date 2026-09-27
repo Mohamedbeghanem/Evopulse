@@ -267,19 +267,27 @@ Command is a **launcher for a live business**, not a spotlight for apps. Groups 
 
 ### Also adopted (not from ChatGPT)
 
-- Claude: warm paper canvas
 - Linear: status words, inspector, operational density
 - Notion: ask+search overlay, grouped hits
 - Attio: consistent object
 - Sana: suggested operational commands
 - Raycast / palettes: ASK · SEARCH · NAVIGATE · ACT in one field
 
+Claude’s warm paper canvas is **not** the Control OS canvas. Legacy HTML near-black wins. Claude still informs *restraint*.
+
 ### Also rejected
 
 - CRM / ERP / analytics navigation
 - Permanent inspector
 - Engine names in the rail
-- Dark-ink production chrome as the Control OS target (production stays untouched; Aurora is the new foundation)
+- ChatGPT white void as the OS
+- 64px TWIN / CAUSE / TIME / ACT rail (legacy HTML chrome)
+
+---
+
+## Combined with legacy HTML
+
+Mobbin owns workspace architecture. [`references/legacy-html/`](./references/legacy-html/) owns operational DNA (dark canvas, orange attention, ice AUTO, Plex, Ask your business). Audit: [`LEGACY_HTML_AUDIT.md`](./LEGACY_HTML_AUDIT.md).
 
 ---
 
@@ -288,6 +296,7 @@ Command is a **launcher for a live business**, not a spotlight for apps. Groups 
 ChatGPT-level simplicity  
 + Linear-level operational precision  
 + business-wide context  
-+ governed AI action.
++ governed AI action  
++ legacy EvoPulse dark operational DNA.
 
 EvoPulse observes, understands, monitors, simulates, plans, acts, verifies.

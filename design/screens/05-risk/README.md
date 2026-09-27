@@ -2,25 +2,23 @@
 
 ## SCREEN
 
-Risk. Associated value and timing while the clock has not necessarily missed.
+Risk. Associated value and timing.
 
 ## USER QUESTION
 
-What is at risk, is it missed, and what cash or orders sit behind the number?
+What is at risk, is it missed, what cash or orders sit behind the number?
 
 ## ROUTE
 
-Target: `/risk/:situationId` or Inspector “Impact” on a Situation.
-
-Production today: `/impact/:exceptionId` for the Atlas delay.
+`/risk/:id` or Inspector Impact. Production `/impact/:exceptionId`.
 
 ## PURPOSE
 
-Separate **AT RISK — NOT MISSED** from a miss. Show associated revenue, cash timing, and affected objects without a chart wall.
+AT RISK — NOT MISSED vs miss. Graph-sourced amounts only.
 
 ## PRIMARY OBJECT
 
-Impact attached to a Situation (orders, invoices, cash timing).
+Impact on a Situation.
 
 ## PRIMARY ACTION
 
@@ -28,42 +26,40 @@ View causal path / open affected Order.
 
 ## SECONDARY ACTIONS
 
-Simulate another delay · protect affected orders · open Evidence.
+Simulate · Protect orders · Evidence.
 
 ## DATA SOURCES
 
-`GET /api/exceptions/:id/impact` · `GET /api/graph/:entity/impact` · `lib/engine/impact.ts` · graph amounts (not hardcoded 850K / 540K).
+calculateGraphImpact · graph node amounts. No hardcoded 850K / 540K in product.
 
 ## ENGINE OWNERS
 
-`lib/engine/impact.ts` · `lib/graph/` · `lib/engine/supplier.ts` for the delay cascade.
+Impact · Graph.
 
 ## STATES
 
-AT RISK — NOT MISSED · MISSED (temporal, on the expectation) · MONITORING · NEEDS YOU.
-
-Do not add “high/medium/low” heat maps.
+AT RISK — NOT MISSED · MISSED · MONITORING · NEEDS YOU.
 
 ## EMPTY STATE
 
-“No associated value stored.” Still show affected objects if the graph has them.
+No associated value stored. Still list objects.
 
 ## ERROR STATE
 
-“Impact could not be totaled.” Show object list without a currency if amounts fail.
+Impact could not be totaled.
 
 ## LOADING STATE
 
-Muted “Associated” label. No ticking numbers.
+Muted Associated label.
 
 ## RELATED SCREENS
 
-06 Situation · 07 Causal · 08 Simulation · 16 Evidence · 13 Graph.
+04 · 07 · 08 · 18 · 15.
 
 ## INSPECTOR BEHAVIOR
 
-This screen often **is** the Inspector: 3 orders, 850K associated, 540K cash timing, [View causal path]. Full page only when the operator asks for the path or the full Situation.
+Often IS the Inspector.
 
 ## COMMANDS THAT OPEN IT
 
-`Why is 850K at risk?` · `Show impact for Atlas` · `Show Order A.`
+`Why is 850K at risk?` · `Show impact for Atlas`

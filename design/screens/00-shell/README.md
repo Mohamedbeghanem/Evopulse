@@ -2,76 +2,64 @@
 
 ## SCREEN
 
-Persistent Control OS chrome. Sidebar + workspace + optional inspector + universal command.
-
-This is the only screen visually designed in Phase 0. It validates architecture, not Pulse cards.
+Persistent Control OS chrome. Dark labeled sidebar + workspace + optional inspector + universal command.
 
 ## USER QUESTION
 
-Where am I? How do I ask EvoPulse anything? How do I stay in context while I inspect something?
+Where am I? How do I ask my business anything? How do I stay in context?
 
 ## ROUTE
 
-Persistent. Wraps every destination.
-
-Artifacts: `shell.html` · `command-overlay.html` · `inspector.html`
-
-Open via `file://` from the repo, or serve the repo / `design/` root so `../../AURORA_TOKENS.css` resolves. Do not serve only this folder.
+Persistent. Artifacts: shell.html · command-overlay.html · inspector.html
 
 ## PURPOSE
 
-Hide architectural complexity. Present five destinations. Make Command and the Inspector the ways depth appears.
+One OS. Hide engines. Five destinations. Command and Inspector are how depth appears.
 
 ## PRIMARY OBJECT
 
-The operating session (who is acting, which destination is active, whether Command or Inspector is open).
+The operating session.
 
 ## PRIMARY ACTION
 
-Navigate Pulse / Command / Timeline / Business / Goals, or invoke Command (`⌘K` / composer).
+Navigate Pulse / Command / Timeline / Business / Goals, or invoke Command (⌘K / composer).
 
 ## SECONDARY ACTIONS
 
-Open Inspector · close overlays with Escape · collapse sidebar at 1024 · open Settings / Policies / User.
+Open Inspector · Escape · collapse at 1024 · Policies / Settings / User.
 
 ## DATA SOURCES
 
-Not bound to an engine. Chrome may later read a Pulse count and the signed-in operator. No production binding in this phase.
+None bound. Later: Detect count + operator. No production binding.
 
 ## ENGINE OWNERS
 
-None. Shell is presentation. Future: Pulse count badge (read-only from `lib/engine/pulse.ts`) without listing exceptions in the rail.
+None. Chrome only. Pulse count may read Detect later.
 
 ## STATES
 
-| State | Chrome |
-| --- | --- |
-| Default | Sidebar + workspace. Inspector closed. Command closed. |
-| Command open | Overlay over the same shell. Focus in the field. |
-| Inspector open | 360px rail. Workspace compresses. |
-| Sidebar collapsed | 1024 only. |
-| Offline / demo | No marketing banners. Demo controls stay out of this foundation. |
+Default · Command open · Inspector open · Sidebar collapsed (1024) · Quiet vs NEED YOU briefing.
 
 ## EMPTY STATE
 
-Workspace shows the destination empty contract. Shell itself is never empty: wordmark, nav, composer affordance remain.
+Shell never empty. Destination empty contracts live in the workspace.
 
 ## ERROR STATE
 
-Shell does not fail independently. Child screens render their error inside the workspace. Command overlay can show “EvoPulse could not complete that.”
+Child screens error inside workspace. Command may say it could not ground that.
 
 ## LOADING STATE
 
-Nav is immediate. Workspace may show a 56px quiet skeleton. No full-page spinner.
+Nav immediate. Workspace skeleton 56px. No full-page spinner.
 
 ## RELATED SCREENS
 
-All 01–16. Command overlay (02). Inspector (object, evidence, 16).
+All 01–19.
 
 ## INSPECTOR BEHAVIOR
 
-Closed by default. Opens from an object, a number, or Evidence. Never reserved when empty.
+Closed by default.
 
 ## COMMANDS THAT OPEN IT
 
-The shell is already open. `⌘K` opens Command. `Esc` returns to the workspace.
+Already open. ⌘K opens Command. Esc returns.

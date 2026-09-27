@@ -2,66 +2,64 @@
 
 ## SCREEN
 
-Timeline. The business time machine.
+Timeline. Elevated Time Machine.
 
 ## USER QUESTION
 
-What happened, what is happening, what comes next?
+What happened, what changed, what is happening, what is expected next, what future state is at risk?
 
 ## ROUTE
 
-Target: `/timeline`
-
-Production today: `/timeline` + `GET /api/timeline`.
+`/timeline`. Production `/timeline` + `GET /api/timeline`.
 
 ## PURPOSE
 
-Show Past / Now / Future as one operational tape. Events, expectations, and handled situations live here so Pulse can stay about attention.
+PAST / NOW / FUTURE. Actual (Events) / expected (Detect) / likely-if-idle (Impact). Not a chat feed.
 
 ## PRIMARY OBJECT
 
-Event (and the Expectation or Situation it belongs to).
+Event (and linked Expectation / Situation).
 
 ## PRIMARY ACTION
 
-Open the object or Situation attached to an event.
+Open the attached object or Situation.
 
 ## SECONDARY ACTIONS
 
-Filter by object · jump to a clock time · replay (operator / demo, not a primary customer verb) · ask “what changed today.”
+Range scrubber · Open plan · Simulate approve-both vs nothing.
 
 ## DATA SOURCES
 
-`GET /api/timeline` · `lib/events/` · `lib/engine/timeline.ts` · expectations · verifications.
+EventService · timeline.ts · expectations · calculateGraphImpact · policy floor.
 
 ## ENGINE OWNERS
 
-`lib/engine/timeline.ts` · `lib/events/service.ts` · clock (`lib/clock.ts`).
+Events + Detect + Impact (P8) + Control (floor).
 
 ## STATES
 
-Past · Now · Future. Rows inherit Situation state when linked (NEEDS YOU, HANDLED, …).
+Past · Now · Future. MOVED strikethrough. NOW mirrors Pulse NEED YOU.
 
 ## EMPTY STATE
 
-“Nothing on the tape for this scope.” Composer: `Show me what changed today.`
+Nothing on the tape. Composer: what changed since Wednesday?
 
 ## ERROR STATE
 
-“Timeline could not be read.” Keep Pulse reachable.
+Timeline could not be read.
 
 ## LOADING STATE
 
-Three quiet lane labels. No animated clock.
+Three quiet lane labels.
 
 ## RELATED SCREENS
 
-01 Pulse · 06 Situation · 12 Twin · 16 Evidence · 15 Learning (outcomes after HANDLED).
+01 Pulse · 04 Situation · 08 Simulation · 18 Evidence · 19 Verification.
 
 ## INSPECTOR BEHAVIOR
 
-Click an entity on a row → Inspector. Click the event title if it is a Situation → full page.
+Entity on a row → Inspector.
 
 ## COMMANDS THAT OPEN IT
 
-`Open Timeline` · `Show me what changed today.` · `What happens next for Atlas?`
+`Open Timeline` · `What changed since Wednesday?` · `What happens next for Atlas?`

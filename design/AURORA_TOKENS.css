@@ -1,60 +1,76 @@
 /*
-  EvoPulse Control OS — Aurora tokens
-  Phase 0 foundation. Design artifacts only.
+  EvoPulse Control OS — Aurora tokens (dark-first)
 
-  Quiet warm canvas. Operational ink. Almost no color.
-  Status is labeled in type; color is reinforcement, never the only signal.
+  Evolves the legacy HTML DNA (near-black canvas, orange signal, ice AUTO).
+  Does not flatten into white SaaS. Does not theme per engine.
+
+  Orange = attention / active control. Never decoration.
+  Ice = machine work. Never “success confetti.” Send ≠ solved.
 */
 
 :root {
   /* ------------------------------------------------------------------ */
-  /* Color                                                                */
+  /* Color — refined from legacy HTML references                          */
   /* ------------------------------------------------------------------ */
 
-  --aurora-canvas: #f4efe6;
-  --aurora-surface: #faf6ef;
-  --aurora-surface-raised: #fffcf7;
-  --aurora-ink: #1b1914;
-  --aurora-muted: #5c574e;
-  --aurora-subtle: #6b665c;
-  --aurora-hairline: rgba(27, 25, 20, 0.1);
-  --aurora-hairline-strong: rgba(27, 25, 20, 0.16);
-  --aurora-primary: #24352d;
-  --aurora-focus: #c97820;
-  --aurora-attention: #c97820;
-  --aurora-critical: #b5473a;
-  --aurora-success: #2f7a5b;
-  --aurora-simulation: #3b6f88;
+  --aurora-canvas: #07090c;
+  --aurora-nav: #090c10;
+  --aurora-surface: #0e1217;
+  --aurora-surface-raised: #141a22;
+  --aurora-surface-active: #1a212b;
+  --aurora-recessed: #0a0d11;
+  --aurora-graph: #0b0f14;
 
-  --aurora-overlay: rgba(27, 25, 20, 0.34);
-  --aurora-wash-warm: rgba(201, 120, 32, 0.07);
-  --aurora-wash-cool: rgba(59, 111, 136, 0.05);
+  --aurora-ink: #e8ecf1;
+  --aurora-secondary: #a3adba;
+  --aurora-muted: #7c8796;
+  --aurora-quiet: #8f9aa8;
+
+  --aurora-hairline: #1c232c;
+  --aurora-hairline-strong: #232b35;
+  --aurora-panel-line: #1f2630;
+  --aurora-row-line: #1a2029;
+
+  --aurora-attention: #ff5a1f;
+  --aurora-attention-hot: #ff7a45;
+  --aurora-on-attention: #0a0c0f;
+  --aurora-watch: #f0b44c;
+  --aurora-auto: #7fb2e0;
+  --aurora-focus: #ff7a45;
 
   --aurora-needs-you: var(--aurora-attention);
-  --aurora-needs-approval: #9a6b2f;
-  --aurora-monitoring: var(--aurora-simulation);
-  --aurora-blocked: var(--aurora-critical);
-  --aurora-handled: var(--aurora-success);
-  --aurora-at-risk: #a56a1e;
+  --aurora-needs-approval: var(--aurora-attention-hot);
+  --aurora-monitoring: var(--aurora-watch);
+  --aurora-blocked: var(--aurora-quiet);
+  --aurora-handled: var(--aurora-auto);
+  --aurora-at-risk: var(--aurora-attention);
+  --aurora-simulation: var(--aurora-auto);
+  --aurora-critical: var(--aurora-attention);
+  --aurora-success: var(--aurora-auto);
+
+  --aurora-overlay: rgba(7, 9, 12, 0.72);
+  --aurora-need-wash: rgba(255, 90, 31, 0.08);
+  --aurora-need-line: rgba(255, 90, 31, 0.45);
+  --aurora-watch-wash: rgba(240, 180, 76, 0.12);
+  --aurora-auto-wash: rgba(127, 178, 224, 0.12);
 
   /* ------------------------------------------------------------------ */
-  /* Type                                                                 */
+  /* Type — IBM Plex Sans + Mono (legacy + shipped app)                   */
   /* ------------------------------------------------------------------ */
 
-  --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
-  --font-sans: "Source Sans 3", "Source Sans Pro", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", "ui-monospace", "SFMono-Regular", Menlo, monospace;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --text-micro: 11px;
   --text-caption: 12px;
   --text-body: 14px;
   --text-body-lg: 16px;
   --text-title: 22px;
-  --text-display: 28px;
+  --text-display: 26px;
 
   --leading-tight: 1.2;
   --leading-body: 1.45;
-  --tracking-label: 0.14em;
+  --tracking-label: 0.12em;
 
   /* ------------------------------------------------------------------ */
   /* Space                                                                */
@@ -74,18 +90,19 @@
   /* ------------------------------------------------------------------ */
 
   --radius-chip: 4px;
-  --radius-control: 8px;
-  --radius-panel: 12px;
-  --radius-overlay: 16px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-overlay: 12px;
 
   --border-hairline: 1px solid var(--aurora-hairline);
+  --border-panel: 1px solid var(--aurora-panel-line);
 
   --elevate-0: none;
-  --elevate-overlay: 0 16px 40px rgba(27, 25, 20, 0.16);
-  --elevate-inspector: 0 0 0 1px var(--aurora-hairline), 0 8px 28px rgba(27, 25, 20, 0.08);
+  --elevate-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --elevate-inspector: inset 1px 0 0 var(--aurora-hairline);
 
   /* ------------------------------------------------------------------ */
-  /* Layout — 1440 desktop frame                                          */
+  /* Layout                                                               */
   /* ------------------------------------------------------------------ */
 
   --os-frame-width: 1440px;
@@ -101,7 +118,7 @@
   --os-composer-max-width: 840px;
   --os-nav-item-height: 34px;
   --os-gutter-sidebar: 16px;
-  --os-gutter-workspace: 32px;
+  --os-gutter-workspace: 28px;
   --os-gutter-inspector: 20px;
 
   --workspace-focused-min: 760px;

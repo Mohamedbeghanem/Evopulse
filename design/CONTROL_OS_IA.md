@@ -1,8 +1,8 @@
 # Control OS information architecture
 
-EvoPulse is an operating environment for a business.
+EvoPulse is one operating environment for a business.
 
-It is not a dashboard with a sidebar, a CRM, an ERP module list, an analytics suite, or a ChatGPT clone.
+Not a dashboard, CRM, ERP, analytics suite, ChatGPT clone, or four sibling tools (TWIN / CAUSE / TIME / ACT).
 
 ```
 CONTROL OS
@@ -14,187 +14,149 @@ CONTROL OS
 └── GOALS
 ```
 
-Everything else appears contextually.
+Legacy capabilities survive **under** this rail. See [`LEGACY_HTML_AUDIT.md`](./LEGACY_HTML_AUDIT.md).
 
-The interface hides architectural complexity. Engines stay in `lib/`. Screens speak in business language.
+```
+PULSE
+│
+├── Situation
+│   ├── Why?  → Causal Explorer
+│   ├── Evidence
+│   ├── Simulate
+│   └── Act   → Plan → Policy → Action
+│
+COMMAND
+│
+└── Universal agent interface
+    ASK · SEARCH · NAVIGATE · SIMULATE · ACT
+    (must not bypass Policy)
+│
+TIMELINE
+│
+└── Time Machine
+    happened / changed / happening / expected / at-risk future
+│
+BUSINESS
+│
+├── Business Twin
+├── Objects
+└── Graph
+│
+GOALS
+│
+└── Goal → Plan → SIM/IMPACT → Policy → Action → Verify → Outcome
+```
+
+The operator should think: *EvoPulse understands my business. I can ask it anything. It tells me what needs attention. It can investigate, simulate, and act without losing control.*
 
 ---
 
 ## Product model
 
-EvoPulse:
-
 **observes → understands → monitors → simulates → plans → acts → verifies.**
 
 ChatGPT answers. EvoPulse operates.
 
-The user should never need the names Warning, Exception, Impact, Graph, Simulation, Plan, Policy, Autopilot, Verification to do the work. Those are progressive disclosures inside a Situation or an Object.
+Engine names stay in `lib/`. Screens speak in business language.
+
+Lane lock (do not fork stores): **Events · Graph · Detect · Impact · Control**. Details in the legacy audit owning-engines table.
 
 ---
 
 ## Primary navigation
 
-Five destinations. One persistent shell.
+| Nav | User question | Route | Mode | Consumes |
+| --- | --- | --- | --- | --- |
+| **Pulse** | What needs me? | `/` | OPERATIONAL | Detect |
+| **Command** | Ask / search / operate | `/command` | FOCUSED | Control (no policy bypass) |
+| **Timeline** | What happened / is happening / next? | `/timeline` | OPERATIONAL | Events + Detect + Impact |
+| **Business** | Explore the Twin | `/business` | OPERATIONAL / Graph CANVAS | Graph |
+| **Goals** | What are we protecting? | `/goals` | OPERATIONAL | Control |
 
-| Nav | User question | Route | Workspace mode |
-| --- | --- | --- | --- |
-| **Pulse** | What needs me? | `/` | OPERATIONAL |
-| **Command** | Ask / search / operate | `/command` | FOCUSED |
-| **Timeline** | What happened, what is happening, what comes next? | `/timeline` | OPERATIONAL |
-| **Business** | Explore the Business Twin | `/business` | OPERATIONAL (Graph → CANVAS) |
-| **Goals** | What outcomes are we protecting or pursuing? | `/goals` | OPERATIONAL |
-
-Bottom of sidebar (not primary product verbs):
-
-| Item | Route | Role |
-| --- | --- | --- |
-| Policies / Control | `/business/policies` | Governed rules. Also reachable from a Situation. |
-| Settings | `/settings` | Operator preferences. Out of scope for Phase 0 visuals. |
-| User | account menu | Who is acting. |
+Bottom of sidebar (not product verbs): Policies / Control · Settings · User.
 
 ### Never in the primary sidebar
 
-Warnings · Exceptions · Simulation · Autopilot · Approvals · Evidence · Graph · Learning.
+Causal · Simulation · Autopilot · Approvals · Evidence · Graph · Learning · Verification · Twin · Exceptions.
 
-Those are **contextual capabilities**. They open from a Situation, an Object, Command, or local Business navigation.
+Those are contextual. The old 64px rail is **removed**.
 
 ---
 
 ## Business subspace
 
-Inside Business, local navigation — not a second permanent sidebar:
+Local nav only:
 
-| Local | User question | Route | Mode |
-| --- | --- | --- | --- |
-| Overview / Twin | How is the business holding? | `/business` | OPERATIONAL |
-| Entities | What objects exist? | `/business/entities` | OPERATIONAL |
-| Graph | How is it connected? | `/business/graph` | CANVAS |
-| Policies | What is allowed? | `/business/policies` | FOCUSED |
-| Learning | What have we learned? | `/business/learning` | FOCUSED |
-
-Local nav is a quiet 32px strip under the page header, or a select on 1024.
+| Local | Route | Mode |
+| --- | --- | --- |
+| Twin / Overview | `/business` | OPERATIONAL |
+| Objects | `/business/objects` | OPERATIONAL |
+| Graph | `/business/graph` | CANVAS |
+| Policies | `/business/policies` | FOCUSED |
+| Learning | `/business/learning` | FOCUSED |
 
 ---
 
 ## Command model
 
-**The input is part of product navigation.**
+**The input is part of navigation.** Elevate the legacy header field *“Ask your business…”* into the OS primitive.
 
-Two surfaces, one grammar:
+Surfaces: docked composer + `⌘K` overlay.
 
-1. **Universal composer** — docked on Pulse and Command.
-2. **EvoPulse Command overlay** — `⌘K` / `Ctrl+K` from anywhere.
-
-The user can **ASK**, **SEARCH**, **NAVIGATE**, or **ACT**. The system infers intent. Modes may be selected with `/ask` `/search` `/simulate` `/act`. Do not create four giant tabs.
-
-| Intent | Example | Lands on |
+| Intent | Example | Lands |
 | --- | --- | --- |
-| ASK | Why is 850K at risk? | Command (FOCUSED) + Evidence |
-| SEARCH | Atlas Supply | Grouped results → Inspector or Object |
-| NAVIGATE | Open Simulation | Simulation canvas |
-| ACT | Protect everything at risk this week | Goal / plan / approval path |
+| ASK | Why is Friday's cash at risk? | Command + Evidence |
+| SEARCH | Open Atlas Supply. | Inspector or Object |
+| NAVIGATE | What changed since Wednesday? | Timeline |
+| SIMULATE | What if Atlas is another 3 days late? | Simulation |
+| ACT | Protect everything at risk this week. | Goals / plan — Policy first |
 
-Search results are grouped by business object — not a flat file list:
+Modes `/ask` `/search` `/simulate` `/act` — inferred, not four tabs.
 
-**People · Companies · Orders · Shipments · Goals · Events · Risks / Situations · Commands**
-
-Example query `Atlas`:
-
-- Atlas Supply — Supplier
-- Shipment SH-204 — Linked to Atlas Supply
-- Supplier delay — Active situation
-- Why is Atlas at risk? — Command
-- Simulate another 3 day delay — Command
-- Protect affected orders — Act
-
-Escape closes the overlay. Focus returns to the trigger.
+Search groups: People · Companies · Orders · Shipments · Goals · Events · Situations · Commands.
 
 ---
 
 ## Object model
 
-The UI revolves around **business objects**. Canonical types:
+Person · Company · Supplier · Customer · Order · Shipment · Invoice · Opportunity · Commitment · Expectation · Goal · Event · Situation · Action · Policy.
 
-Person · Company · Supplier · Customer · Order · Shipment · Invoice · Opportunity · Commitment · Expectation · Goal · Event · Situation · Action · Policy
+Consistent object page: Identity · Current state · Timeline · Relationships · Commitments · Risks · Actions · Evidence. Omit empty sections.
 
-Objects open consistently. Do not invent a unique page paradigm per type.
-
-**Object page** (`/objects/:type/:id`) — FOCUSED or OPERATIONAL:
-
-1. Identity
-2. Current state
-3. Timeline
-4. Relationships
-5. Commitments
-6. Risks
-7. Actions
-8. Evidence
-
-Progressive disclosure: omit empty sections.
-
-**Drawer vs page**
-
-| User wants | Open |
+| Want | Open |
 | --- | --- |
-| Quick context (click Atlas Supply) | Inspector |
+| Quick context | Inspector |
 | Deep profile | Object page |
-| Why? | Situation / Causal workspace |
+| Why? | Situation → Causal |
 
 ---
 
 ## Situation model
 
-A **Situation** is what Pulse surfaces. One situation = one primary attention object.
+What Pulse surfaces. One situation = one attention object.
 
-Examples: supplier cascade · 320K recovery · 10% policy block.
+States: **NEEDS YOU · NEEDS APPROVAL · MONITORING · BLOCKED · HANDLED.**  
+Secondary: **AT RISK — NOT MISSED.**
 
-### Operational states (global)
+View order: What changed → Why it matters → What it affects → What EvoPulse recommends → What it can do → What needs you → Evidence.
 
-Do not invent twenty statuses.
+Then progressive: Why? / Evidence / Simulate / Act (plan · policy · autopilot · verification).
 
-| State | Means |
-| --- | --- |
-| **NEEDS YOU** | A human decision or action is required now. |
-| **NEEDS APPROVAL** | EvoPulse can act; policy requires a person. |
-| **MONITORING** | Tracked. No human action yet. |
-| **BLOCKED** | Policy or dependency forbids the recommended act. |
-| **HANDLED** | Closed. Remains on Timeline. |
+---
 
-### Secondary temporal state
+## Goal → Plan → Policy → Action
 
-**AT RISK — NOT MISSED**
+Signature Control loop (legacy 04, `PLAN.md` P11–P17):
 
-The clock has not crossed the deadline. Impact is still recoverable.
+GOAL → PLAN → SIM/IMPACT → POLICY (`AUTO` / `APPROVAL_REQUIRED` / `BLOCKED`) → ACTION → VERIFICATION → OUTCOME.
 
-Production today uses `NEEDS_YOU | MONITORING | HANDLED | HEALTHY` plus policy `APPROVAL_REQUIRED`. Control OS folds `HEALTHY` into the absence of attention, and `APPROVAL_REQUIRED` into **NEEDS APPROVAL**.
-
-### Situation view
-
-Opens into, in this order:
-
-1. What changed
-2. Why it matters
-3. What it affects
-4. What EvoPulse recommends
-5. What EvoPulse can do
-6. What needs you
-7. Evidence
-
-Progressive disclosure may then reveal: warning · exception · impact · graph · simulation · plan · policy · autopilot · verification.
-
-The user does not navigate those as modules.
+Send ≠ solved. Plan generated ≠ goal achieved. COMMAND / AgentRuntime use this loop — no side door.
 
 ---
 
 ## Evidence and agent trace
 
-Evidence is **business sources**, not web citations.
-
-Supplier message · Shipment record · Order deadline · Customer commitment · Policy rule · Verification event.
-
-Every important conclusion can expose **Sources / Evidence**.
-
-Agent Runtime uses the same language — not raw logs:
+Business sources, not web citations. BANK / MODEL / POLICY chips map to Events / Impact / Control.
 
 ```
 Inspecting business          ✓
@@ -205,67 +167,60 @@ Executing safe action        ✓
 Waiting for approval         ●
 ```
 
-Each step expands to Evidence.
-
 ---
 
 ## Screen directory
 
-Contracts only in this phase. Visual design stops at the shell.
+Contracts only except `00-shell` visuals.
 
-| # | Screen | User question | Target route |
+| # | Screen | Question | Route |
 | --- | --- | --- | --- |
 | 00 | Shell | Where am I? How do I ask? | persistent |
 | 01 | Pulse | What needs me? | `/` |
 | 02 | Command | What can I ask or do? | `/command` |
-| 03 | Timeline | What happened / is happening / next? | `/timeline` |
-| 04 | Attention | What is the queue of situations? | `/situations` |
-| 05 | Risk | What is at risk, and is it missed? | `/risk/:id` |
-| 06 | Exceptions | What is this situation, fully? | `/situations/:id` |
+| 03 | Timeline | Happened / happening / next? | `/timeline` |
+| 04 | Situation | What is this attention object? | `/situations/:id` |
+| 05 | Risk | What is at risk — missed? | `/risk/:id` |
+| 06 | Exception | Situation, fully told | `/situations/:id` |
 | 07 | Causal | Why, along the graph? | `/causal/:id` |
 | 08 | Simulation | What happens if? | `/simulate` |
 | 09 | Goals | What are we protecting? | `/goals` |
-| 10 | Autopilot | What can run without me? | contextual |
-| 11 | Approvals | What is waiting on a human? | contextual |
-| 12 | Business Twin | How is the twin holding? | `/business` |
-| 13 | Graph | How is it connected? | `/business/graph` |
-| 14 | Policies | What is allowed? | `/business/policies` |
-| 15 | Learning | What did we learn? | `/business/learning` |
-| 16 | Evidence | What are the sources? | `/evidence/:id` |
+| 10 | Plan | What is the generated plan? | `/goals/:id` plan |
+| 11 | Autopilot | What can run without me? | contextual |
+| 12 | Approval | What waits on a person? | contextual |
+| 13 | Business Twin | How is the twin holding? | `/business` |
+| 14 | Business Object | What is this object? | `/objects/:type/:id` |
+| 15 | Graph | How is it connected? | `/business/graph` |
+| 16 | Policy | What is allowed? | `/business/policies` |
+| 17 | Learning | What did we learn? | `/business/learning` |
+| 18 | Evidence | What are the sources? | `/evidence/:id` |
+| 19 | Verification | Did it work? | contextual |
 
 ---
 
 ## Production mapping (do not modify)
 
-Current production chrome is a top-nav of Pulse / Explore / Timeline / Simulate / Command / Goals / Graph.
-
-| Control OS | Current production |
+| Control OS | Production today |
 | --- | --- |
 | Pulse `/` | `/` |
 | Command `/command` | `/command` |
 | Timeline `/timeline` | `/timeline` |
-| Business `/business` | no overview; twin chips live on Pulse |
+| Twin `/business` | Twin chips on Pulse |
 | Graph `/business/graph` | `/graph` |
 | Causal `/causal/:id` | `/explore` |
 | Situation `/situations/:id` | `/exceptions/:id` |
-| Impact / risk | `/impact/:exceptionId` |
 | Simulation `/simulate` | `/simulate` |
 | Goals `/goals` | `/goals` |
-| Policies / Learning / Autopilot / Approvals | no dedicated screen |
-
-Phase 0 does **not** change `app/`, `lib/`, or production components. This file is the target IA.
 
 ---
 
 ## Final test (shell)
 
-A person looking at the shell should answer without hunting:
-
-| Question | Answer in chrome |
+| Question | Chrome |
 | --- | --- |
-| Where am I? | Active sidebar item + page title |
-| What needs me? | Pulse, plus a count on Pulse |
-| How do I ask EvoPulse anything? | Composer + ⌘K |
-| How do I find a business object? | Command search, grouped results |
-| How do I investigate without losing context? | Inspector |
-| How do I go deeper? | Open full view → Object or Situation |
+| Where am I? | Active sidebar + title |
+| What needs me? | Pulse + NEED YOU language |
+| How do I ask? | Composer “Ask your business…” + ⌘K |
+| How do I find an object? | Command, grouped results |
+| Investigate without losing context? | Inspector |
+| Go deeper? | Open full view / Why? |
