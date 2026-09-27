@@ -20,7 +20,7 @@ export function runDeterministicTurn(db: DatabaseSync, command: string): {
   const toolCalls: ToolCallRecord[] = [];
   const payload: Record<string, unknown> = { intent };
   let call = 0;
-  const use = (name: string, args: Record<string, unknown> = {}) => {
+  const callTool = (name: string, args: Record<string, unknown> = {}) => {
     events.push(eventForTool(name));
     const record = executeGovernedTool(db, name, args, `det_${++call}`);
     toolCalls.push(record);
@@ -28,13 +28,13 @@ export function runDeterministicTurn(db: DatabaseSync, command: string): {
   };
 
   if (intent === "simulate") {
-    const sim = use("simulate_change", { type: "supplier_delay", targetId: "ent_ship_204", days: 3 });
+    const sim = callTool("simulate_change", { type: "supplier_delay", targetId: "ent_ship_204", days: 3 });
     payload.simulation = sim.result;
     return done("simulate", summarizeSimulation(sim.result), toolCalls, events, payload, false);
   }
 
   if (intent === "discount") {
-    const policy = use("get_policy", { type: "apply_discount", payload: { percent: 10 } });
+    const policy = callTool("get_policy", { type: "apply_discount", payload: { percent: 10 } });
     payload.policy = policy.result;
     const live = (policy.result as { live?: { outcome?: string; reason?: string } } | null)?.live;
     const summary =
@@ -45,39 +45,39 @@ export function runDeterministicTurn(db: DatabaseSync, command: string): {
   }
 
   if (intent === "goal" || intent === "protect_safe" || intent === "safe_execute") {
-    use("get_attention");
-    use("get_upcoming_risks");
-    const created = use("create_goal", { utterance: protectUtterance(command), plan: true });
+    callTool("get_attention");
+    callTool("get_upcoming_risks");
+    const created = callTool("create_goal", { utterance: protectUtterance(command), plan: true });
     payload.goal = created.result;
     const planId = planIdFrom(created.result);
     if (planId) {
-      use("get_policy");
-      use("evaluate_plan", { planId });
-      use("get_safe_actions", { planId });
+      callTool("get_policy");
+      callTool("evaluate_plan", { planId });
+      callTool("get_safe_actions", { planId });
       if (intent === "safe_execute" || intent === "goal") {
-        const executed = use("execute_safe_actions", { planId });
+        const executed = callTool("execute_safe_actions", { planId });
         payload.safe = executed.result;
       }
-      const approval = use("request_action_approval", { planId });
+      const approval = callTool("request_action_approval", { planId });
       payload.approval = approval.result;
     }
     return done(intent, summarizeProtect(created.result, payload.safe), toolCalls, events, payload, false);
   }
 
   if (intent === "ask") {
-    use("get_attention");
-    const risk = use("explain_risk", { question: command });
+    callTool("get_attention");
+    const risk = callTool("explain_risk", { question: command });
     payload.ask = risk.result;
     if (/last time|histor/.test(command.toLowerCase())) {
-      payload.history = use("get_historical_cases", {}).result;
+      payload.history = callTool("get_historical_cases", {}).result;
     }
     if (/monitor/.test(command.toLowerCase())) {
-      payload.verification = use("get_verification", {}).result;
+      payload.verification = callTool("get_verification", {}).result;
     }
     return done("ask", summarizeAsk(risk.result, command), toolCalls, events, payload, false);
   }
 
-  use("get_business_state");
+  callTool("get_business_state");
   return done("unknown", unknownSummary(), toolCalls, events, payload, true);
 }
 
