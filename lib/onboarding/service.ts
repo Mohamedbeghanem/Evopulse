@@ -1,5 +1,5 @@
 import { createGoal } from "../goals/service";
-import { AuthService, getWorkspace, type OnboardingStep, type PublicWorkspace } from "../auth";
+import { AuthError, AuthService, getWorkspace, type OnboardingStep, type PublicWorkspace } from "../auth";
 import { DiscoveryService } from "../discovery/service";
 import { IntegrationService } from "../integrations/service";
 import type { DatabaseSync } from "node:sqlite";
@@ -60,7 +60,7 @@ export const OnboardingService = {
     workspaceId: string,
     input: { name: string; industry: string; teamSize: string; country: string; currency: string },
   ) {
-    if (!input.name.trim()) throw new Error("Give your business a name.");
+    if (!input.name.trim()) throw new AuthError("Give your business a name.");
     return AuthService.updateWorkspace(workspaceId, {
       name: input.name,
       industry: input.industry,
@@ -74,13 +74,13 @@ export const OnboardingService = {
   saveProtections(workspaceId: string, protections: string[]) {
     const allowed = new Set<string>(PROTECTION_OPTIONS.map((item) => item.id));
     const next = protections.filter((item) => allowed.has(item));
-    if (!next.length) throw new Error("Pick at least one thing for Pulse to protect.");
+    if (!next.length) throw new AuthError("Pick at least one thing for Pulse to protect.");
     return AuthService.updateWorkspace(workspaceId, { protections: next, onboarding_step: "meet" });
   },
 
   runDiscovery(workspaceId: string, db: DatabaseSync) {
     const workspace = getWorkspace(workspaceId);
-    if (!workspace) throw new Error("Workspace not found.");
+    if (!workspace) throw new AuthError("Workspace not found.", 404);
     const facts = DiscoveryService.discover(workspaceId, db, AuthService.updateWorkspace(workspaceId, {}));
     AuthService.updateWorkspace(workspaceId, { onboarding_step: "review" });
     return facts;

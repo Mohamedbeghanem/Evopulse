@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { AuthService, resetControlDbHandle } from "../lib/auth";
+import { AuthError, AuthService, resetControlDbHandle } from "../lib/auth";
 import { DiscoveryService } from "../lib/discovery/service";
 import { IntegrationService } from "../lib/integrations/service";
 import { OnboardingService } from "../lib/onboarding/service";
@@ -59,5 +59,17 @@ describe("onboarding", () => {
 
     const atlas = db.prepare("SELECT COUNT(*) as n FROM entities WHERE name LIKE '%Atlas%'").get() as { n: number };
     assert.equal(atlas.n, 0);
+  });
+  it("onboarding validation errors are 400 AuthErrors, not server errors", () => {
+    const created = AuthService.signup({ email: `v-${Date.now()}@example.com`, password: "correct-horse-9", name: "Validator" });
+    const workspaceId = created.workspace.id;
+    assert.throws(
+      () => OnboardingService.saveProtections(workspaceId, []),
+      (error: unknown) => error instanceof AuthError && error.status === 400 && /Pick at least one/.test(error.message),
+    );
+    assert.throws(
+      () => OnboardingService.saveBusiness(workspaceId, { name: " ", industry: "", teamSize: "", country: "", currency: "DZD" }),
+      (error: unknown) => error instanceof AuthError && error.status === 400,
+    );
   });
 });
