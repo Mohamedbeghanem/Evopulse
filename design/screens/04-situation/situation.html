@@ -4,12 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EvoPulse Control OS — Why does this matter?</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts: IBM Plex if present locally; system stack if the network is blocked. -->
     <style>
       /* Locked Aurora tokens — copied from design/AURORA_TOKENS.css. Do not restyle the OS. */
       :root {
@@ -36,7 +31,7 @@
         --aurora-overlay: rgba(7, 9, 12, 0.72);
         --aurora-need-wash: rgba(255, 90, 31, 0.08);
         --aurora-auto-wash: rgba(127, 178, 224, 0.12);
-        --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --font-sans: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
         --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
         --text-micro: 11px;
         --text-caption: 12px;
@@ -326,7 +321,8 @@
         font-size: var(--text-caption);
         font-weight: 400;
       }
-      .collapse {
+      .collapse,
+      .icon-btn.collapse {
         display: none;
         margin-left: auto;
         color: var(--aurora-secondary);
@@ -657,7 +653,7 @@
         max-width: 840px;
       }
       .block {
-        padding: 22px 0 24px;
+        padding: 18px 0 20px;
         border-top: 1px solid var(--aurora-row-line);
       }
       .block:first-child {
@@ -1040,7 +1036,13 @@
 
       body[data-state="empty"] .brief,
       body[data-state="loading"] .brief,
-      body[data-state="error"] .brief {
+      body[data-state="error"] .brief,
+      body[data-state="empty"] #act-primary-header,
+      body[data-state="loading"] #act-primary-header,
+      body[data-state="error"] #act-primary-header,
+      body[data-state="empty"] .inspector,
+      body[data-state="loading"] .inspector,
+      body[data-state="error"] .inspector {
         display: none;
       }
       body[data-state="empty"] .banner-empty,
@@ -1081,7 +1083,8 @@
         }
       }
       @media (max-width: 1024px) {
-        .collapse {
+        .collapse,
+        .icon-btn.collapse {
           display: inline-flex;
         }
         .inspector {
@@ -1153,6 +1156,9 @@
               <i></i> <span id="attn-label">Needs you</span>
             </p>
             <p class="status status--risk" id="layer"><i></i> At risk — not missed</p>
+            <button class="btn btn-primary" type="button" id="act-primary-header">
+              Prioritize Order A
+            </button>
           </div>
         </header>
 
@@ -1646,7 +1652,7 @@
         const attn = document.querySelector("#attn");
         attn.classList.remove("status--need", "status--monitor", "status--auto", "status--blocked", "pulse");
         const map = {
-          "needs-you": ["Needs you", "status--need pulse", "Atlas Supply moved SH-204 Monday → Wednesday. One situation. The 850,000 DZD is associated revenue — not lost."],
+          "needs-you": ["Needs you", "status--need pulse", "Atlas Supply moved SH-204 Monday → Wednesday. One situation. The <em>850,000 DZD</em> is associated revenue — not lost."],
           monitoring: ["Monitoring", "status--monitor", "Cash timing 540,000 DZD is still in the week of 28 Sep. Watch. Not a miss."],
           blocked: ["Blocked", "status--blocked", "Policy refused an unauthorized outbound. The situation remains. EvoPulse cannot approve itself."],
           handled: ["Handled", "status--auto", "Verification SUCCESS. Execution of a notice was not enough on its own."],
@@ -1706,6 +1712,10 @@
 
       mountSidebar();
       applyState();
+      if (new URLSearchParams(location.search).get("inspector") === "closed" ||
+          (window.matchMedia("(max-width: 1024px)").matches && !new URLSearchParams(location.search).get("inspector"))) {
+        os.classList.add("inspector-closed");
+      }
 
       document.addEventListener("click", (event) => {
         if (event.target.closest("[data-open-command]")) {
@@ -1732,11 +1742,14 @@
         }
       });
 
-      document.querySelector("#act-primary").addEventListener("click", () => {
+      const prioritize = () => {
         selectObject("orderA");
         document.querySelector("#action-toast").textContent =
           "Order A queued first. Situation stays NEEDS YOU until verification. Execution is not resolution.";
-      });
+        document.querySelector("#next").scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+      document.querySelector("#act-primary").addEventListener("click", prioritize);
+      document.querySelector("#act-primary-header").addEventListener("click", prioritize);
       document.querySelector("#act-notice").addEventListener("click", () => {
         document.querySelector("#action-toast").textContent =
           "Delay notice prepared for Oran Fresh. Policy: external_message_requires_approval. NEEDS APPROVAL — EvoPulse cannot approve itself.";

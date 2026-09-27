@@ -12,6 +12,14 @@ Situation. The one attention object Pulse surfaces for the Atlas Supply delay.
 
 Standalone artifact: [`situation.html`](./situation.html)
 
+Previews (Chrome, file://, device scale 1):
+
+- [`situation-1440.png`](./situation-1440.png) — 1440 × 900
+- [`situation-1280.png`](./situation-1280.png) — 1280 × 800
+- [`situation-1024.png`](./situation-1024.png) — 1024 × 768
+- [`situation-1440-empty.png`](./situation-1440-empty.png) — empty state
+- Also copied to `/opt/cursor/artifacts/screenshots/`
+
 ## USER QUESTION
 
 **WHY DOES THIS MATTER?**
