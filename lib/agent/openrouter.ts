@@ -11,7 +11,7 @@ export function resolveOpenRouterConfig(overrides: Partial<GatewayConfig> = {}):
     name: "openrouter",
     url: OPENROUTER_CHAT_COMPLETIONS_URL,
     key: (overrides.key ?? envValue("OPENROUTER_API_KEY")).trim(),
-    model: (overrides.model ?? envValue("OPENROUTER_MODEL") || envValue("EVOPULSE_LLM_MODEL")).trim(),
+    model: (overrides.model ?? (envValue("OPENROUTER_MODEL") || envValue("EVOPULSE_LLM_MODEL"))).trim(),
     fallbackModel: (overrides.fallbackModel ?? envValue("OPENROUTER_FALLBACK_MODEL")).trim() || undefined,
     headers: overrides.headers,
   };
