@@ -343,7 +343,7 @@
 
       .workspace-body {
         flex: 1;
-        padding: var(--space-5) var(--os-gutter-workspace) 140px;
+        padding: var(--space-5) var(--os-gutter-workspace) 160px;
       }
 
       .focused {
@@ -456,7 +456,9 @@
       }
 
       .os--running .idle-note,
-      .os--done .idle-note {
+      .os--done .idle-note,
+      .os--running .suggestions,
+      .os--done .suggestions {
         display: none;
       }
 
@@ -474,9 +476,9 @@
       }
 
       .situation {
-        padding: 16px 0 20px;
+        padding: 8px 0 14px;
         border-bottom: 1px solid var(--aurora-hairline);
-        margin-bottom: var(--space-5);
+        margin-bottom: var(--space-4);
       }
 
       .situation-top {
@@ -568,7 +570,7 @@
 
       .step {
         position: relative;
-        padding: 0 0 20px 22px;
+        padding: 0 0 12px 22px;
         opacity: 0;
         transform: translateY(4px);
         transition: opacity var(--motion-duration) ease, transform var(--motion-duration) ease;
@@ -847,7 +849,7 @@
         }
 
         .situation-facts {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
@@ -891,6 +893,18 @@
 
         .os--done.inspector-closed .inspector {
           display: none;
+        }
+
+        .os--done .composer-dock {
+          display: none;
+        }
+
+        .situation-facts {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace-body {
+          padding-bottom: 24px;
         }
       }
     </style>
@@ -1228,6 +1242,8 @@
           os.classList.add("os--done");
           runState.textContent = "Waiting for approval";
           headerLede.textContent = "Safe work is ready. Humans still own the send.";
+          const last = trace.querySelector(".step:last-child");
+          if (last) last.scrollIntoView({ block: "center", behavior: reduced() ? "auto" : "smooth" });
         };
 
         if (instant || reduced()) {
