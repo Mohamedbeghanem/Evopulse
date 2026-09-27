@@ -29,6 +29,7 @@ export function detectExceptions(db: DatabaseSync, now: string) {
     if (existing) continue;
 
     const commitment = one<CommitmentRow>(db, "SELECT * FROM commitments WHERE id = ?", [exp.commitment_id]);
+    if (commitment?.actor !== "company") continue;
     const impact = calculateImpact(db);
     const evidence: EvidencePack = {
       source: "Customer conversation",

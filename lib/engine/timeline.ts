@@ -54,15 +54,37 @@ export function buildTimeline(db: DatabaseSync) {
     });
   }
 
-  const nowSpot: TimelineSpot = {
-    id: "now",
-    lane: "NOW",
-    at: now,
-    title: "320K decision overdue",
-    detail: "Atlas Retail — proposal never sent, Friday decision blocked.",
-    tone: "need",
-    amount: 320000,
-  };
+  const phase = getMeta(db, "demo_phase", "seeded");
+  const nowSpot: TimelineSpot =
+    phase === "discount_blocked"
+      ? {
+          id: "now",
+          lane: "NOW",
+          at: now,
+          title: "10% discount BLOCKED",
+          detail: "Policy discount_max=5% refused the close. 5% or Net-14 is ready.",
+          tone: "miss",
+          amount: 320000,
+        }
+      : phase === "recovered"
+        ? {
+            id: "now",
+            lane: "NOW",
+            at: now,
+            title: "Recovery executed",
+            detail: "Proposal prepared, follow-up drafted, Monday checkpoint planted.",
+            tone: "ok",
+            amount: 320000,
+          }
+        : {
+            id: "now",
+            lane: "NOW",
+            at: now,
+            title: "320K decision overdue",
+            detail: "Atlas Retail — proposal never sent, Friday decision blocked.",
+            tone: "need",
+            amount: 320000,
+          };
 
   const hasNeedNow = spots.some((s) => s.lane === "NOW" && (s.tone === "need" || s.tone === "miss"));
   if (!hasNeedNow) spots.push(nowSpot);

@@ -35,6 +35,9 @@ describe("seeded 320K loop", () => {
     assert.equal(after?.exception.attention, "HANDLED");
     assert.equal(after?.exception.status, "resolved");
     assert.equal(getMeta(db, "demo_phase"), "recovered");
+    const pulseAfter = pulseSummary(db, getMeta(db, "demo_now"));
+    assert.equal(pulseAfter.counts.NEEDS_YOU, 0);
+    assert.equal(pulseAfter.counts.HANDLED, 1);
 
     await ingestSeedDiscount(db);
     const detail = exceptionDetail(db, IDS.excDiscount);

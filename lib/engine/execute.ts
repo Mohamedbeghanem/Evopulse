@@ -107,11 +107,17 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
       now,
       IDS.expectOurs,
     ]);
-    run(db, "UPDATE expectations SET status = ?, actual = ?, updated_at = ? WHERE id = ?", [
+    run(db, "UPDATE expectations SET status = ?, actual = ?, due_at = ?, updated_at = ? WHERE id = ?", [
       "AT_RISK",
-      "Unblocked — waiting on customer once follow-up lands",
+      "Unblocked — waiting on customer at the Monday checkpoint",
+      CHECKPOINT_ISO,
       now,
       IDS.expectTheirs,
+    ]);
+    run(db, "UPDATE commitments SET status = ?, deadline = ? WHERE id = ?", [
+      "open",
+      CHECKPOINT_ISO,
+      IDS.commitTheirs,
     ]);
   }
 
