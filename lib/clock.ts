@@ -6,6 +6,13 @@ export const MESSAGE_TWO_ISO = "2026-09-27T11:05:00+01:00";
 export const PROPOSAL_DUE_ISO = "2026-09-24T18:00:00+01:00";
 export const DECISION_DUE_ISO = "2026-09-25T17:00:00+01:00";
 export const CHECKPOINT_ISO = "2026-09-28T10:00:00+01:00";
+/** Supplier cascade — Monday expected, Wednesday after delay. */
+export const SHIP_EXPECTED_ISO = "2026-09-28T09:00:00+01:00";
+export const SHIP_DELAYED_ISO = "2026-09-30T09:00:00+01:00";
+export const DELIVER_A_ISO = "2026-09-29T10:00:00+01:00";
+export const SUPPLIER_MSG_ISO = "2026-09-27T09:13:00+01:00";
+export const SUPPLIER_CASCADE_ISO = "2026-09-27T09:14:00+01:00";
+export const CASH_DUE_ISO = "2026-10-02T17:00:00+01:00";
 
 export function parseIso(iso: string): Date {
   return new Date(iso);

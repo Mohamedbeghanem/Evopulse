@@ -11,35 +11,48 @@ export default function PulsePage() {
   const db = getDb();
   const pulse = pulseSummary(db, getMeta(db, "demo_now"));
   const phase = getMeta(db, "demo_phase", "seeded");
-  const primary = pulse.exceptions.find((e) => e.attention === "NEEDS_YOU") || pulse.exceptions[0];
+  const supplierPhase = getMeta(db, "supplier_phase", "stable");
+  const delay = pulse.exceptions.find((e) => e.id === IDS.excDelay && e.attention === "NEEDS_YOU");
+  const miss = pulse.exceptions.find((e) => e.id === IDS.excMissed);
+  const discount = pulse.exceptions.find((e) => e.id === IDS.excDiscount && e.attention === "NEEDS_YOU");
+  const salesCard = discount || miss;
+  const twin = pulse.twin;
 
   return (
     <div className="space-y-10">
       <section className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-mute">Sunday 27 Sep · Atlas Retail</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-mute">Sunday 27 Sep · Business Pulse</p>
           <h1 className="mt-3 font-serif text-5xl leading-[1.05] text-paper sm:text-6xl">
             {pulse.headline}
           </h1>
           <p className="mt-4 max-w-xl text-sand">
-            Expected versus actual. The Thursday proposal never left, so Friday&apos;s 320K decision is blocked.
-            EvoPulse is not asking you to scan a dashboard — it is asking you to recover one promise.
+            What requires your attention. Expected versus actual — not a dashboard of charts.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            {primary ? (
+            {delay ? (
               <Link
-                href={`/exceptions/${primary.id}`}
+                href={`/impact/${IDS.excDelay}`}
                 className="animate-throb rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950"
               >
-                Review exception
+                View supplier impact
               </Link>
             ) : null}
-            <Link
-              href="/command"
-              className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
-            >
-              Ask EvoPulse
-            </Link>
+            {salesCard ? (
+              <Link
+                href={`/exceptions/${salesCard.id}`}
+                className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
+              >
+                Review recovery
+              </Link>
+            ) : (
+              <Link
+                href="/command"
+                className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper hover:border-paper"
+              >
+                Ask EvoPulse
+              </Link>
+            )}
           </div>
         </div>
         <aside className="grid grid-cols-2 gap-3 self-start">
@@ -50,38 +63,82 @@ export default function PulsePage() {
         </aside>
       </section>
 
+      <section className="grid gap-3 md:grid-cols-5">
+        {twin.domains.map((domain) => (
+          <div key={domain.id} className="rounded-2xl border border-white/10 bg-ink-800/40 p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-mute">{domain.id}</p>
+            <p className={`mt-2 font-mono text-xs ${toneClass(domain.status)}`}>{domain.status}</p>
+            <p className="mt-2 text-sm text-sand">{domain.headline}</p>
+          </div>
+        ))}
+      </section>
+
       <div className="rule" />
 
       <section className="space-y-4">
         <div className="flex items-end justify-between">
           <h2 className="font-serif text-3xl">Critical</h2>
-          <p className="font-mono text-xs text-mute">phase {phase}</p>
+          <p className="font-mono text-xs text-mute">
+            phase {phase} · supplier {supplierPhase}
+          </p>
         </div>
+
         <div className="space-y-3">
-          {pulse.exceptions.map((exception) => (
-            <Link
-              key={exception.id}
-              href={`/exceptions/${exception.id}`}
-              className="block rounded-2xl border border-white/10 bg-ink-800/50 p-5 transition hover:border-need/50"
-            >
+          {delay ? (
+            <article className="rounded-2xl border border-need/40 bg-need/5 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{exception.attention}</Badge>
-                    <Badge>{exception.status}</Badge>
+                    <Badge>SUPPLIER CASCADE</Badge>
+                    <Badge>NEEDS YOU</Badge>
                   </div>
-                  <h3 className="mt-3 font-serif text-2xl">{exception.title}</h3>
-                  <p className="mt-1 text-sm text-sand">{exception.evidence.quote}</p>
+                  <h3 className="mt-3 font-serif text-2xl">Atlas Supply · shipment delayed +2 days</h3>
+                  <p className="mt-2 text-sm text-sand">
+                    {delay.evidence.quote} 3 orders · 3 customers ·{" "}
+                    {formatMoney(delay.impact.revenueAssociated)} associated revenue · 540,000 DZD expected
+                    cash timing affected.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-2xl text-need">{formatMoney(delay.impact.revenueAssociated)}</p>
+                  <p className="text-xs text-mute">associated — not lost</p>
+                </div>
+              </div>
+              <Link
+                href={`/impact/${IDS.excDelay}`}
+                className="mt-4 inline-flex rounded-full bg-need px-4 py-2 text-sm font-medium text-ink-950"
+              >
+                View Impact
+              </Link>
+            </article>
+          ) : null}
+
+          {salesCard ? (
+            <article className="rounded-2xl border border-white/10 bg-ink-800/50 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge>CUSTOMER COMMITMENT</Badge>
+                    <Badge>{salesCard.attention}</Badge>
+                  </div>
+                  <h3 className="mt-3 font-serif text-2xl">{salesCard.title}</h3>
+                  <p className="mt-1 text-sm text-sand">{salesCard.evidence.quote}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-2xl text-need">
-                    {formatMoney(exception.impact.revenueAssociated, exception.impact.currency)}
+                    {formatMoney(salesCard.impact.revenueAssociated, salesCard.impact.currency)}
                   </p>
-                  <p className="text-xs text-mute">associated opportunity</p>
+                  <p className="text-xs text-mute">Clinique / Atlas 320K</p>
                 </div>
               </div>
-            </Link>
-          ))}
+              <Link
+                href={salesCard.id === IDS.excMissed ? `/exceptions/${IDS.excMissed}/plan` : `/exceptions/${salesCard.id}`}
+                className="mt-4 inline-flex rounded-full bg-paper px-4 py-2 text-sm font-medium text-ink-950"
+              >
+                Review Recovery
+              </Link>
+            </article>
+          ) : null}
         </div>
       </section>
 
@@ -126,4 +183,12 @@ function Stat({ label, count, className }: { label: string; count: number; class
       <p className={`mt-2 font-serif text-4xl ${className}`}>{count}</p>
     </div>
   );
+}
+
+function toneClass(status: string) {
+  if (status === "AT_RISK") return "text-need";
+  if (status === "ATTENTION") return "text-need";
+  if (status === "MONITORING") return "text-ice";
+  if (status === "HANDLED") return "text-ok";
+  return "text-mute";
 }

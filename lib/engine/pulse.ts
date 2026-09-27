@@ -3,6 +3,7 @@ import { all, one, run } from "../db";
 import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import { calculateImpact } from "./impact";
+import { businessTwin } from "./twin";
 import { refreshExpectations } from "./expectations";
 import type {
   Attention,
@@ -102,16 +103,26 @@ export function pulseSummary(db: DatabaseSync, now: string) {
   const opportunity = one<EntityRow>(db, "SELECT * FROM entities WHERE id = ?", [IDS.opportunity]);
   const contact = one<EntityRow>(db, "SELECT * FROM entities WHERE id = ?", [IDS.contact]);
   const company = one<EntityRow>(db, "SELECT * FROM entities WHERE id = ?", [IDS.company]);
+  const delay = needYou.find((e) => e.id === IDS.excDelay);
+  const otherNeed = needYou.filter((e) => e.id !== IDS.excDelay);
+  const headline =
+    delay && otherNeed.length
+      ? "2 critical situations require attention"
+      : impactTotal > 0
+        ? `${impactTotal.toLocaleString("en-US")} DZD requires attention`
+        : "Nothing needs you";
 
   return {
     now,
     greeting: "Good morning.",
-    headline: impactTotal > 0 ? `${impactTotal.toLocaleString("en-US")} DZD requires attention` : "Nothing needs you",
+    headline,
     counts,
     exceptions: exceptions.map(serializeException),
     opportunity,
     contact,
     company,
+    twin: businessTwin(db),
+    supplierPhase: one<{ value: string }>(db, "SELECT value FROM meta WHERE key = ?", ["supplier_phase"])?.value || "stable",
   };
 }
 

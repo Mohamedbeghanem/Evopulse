@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { parseIso } from "../clock";
+import { CASH_DUE_ISO, parseIso, SHIP_DELAYED_ISO } from "../clock";
 import { all, getMeta } from "../db";
 import type { EventRow, ExpectationRow } from "../types";
 
@@ -60,6 +60,7 @@ export function buildTimeline(db: DatabaseSync) {
   }
 
   const phase = getMeta(db, "demo_phase", "seeded");
+  const supplierPhase = getMeta(db, "supplier_phase", "stable");
   const nowSpot: TimelineSpot =
     phase === "discount_blocked"
       ? {
@@ -81,6 +82,16 @@ export function buildTimeline(db: DatabaseSync) {
             tone: "ok",
             amount: 320000,
           }
+        : supplierPhase === "delayed"
+          ? {
+              id: "now",
+              lane: "NOW",
+              at: now,
+              title: "850K DZD associated revenue requires attention",
+              detail: "3 customer orders affected by SH-204. 540K expected cash timing moved with the delay.",
+              tone: "need",
+              amount: 850000,
+            }
         : {
             id: "now",
             lane: "NOW",
@@ -90,6 +101,28 @@ export function buildTimeline(db: DatabaseSync) {
             tone: "need",
             amount: 320000,
           };
+
+  if (supplierPhase === "delayed") {
+    spots.push(
+      {
+        id: "future_ship_wed",
+        lane: "FUTURE",
+        at: SHIP_DELAYED_ISO,
+        title: "Wednesday · new shipment arrival",
+        detail: "SH-204 now expected Wednesday instead of Monday.",
+        tone: "need",
+      },
+      {
+        id: "future_cash",
+        lane: "FUTURE",
+        at: CASH_DUE_ISO,
+        title: "540K DZD expected cash events",
+        detail: "Invoice cash timing still sits next week — associated, not lost.",
+        tone: "ice",
+        amount: 540000,
+      },
+    );
+  }
 
   const hasNeedNow = spots.some((s) => s.lane === "NOW" && (s.tone === "need" || s.tone === "miss"));
   if (!hasNeedNow) spots.push(nowSpot);
@@ -106,7 +139,12 @@ export function buildTimeline(db: DatabaseSync) {
 
 function labelEvent(type: string) {
   const map: Record<string, string> = {
-    "message.received": "Customer message",
+    "message.received": "Message received",
+    "shipment.expected": "Shipment expected Monday",
+    "shipment.delayed": "Supplier delay received",
+    "order.affected": "Order marked affected",
+    "exception.created": "Exception created",
+    "dependency.cascade": "Dependency cascade detected",
     "commitment.created": "Commitment created",
     "commitment.missed": "Commitment missed",
     "commitment.fulfilled": "Commitment fulfilled",
@@ -131,7 +169,10 @@ function eventTone(type: string): TimelineSpot["tone"] {
     type === "commitment.missed" ||
     type === "policy.blocked" ||
     type === "time.advanced" ||
-    type === "time_advanced"
+    type === "time_advanced" ||
+    type === "shipment.delayed" ||
+    type === "order.affected" ||
+    type === "dependency.cascade"
   ) {
     return "miss";
   }

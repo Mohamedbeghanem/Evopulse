@@ -10,6 +10,7 @@ import { EVENT_TYPES, eventsFor } from "./events";
 import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
+import { seedSupplierGraph } from "./engine/seed-graph";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
@@ -305,6 +306,20 @@ export function seedWorld(db: DatabaseSync) {
     idempotent: true,
   });
   events.append({
+    id: IDS.evtExceptionMiss,
+    type: EVENT_TYPES.EXCEPTION_CREATED,
+    source: "pulse-engine",
+    source_id: IDS.excMissed,
+    actor_id: IDS.company,
+    entity_type: "opportunity",
+    entity_id: IDS.opportunity,
+    payload: { kind: "commitment_missed", exceptionId: IDS.excMissed },
+    occurred_at: now,
+    received_at: now,
+    confidence: 0.94,
+    idempotent: true,
+  });
+  events.append({
     id: IDS.evtClockSkip,
     type: EVENT_TYPES.TIME_ADVANCED,
     source: "pulse-engine",
@@ -323,6 +338,8 @@ export function seedWorld(db: DatabaseSync) {
     confidence: 1,
     idempotent: true,
   });
+
+  seedSupplierGraph(db);
 }
 
 export function wipeAndSeed(db: DatabaseSync) {
@@ -339,6 +356,9 @@ export function wipeAndSeed(db: DatabaseSync) {
     "events",
     "goals",
     "policies",
+    "expectation_changes",
+    "graph_edges",
+    "graph_nodes",
     "entities",
     "meta",
   ];

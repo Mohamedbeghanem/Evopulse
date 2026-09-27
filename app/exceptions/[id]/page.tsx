@@ -95,12 +95,22 @@ export default async function ExceptionPage({ params }: { params: Promise<{ id: 
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link
-          href={`/exceptions/${exception.id}/plan`}
-          className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950"
-        >
-          Open recovery plan
-        </Link>
+        {exception.kind === "delivery_delay" ? (
+          <Link
+            href={`/impact/${exception.id}`}
+            className="rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950"
+          >
+            View impact cascade
+          </Link>
+        ) : null}
+        {exception.kind !== "delivery_delay" ? (
+          <Link
+            href={`/exceptions/${exception.id}/plan`}
+            className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950"
+          >
+            Open recovery plan
+          </Link>
+        ) : null}
         <Link
           href="/graph"
           className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-paper"

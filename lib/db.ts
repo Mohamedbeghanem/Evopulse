@@ -154,6 +154,39 @@ function migrate(db: DatabaseSync) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS graph_nodes (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      metadata TEXT NOT NULL DEFAULT '{}'
+    );
+
+    CREATE TABLE IF NOT EXISTS graph_edges (
+      id TEXT PRIMARY KEY,
+      source_node_id TEXT NOT NULL,
+      target_node_id TEXT NOT NULL,
+      relationship TEXT NOT NULL,
+      source_event_id TEXT,
+      confidence REAL NOT NULL DEFAULT 1,
+      metadata TEXT NOT NULL DEFAULT '{}'
+    );
+
+    CREATE TABLE IF NOT EXISTS expectation_changes (
+      id TEXT PRIMARY KEY,
+      expectation_id TEXT NOT NULL,
+      source_event_id TEXT,
+      original_due_at TEXT NOT NULL,
+      new_due_at TEXT NOT NULL,
+      delta_days INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_node_id);
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_node_id);
   `);
   migrateEventsTable(db);
   const { migrateLearningTables } = require("./learning/schema") as typeof import("./learning/schema");

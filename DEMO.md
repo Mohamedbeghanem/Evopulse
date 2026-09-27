@@ -22,6 +22,10 @@ Record this cold. Do not type. Seed is already at the miss.
 
 If time dies at 70s, skip Timeline and land on Command.
 
+## Second scenario (after the 90s loop)
+
+Reset → **Trigger Supplier Delay**. EvoPulse records `shipment.delayed`, moves SH-204 Monday → Wednesday (+2), walks the persisted graph, and calculates 3 orders / 3 customers / 850K associated revenue / 540K expected cash timing. Pulse and Twin update. `/impact/exc_shipment_delay` shows why Order B is affected. No API key.
+
 ## Rubric map (100 pts)
 
 | Criterion | Pts | Where it lives in this build |

@@ -168,3 +168,55 @@ export type DemoPhase =
   | "seeded"
   | "recovered"
   | "discount_blocked";
+
+export type GraphNodeRow = {
+  id: string;
+  type: string;
+  entity_id: string;
+  label: string;
+  metadata: string;
+};
+
+export type GraphEdgeRow = {
+  id: string;
+  source_node_id: string;
+  target_node_id: string;
+  relationship: string;
+  source_event_id: string | null;
+  confidence: number;
+  metadata: string;
+};
+
+export type ExpectationChangeRow = {
+  id: string;
+  expectation_id: string;
+  source_event_id: string | null;
+  original_due_at: string;
+  new_due_at: string;
+  delta_days: number;
+  reason: string;
+  confidence: number;
+  created_at: string;
+};
+
+export type GraphImpact = {
+  kind: "factual";
+  affected_entities: { id: string; type: string; label: string }[];
+  affected_orders: { id: string; label: string; amount: number }[];
+  affected_customers: { id: string; label: string }[];
+  affected_invoices: { id: string; label: string; amount: number }[];
+  associated_revenue: number;
+  affected_expected_cash: number;
+  dependency_depth: number;
+  commitments_at_risk: number;
+  currency: string;
+  paths: GraphPath[];
+  notes: string;
+};
+
+export type GraphPath = {
+  nodeIds: string[];
+  labels: string[];
+  relationships: string[];
+  explanation: string;
+};
