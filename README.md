@@ -4,7 +4,15 @@ AI-native **Business Control System**. Other tools tell you what happened. EvoPu
 
 Tagline: **Nothing falls through.**
 
-Hackathon MVP for [GOMYCODE Come Build with AI](https://github.com/Mohamedbeghanem/Evopulse) — 27 Sep 2026. One closed loop, not the full OS. Product authority: [PLAN.md](./PLAN.md).
+Hackathon MVP for **GOMYCODE Come Build with AI — Algeria — 27 Sep 2026**. One closed loop, not the full OS. Product authority: [PLAN.md](./PLAN.md).
+
+**Team size:** 2–5. **Final Team Confirmation:** already done. Fill names on [PROJECT_CARD.md](./PROJECT_CARD.md) — do not invent teammates.
+
+- `[TEAMMATE_1_NAME]` · `[TEAMMATE_1_ROLE]` · `[TEAMMATE_1_CAMPUS]`
+- `[TEAMMATE_2_NAME]` · `[TEAMMATE_2_ROLE]` · `[TEAMMATE_2_CAMPUS]`
+- `[TEAMMATE_3_NAME]` · `[TEAMMATE_3_ROLE]` · `[TEAMMATE_3_CAMPUS]` *(optional if team is 2)*
+- `[TEAMMATE_4_NAME]` · `[TEAMMATE_4_ROLE]` · `[TEAMMATE_4_CAMPUS]` *(optional)*
+- `[TEAMMATE_5_NAME]` · `[TEAMMATE_5_ROLE]` · `[TEAMMATE_5_CAMPUS]` *(optional)*
 
 ## One-sentence pitch
 
@@ -23,9 +31,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). No API key required.
+Open [http://localhost:3000](http://localhost:3000). **No API key required.** The Atlas 320K seed uses a deterministic extractor so the 90s click path works offline.
 
-Optional keys (structured JSON extraction; heuristic fallback always wins if the call fails):
+Optional keys (live JSON extraction only; heuristic fallback always wins if the call fails or no key is set):
 
 ```bash
 cp .env.example .env.local
@@ -63,7 +71,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - SQLite via Node 22 `node:sqlite` (tables in PLAN §24)
 - Extractor: OpenAI / Groq / Gemini JSON, **hard fallback** to deterministic heuristics for the seed messages
 - No auth beyond an implicit operator stub
-- **NVIDIA Brev: not used**
+- **NVIDIA Brev: not used** (optional window closed — we did not request Brev compute)
 
 ## Screens
 
@@ -85,9 +93,11 @@ Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/h
 ## AI disclosure (submit this)
 
 **Project:** EvoPulse — Business Control System  
-**Team / builders:** Mohamed Beghanem + Cursor cloud agent (hackathon day)  
+**Event / country:** GOMYCODE Come Build with AI · 27 Sep 2026 · Algeria  
+**Team size:** 2–5 · **Final Team Confirmation:** done  
+**Team / builders:** `[TEAMMATE_1_NAME]`, `[TEAMMATE_2_NAME]`, `[TEAMMATE_3_NAME]`, `[TEAMMATE_4_NAME]`, `[TEAMMATE_5_NAME]` (delete unused slots)  
 **AI / tools used:** Cursor Grok 4.6 (implementation), optional OpenAI / Groq / Gemini for live extraction  
-**NVIDIA Brev:** Not used  
+**NVIDIA Brev:** Not used (window closed / optional)  
 **What AI did:** Natural-language commitment extraction, recovery copy, Command answers over state  
 **What software enforces:** Deadlines, expectation state, `discount_max=5%`, approval gates, audit log  
 **What a human does:** Approve external messages and any allowed commercial concession  
@@ -96,6 +106,13 @@ Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/h
 **Known limits:** Single deal graph, stub operator, no WhatsApp/CRM connectors, no voice.
 
 Copy-paste version lives in [DEMO.md](./DEMO.md#ai-disclosure-template).
+
+## Submission checklist
+
+- [PROJECT_CARD.md](./PROJECT_CARD.md) — paste into the project card; replace `[TEAMMATE_n_*]` only with confirmed teammates
+- [DEMO.md](./DEMO.md) — 90s shot list + AI disclosure
+- Record the click path. Do not type. Do not wait on a model key.
+- **NVIDIA Brev: not used**
 
 ## Non-goals (kept)
 

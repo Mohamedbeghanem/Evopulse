@@ -2,7 +2,10 @@
 
 Record this cold. Do not type. Seed is already at the miss.
 
-**Clock on screen:** Sunday 27 Sep 2026, Tunis.  
+**Clock on screen:** Sunday 27 Sep 2026.  
+**Country / event:** Algeria · GOMYCODE Come Build with AI.  
+**Team:** 2–5 · Final Team Confirmation done · names on [PROJECT_CARD.md](./PROJECT_CARD.md).  
+**NVIDIA Brev:** not used.  
 **Line to say:** “Businesses don’t fail from missing dashboards. They fail from forgotten promises.”
 
 ## Shot list (90 seconds)
@@ -38,8 +41,10 @@ If time dies at 70s, skip Timeline and land on Command.
 
 ```
 Project: EvoPulse — AI-native Business Control System
-Event: GOMYCODE Come Build with AI · 27 Sep 2026 · Tunis
-NVIDIA Brev: not used
+Event: GOMYCODE Come Build with AI · 27 Sep 2026 · Algeria
+Team size: 2–5 (Final Team Confirmation: done)
+Team: [TEAMMATE_1_NAME], [TEAMMATE_2_NAME], [TEAMMATE_3_NAME], [TEAMMATE_4_NAME], [TEAMMATE_5_NAME]
+NVIDIA Brev: not used (window closed / optional — no Brev compute requested)
 
 AI systems
 - Cursor Grok 4.6 (implementation assistant)
