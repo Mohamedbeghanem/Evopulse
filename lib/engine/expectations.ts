@@ -165,38 +165,84 @@ export function markExpectationResolved(
   return getExpectation(db, expectationId);
 }
 
+/** How many times the cascade may be re-derived before we accept it as settled. */
+const MAX_CASCADE_PASSES = 50;
+
+/**
+ * Recompute every expectation's status from the clock, its commitment, and its prerequisites.
+ *
+ * Statuses cascade: a prerequisite turning MISSED blocks its dependents, which can in turn block
+ * theirs. The prerequisite statuses used to be snapshotted from the database before the update
+ * loop ran, so a status decided during the loop was invisible to the rows after it and the cascade
+ * only settled on a second call — callers papered over that by invoking this twice. The derivation
+ * now runs against an in-memory working set and repeats until nothing changes, so one call
+ * converges. Only rows whose status actually moved are written, once.
+ *
+ * Every lookup is also hoisted out of the loop. The prerequisite of each dependency and the
+ * "deadline was revised" flag were each a separate SELECT per row, so this cost O(dependencies +
+ * expectations) queries per refresh; it is now a fixed four reads regardless of table size.
+ */
 export function refreshExpectations(db: DatabaseSync, now: string) {
   const rows = all<ExpectationRow>(db, "SELECT * FROM expectations");
+  if (!rows.length) return;
   const commitments = new Map(
     all<CommitmentRow>(db, "SELECT * FROM commitments").map((c) => [c.id, c]),
   );
-  // Per dependent (expectation id or commitment id): a MISSED/BLOCKED prerequisite blocks it;
-  // an open prerequisite expected after the dependent's own deadline puts it at risk.
-  const blockedPrereqs = new Set<string>();
-  const earliestBlockerDue = new Map<string, string>();
-  const latestPrereqDue = new Map<string, string>();
-  for (const d of all<{ to_id: string; from_id: string }>(
+  const dependencies = all<{ to_id: string; from_id: string }>(
     db,
     "SELECT to_id, from_id FROM dependencies WHERE from_type = 'expectation' OR from_type = 'commitment'",
-  )) {
-    const prereq =
-      one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ? OR commitment_id = ?", [d.to_id, d.to_id]);
+  );
+  // One read instead of one per expectation.
+  const revisedIds = new Set(
+    all<{ expectation_id: string }>(
+      db,
+      "SELECT DISTINCT expectation_id FROM expectation_changes",
+    ).map((r) => r.expectation_id),
+  );
+
+  // Resolve each dependency's prerequisite from the rows already in hand. Mirrors the previous
+  // "WHERE id = ? OR commitment_id = ?" single-row lookup: an id match wins, otherwise the first
+  // row carrying that commitment id.
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const byCommitment = new Map<string, ExpectationRow>();
+  for (const row of rows) {
+    if (row.commitment_id && !byCommitment.has(row.commitment_id)) byCommitment.set(row.commitment_id, row);
+  }
+  const prereqOf = new Map<string, ExpectationRow[]>();
+  for (const d of dependencies) {
+    const prereq = byId.get(d.to_id) ?? byCommitment.get(d.to_id);
     if (!prereq) continue;
-    if (prereq.status === "MISSED" || prereq.status === "BLOCKED") {
-      blockedPrereqs.add(d.from_id);
-      const current = earliestBlockerDue.get(d.from_id);
-      if (!current || parseIso(expectedAtOf(prereq)) < parseIso(current)) earliestBlockerDue.set(d.from_id, expectedAtOf(prereq));
-    } else if (prereq.status !== "FULFILLED" && prereq.status !== "CANCELLED") {
-      const current = latestPrereqDue.get(d.from_id);
-      if (!current || parseIso(expectedAtOf(prereq)) > parseIso(current)) latestPrereqDue.set(d.from_id, expectedAtOf(prereq));
-    }
+    const list = prereqOf.get(d.from_id);
+    if (list) list.push(prereq);
+    else prereqOf.set(d.from_id, [prereq]);
   }
 
-  for (const row of rows) {
+  // The working status of every row. Seeded from the database, then iterated to a fixed point.
+  const status = new Map(rows.map((row) => [row.id, row.status]));
+  const statusOf = (row: ExpectationRow) => status.get(row.id) ?? row.status;
+
+  const derive = (row: ExpectationRow): ExpectationStatus => {
     const commitment = commitments.get(row.commitment_id);
-    const fulfilled = row.status === "FULFILLED";
-    const cancelled = commitment?.status === "cancelled" || row.status === "CANCELLED";
-    const blocked = blockedPrereqs.has(row.id) || blockedPrereqs.has(row.commitment_id);
+    const own = statusOf(row);
+    const fulfilled = own === "FULFILLED";
+    const cancelled = commitment?.status === "cancelled" || own === "CANCELLED";
+
+    // Per dependent: a MISSED/BLOCKED prerequisite blocks it; an open prerequisite expected after
+    // the dependent's own deadline puts it at risk.
+    let blocked = false;
+    let blockerDue: string | undefined;
+    let prereqDue: string | undefined;
+    for (const prereq of [...(prereqOf.get(row.id) ?? []), ...(prereqOf.get(row.commitment_id) ?? [])]) {
+      const prereqStatus = statusOf(prereq);
+      const prereqAt = expectedAtOf(prereq);
+      if (prereqStatus === "MISSED" || prereqStatus === "BLOCKED") {
+        blocked = true;
+        if (!blockerDue || parseIso(prereqAt) < parseIso(blockerDue)) blockerDue = prereqAt;
+      } else if (prereqStatus !== "FULFILLED" && prereqStatus !== "CANCELLED") {
+        if (!prereqDue || parseIso(prereqAt) > parseIso(prereqDue)) prereqDue = prereqAt;
+      }
+    }
+
     const derived = deriveExpectationStatus({
       dueAt: expectedAtOf(row),
       now,
@@ -206,36 +252,49 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
     });
     // A revised deadline, or a prerequisite expected after this deadline, is a risk signal. It raises
     // ON_TRACK/UPCOMING to AT_RISK but never masks MISSED/BLOCKED — the revised date still follows the clock.
-    const revised = Boolean(one(db, "SELECT id FROM expectation_changes WHERE expectation_id = ?", [row.id]));
-    const prereqDue = latestPrereqDue.get(row.id) ?? latestPrereqDue.get(row.commitment_id);
+    const revised = revisedIds.has(row.id);
     const prereqLate = Boolean(prereqDue && parseIso(prereqDue) > parseIso(expectedAtOf(row)));
     // Never relabel a real miss as BLOCKED: keep MISSED if it was already MISSED, or if this deadline passed
     // before the blocking prerequisite's own deadline (it missed first). A dependent whose prerequisite
     // missed first (the 320K Friday decision after the Thursday proposal) stays BLOCKED.
-    const blockerDue = earliestBlockerDue.get(row.id) ?? earliestBlockerDue.get(row.commitment_id);
     const missedFirst =
       parseIso(expectedAtOf(row)) < parseIso(now) &&
       Boolean(blockerDue && parseIso(expectedAtOf(row)) < parseIso(blockerDue));
-    const keepMissed = derived === "BLOCKED" && (row.status === "MISSED" || missedFirst);
-    const next = keepMissed
-      ? "MISSED"
-      : (revised || prereqLate) && (derived === "ON_TRACK" || derived === "UPCOMING")
-        ? "AT_RISK"
-        : derived;
-    if (next !== row.status) {
-      const actual =
-        next === "MISSED"
-          ? "No matching fulfilment event before deadline"
-          : next === "BLOCKED"
-            ? "Blocked by a missed prerequisite"
-            : row.actual;
-      const resolvedAt =
-        next === "FULFILLED" || next === "CANCELLED" || next === "MISSED" ? now : row.resolved_at ?? null;
-      run(
-        db,
-        "UPDATE expectations SET status = ?, actual = ?, updated_at = ?, resolved_at = ? WHERE id = ?",
-        [next, actual, now, resolvedAt, row.id],
-      );
+    const keepMissed = derived === "BLOCKED" && (own === "MISSED" || missedFirst);
+    if (keepMissed) return "MISSED";
+    if ((revised || prereqLate) && (derived === "ON_TRACK" || derived === "UPCOMING")) return "AT_RISK";
+    return derived;
+  };
+
+  // Settle the cascade in memory. Each pass can only move rows further along
+  // open -> AT_RISK -> BLOCKED/MISSED, so this converges; the cap is a guard, not the mechanism.
+  for (let pass = 0; pass < MAX_CASCADE_PASSES; pass += 1) {
+    let changed = false;
+    for (const row of rows) {
+      const next = derive(row);
+      if (next !== statusOf(row)) {
+        status.set(row.id, next);
+        changed = true;
+      }
     }
+    if (!changed) break;
+  }
+
+  for (const row of rows) {
+    const next = statusOf(row);
+    if (next === row.status) continue;
+    const actual =
+      next === "MISSED"
+        ? "No matching fulfilment event before deadline"
+        : next === "BLOCKED"
+          ? "Blocked by a missed prerequisite"
+          : row.actual;
+    const resolvedAt =
+      next === "FULFILLED" || next === "CANCELLED" || next === "MISSED" ? now : row.resolved_at ?? null;
+    run(
+      db,
+      "UPDATE expectations SET status = ?, actual = ?, updated_at = ?, resolved_at = ? WHERE id = ?",
+      [next, actual, now, resolvedAt, row.id],
+    );
   }
 }
