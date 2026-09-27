@@ -4,20 +4,63 @@ import Link from "next/link";
 import { useState } from "react";
 import { DEMO_COMMANDS } from "@/lib/prompts";
 
+type TraceStep = {
+  id: string;
+  label: string;
+  detail: string;
+  tool?: string;
+  decision?: string;
+  policy?: string;
+};
+
+type Approval = {
+  id: string;
+  actionId: string;
+  title: string;
+  why: string;
+  impact: string;
+  policy: string;
+  evidence: string;
+  status: string;
+};
+
+type AgentPayload = {
+  runId: string;
+  sessionId: string;
+  status: string;
+  phase: string;
+  runtime: string;
+  fallbackUsed: boolean;
+  summary: string;
+  report: {
+    associatedRevenue?: number;
+    expectedCash?: number;
+    orders?: number;
+    customers?: number;
+    safe?: number;
+    approval?: number;
+    blocked?: number;
+    executed?: number;
+    verificationPending?: number;
+    allowedAlternative?: string;
+    policyBlocked?: boolean;
+    simulationUnchanged?: boolean;
+  };
+  steps: TraceStep[];
+  toolCalls: { id: string; tool: string; status: string; permission: string }[];
+  approvals: Approval[];
+};
+
 type CommandResponse = {
   commandId: string;
   intent: string;
-  understoodAs: string;
-  answerType: string;
   status: string;
   summary: string;
   data: Record<string, unknown>;
-  evidence: { statement: string; sourceSystem: string; sourceId?: string }[];
   links: { href: string; label: string }[];
   sourceSystems: string[];
-  warnings: string[];
-  approvalRequired: boolean;
   session: { id: string; lastIntent: string };
+  agent?: AgentPayload;
 };
 
 export default function CommandPage() {
@@ -25,7 +68,6 @@ export default function CommandPage() {
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [turns, setTurns] = useState<{ message: string; result: CommandResponse }[]>([]);
   const [busy, setBusy] = useState(false);
-  const [openEvidence, setOpenEvidence] = useState<string | null>(null);
 
   async function ask(text: string) {
     const trimmed = text.trim();
@@ -37,19 +79,34 @@ export default function CommandPage() {
       body: JSON.stringify({ message: trimmed, sessionId }),
     });
     const result = (await res.json()) as CommandResponse;
-    setSessionId(result.session?.id);
+    setSessionId(result.agent?.sessionId || result.session?.id);
     setTurns((current) => [...current, { message: trimmed, result }]);
     setMessage("");
+    setBusy(false);
+  }
+
+  async function decide(runId: string, approval: Approval, decision: "approve" | "reject" | "edit") {
+    setBusy(true);
+    const path = decision === "reject" ? "reject" : "approve";
+    const res = await fetch(`/api/agent/runs/${runId}/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approvalId: approval.id, actionId: approval.actionId, decision }),
+    });
+    const result = (await res.json()) as CommandResponse;
+    setTurns((current) =>
+      current.map((turn) => (turn.result.agent?.runId === runId ? { ...turn, result } : turn)),
+    );
     setBusy(false);
   }
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Ask EvoPulse</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-mute">Operating console</p>
         <h1 className="mt-2 font-serif text-5xl">Command</h1>
         <p className="mt-3 max-w-2xl text-sand">
-          Questions go to the business engines. The wording is only the interface. State stays the truth.
+          Ask the business to inspect, simulate, plan, and act. Engines decide what is true. Policy decides what is allowed.
         </p>
       </div>
 
@@ -76,196 +133,138 @@ export default function CommandPage() {
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="Ask anything about your business…"
+          placeholder="Protect everything at risk this week."
           className="flex-1 rounded-full border border-white/15 bg-ink-800 px-4 py-3 text-paper outline-none focus:border-need"
         />
-        <button
-          disabled={busy}
-          className="rounded-full bg-paper px-5 py-3 text-sm font-medium text-ink-950 disabled:opacity-50"
-        >
-          {busy ? "Reading state…" : "Ask"}
+        <button disabled={busy} className="rounded-full bg-paper px-5 py-3 text-sm font-medium text-ink-950 disabled:opacity-50">
+          {busy ? "Operating…" : "Run"}
         </button>
       </form>
 
       <div className="space-y-4">
         {turns.map((turn) => (
-          <article key={turn.result.commandId} className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
-            <p className="text-sm text-mute">{turn.message}</p>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-need">
-              {turn.result.answerType} · {turn.result.status}
-            </p>
-            <h2 className="mt-2 font-serif text-3xl">{turn.result.summary}</h2>
-            <ResultBody result={turn.result} />
-            <div className="mt-4 flex flex-wrap gap-2">
-              {turn.result.links.map((link) => (
-                <Link key={link.href + link.label} href={link.href} className="rounded-full border border-white/15 px-3 py-1.5 text-sm">
-                  {link.label}
-                </Link>
-              ))}
-              <button
-                type="button"
-                onClick={() => setOpenEvidence(openEvidence === turn.result.commandId ? null : turn.result.commandId)}
-                className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-sand"
-              >
-                {openEvidence === turn.result.commandId ? "Hide evidence" : "View evidence"}
-              </button>
-            </div>
-            {openEvidence === turn.result.commandId ? (
-              <ul className="mt-4 space-y-2 text-sm text-sand">
-                {turn.result.evidence.map((item, index) => (
-                  <li key={`${item.sourceId || item.statement}-${index}`}>
-                    {item.sourceSystem}
-                    {item.sourceId ? ` · ${item.sourceId}` : ""} — {item.statement}
-                  </li>
-                ))}
-                {turn.result.warnings.map((warning) => (
-                  <li key={warning} className="text-mute">
-                    {warning}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">
-              {turn.result.sourceSystems.join(" · ") || "no engine"}
-            </p>
-          </article>
+          <AgentTurn
+            key={turn.result.commandId}
+            message={turn.message}
+            result={turn.result}
+            busy={busy}
+            onDecide={decide}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ResultBody({ result }: { result: CommandResponse }) {
-  const data = result.data;
-  if (result.answerType === "TIMELINE" && Array.isArray(data.changes)) {
-    return (
-      <ol className="mt-4 list-decimal space-y-1 pl-5 text-sand">
-        {data.changes.map((line) => (
-          <li key={String(line)}>{String(line)}</li>
-        ))}
-      </ol>
-    );
-  }
-  if (result.answerType === "ATTENTION" && Array.isArray(data.items)) {
-    return (
-      <ul className="mt-4 space-y-2">
-        {data.items.map((item) => {
-          const row = item as { id: string; kind: string; title: string; detail?: string };
-          return (
-            <li key={row.id} className="rounded-xl border border-white/10 p-3">
-              <p className="font-mono text-[11px] uppercase text-need">{row.kind}</p>
-              <p className="mt-1">{row.title}</p>
-              {row.detail ? <p className="text-sm text-sand">{row.detail}</p> : null}
+function AgentTurn({
+  message,
+  result,
+  busy,
+  onDecide,
+}: {
+  message: string;
+  result: CommandResponse;
+  busy: boolean;
+  onDecide: (runId: string, approval: Approval, decision: "approve" | "reject" | "edit") => void;
+}) {
+  const agent = result.agent;
+  const report = agent?.report || {};
+  return (
+    <article className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
+      <p className="text-sm text-mute">{message}</p>
+      <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-need">
+        {phaseLabel(agent?.phase || result.status)} · {agent?.runtime || "command"}
+        {agent?.fallbackUsed ? " · fallback" : ""}
+      </p>
+      <h2 className="mt-2 font-serif text-3xl">{agent?.summary || result.summary}</h2>
+
+      {agent?.steps?.length ? (
+        <ol className="mt-5 space-y-3">
+          {agent.steps.map((step) => (
+            <li key={step.id} className="border-l border-white/15 pl-4">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">{step.label}</p>
+              <p className="mt-1 text-sand">{step.detail}</p>
+              {step.policy ? <p className="mt-1 text-xs text-mute">{step.policy}</p> : null}
             </li>
-          );
-        })}
-      </ul>
-    );
-  }
-  if (result.answerType === "WARNING" && Array.isArray(data.comingNext)) {
-    return (
-      <ul className="mt-4 space-y-3">
-        {data.comingNext.map((item) => {
-          const row = item as { id: string; title: string; state: string; available: string; required: string; shortfall: string };
-          return (
-            <li key={row.id} className="rounded-xl border border-white/10 p-3">
-              <p className="font-serif text-2xl">{row.title}</p>
-              <p className="text-sm text-need">{row.state}</p>
-              <p className="mt-2 font-mono text-xs text-sand">
-                Available {row.available} · Required {row.required} · Shortfall {row.shortfall}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-  if (result.answerType === "CAUSAL_PATH" && Array.isArray(data.path)) {
-    return (
-      <div className="mt-4 space-y-2">
-        {data.path.map((label) => (
-          <p key={String(label)} className="font-serif text-xl">
-            {String(label)}
-          </p>
-        ))}
-        <p className="text-sand">
-          {String(data.orders)} orders · {String(data.customers)} customers · {String(data.associatedRevenue)} associated ·{" "}
-          {String(data.expectedCash)} expected cash timing
+          ))}
+        </ol>
+      ) : null}
+
+      {typeof report.associatedRevenue === "number" ? (
+        <p className="mt-4 text-sand">
+          {report.orders} orders · {report.customers} customers · {report.associatedRevenue.toLocaleString("en-US")} associated ·{" "}
+          {Number(report.expectedCash || 0).toLocaleString("en-US")} expected cash timing
         </p>
-      </div>
-    );
-  }
-  if (result.answerType === "SIMULATION") {
-    const delta = data.delta as { headline?: string[] } | undefined;
-    return (
-      <div className="mt-4 space-y-2 text-sand">
-        <p className="font-mono text-xs uppercase text-need">Simulation — not real business state</p>
-        {(delta?.headline || []).map((line) => (
-          <p key={line}>{line}</p>
+      ) : null}
+
+      {typeof report.safe === "number" && (report.safe + (report.approval || 0) + (report.blocked || 0) > 0) ? (
+        <p className="mt-3 text-sand">
+          {report.safe} safe · {report.approval || 0} approval · {report.blocked || 0} blocked
+          {report.executed ? ` · ${report.executed} executed` : ""}
+          {report.verificationPending ? ` · ${report.verificationPending} verification pending` : ""}
+        </p>
+      ) : null}
+
+      {report.simulationUnchanged ? (
+        <p className="mt-3 font-mono text-xs uppercase text-need">Simulation — reality unchanged</p>
+      ) : null}
+
+      {report.allowedAlternative ? <p className="mt-3 text-sand">{report.allowedAlternative}</p> : null}
+
+      {agent?.approvals?.filter((item) => item.status === "pending" || item.status === "edited").map((approval) => (
+        <section key={approval.id} className="mt-5 rounded-xl border border-need/40 p-4">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">Approval required</p>
+          <p className="mt-2 font-serif text-2xl">{approval.title}</p>
+          <p className="mt-2 text-sand">{approval.why}</p>
+          {approval.impact ? <p className="mt-1 text-sm text-mute">Impact: {approval.impact}</p> : null}
+          {approval.policy ? <p className="mt-1 text-sm text-mute">Policy: {approval.policy}</p> : null}
+          {approval.evidence ? <p className="mt-1 text-sm text-mute">Evidence: {approval.evidence}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDecide(agent.runId, approval, "approve")}
+              className="rounded-full bg-paper px-4 py-2 text-sm text-ink-950 disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <Link href="/goals" className="rounded-full border border-white/15 px-4 py-2 text-sm">
+              Edit
+            </Link>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDecide(agent.runId, approval, "reject")}
+              className="rounded-full border border-white/15 px-4 py-2 text-sm disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </div>
+        </section>
+      ))}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {result.links.map((link) => (
+          <Link key={link.href + link.label} href={link.href} className="rounded-full border border-white/15 px-3 py-1.5 text-sm">
+            {link.label}
+          </Link>
         ))}
-        <p>Reality unchanged: {String(data.realityUnchanged)}</p>
       </div>
-    );
-  }
-  if (result.answerType === "PLAN") {
-    return (
-      <p className="mt-4 text-sand">
-        {String(data.total ?? "")} actions · {String(data.safe ?? "")} safe · {String(data.approval ?? "")} need approval ·{" "}
-        {String(data.blocked ?? "")} blocked
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">
+        {(agent?.toolCalls || []).map((call) => call.tool).join(" → ") || result.sourceSystems.join(" · ") || "no engine"}
       </p>
-    );
-  }
-  if (result.answerType === "POLICY") {
-    return (
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <Bucket title="Safe now" items={data.safe} />
-        <Bucket title="Requires approval" items={data.approval} />
-        <Bucket title="Blocked" items={data.blocked} />
-      </div>
-    );
-  }
-  if (result.answerType === "EXECUTION_RESULT") {
-    return (
-      <p className="mt-4 text-sand">
-        Done {Array.isArray(data.executed) ? data.executed.length : 0}. Waiting {Array.isArray(data.waiting) ? data.waiting.length : 0}.
-        Blocked {Array.isArray(data.blocked) ? data.blocked.length : 0}.
-      </p>
-    );
-  }
-  if (result.answerType === "HISTORICAL_EVIDENCE") {
-    return <p className="mt-4 text-sand">{String(data.strongest || data.note || "")}</p>;
-  }
-  if (result.answerType === "AUDIT_TRACE" && Array.isArray(data.trace)) {
-    return (
-      <ul className="mt-4 space-y-1 text-sand">
-        {data.trace.map((step) => {
-          const row = step as { step: string; detail: string };
-          return (
-            <li key={row.step}>
-              {row.step}: {row.detail}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-  if (Array.isArray(data.suggestions)) {
-    return <p className="mt-4 text-sm text-mute">{data.suggestions.map(String).join(" · ")}</p>;
-  }
-  return null;
+    </article>
+  );
 }
 
-function Bucket({ title, items }: { title: string; items: unknown }) {
-  const rows = Array.isArray(items) ? (items as { id: string; title: string }[]) : [];
-  return (
-    <section className="rounded-xl border border-white/10 p-3">
-      <p className="font-mono text-[11px] uppercase text-mute">{title}</p>
-      <ul className="mt-2 space-y-1 text-sm">
-        {rows.map((row) => (
-          <li key={row.id}>{row.title}</li>
-        ))}
-        {rows.length === 0 ? <li className="text-mute">None</li> : null}
-      </ul>
-    </section>
-  );
+function phaseLabel(phase: string) {
+  if (phase === "INTERPRETING") return "Understanding request";
+  if (phase === "RUNNING_TOOL" || phase === "WAITING_FOR_TOOL") return "Inspecting business";
+  if (phase === "EXECUTING") return "Executing";
+  if (phase === "VERIFYING") return "Verifying";
+  if (phase === "WAITING_FOR_APPROVAL") return "Waiting for your approval";
+  if (phase === "COMPLETE") return "Complete";
+  if (phase === "FAILED") return "Failed";
+  if (phase === "CANCELLED") return "Cancelled";
+  return phase.replaceAll("_", " ");
 }

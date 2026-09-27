@@ -9,6 +9,7 @@ export const DEMO_COMMANDS = [
   "What can you handle safely?",
   "Fix everything you're authorized to fix.",
   "Why did you block the 10% discount?",
+  "Give the customer 10%.",
 ] as const;
 
 export const GOAL_PROMPTS = [
