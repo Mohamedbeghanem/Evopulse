@@ -295,3 +295,6 @@ Clock: **Sun 27 Sep 2026 · 08:18 Africa/Tunis**.
 | `simulation.html` | Reviewable prototype (1440 / 1280 / 1024) |
 | `simulation-image-prompt.md` | Still frame if image generation is unavailable |
 | `README.md` | This contract |
+| `screenshots/` | Browser verification: idle, compared, WHY, 1280, 1024, discarded |
+
+Also copied to `/opt/cursor/artifacts/screenshots/01-idle-1440.png` … `06-discarded-1440.png`.
