@@ -1,0 +1,121 @@
+/*
+  EvoPulse Control OS — Aurora tokens
+  Phase 0 foundation. Design artifacts only.
+
+  Quiet warm canvas. Operational ink. Almost no color.
+  Status is labeled in type; color is reinforcement, never the only signal.
+*/
+
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Color                                                                */
+  /* ------------------------------------------------------------------ */
+
+  --aurora-canvas: #f4efe6;
+  --aurora-surface: #faf6ef;
+  --aurora-surface-raised: #fffcf7;
+  --aurora-ink: #1b1914;
+  --aurora-muted: #5c574e;
+  --aurora-subtle: #6b665c;
+  --aurora-hairline: rgba(27, 25, 20, 0.1);
+  --aurora-hairline-strong: rgba(27, 25, 20, 0.16);
+  --aurora-primary: #24352d;
+  --aurora-focus: #c97820;
+  --aurora-attention: #c97820;
+  --aurora-critical: #b5473a;
+  --aurora-success: #2f7a5b;
+  --aurora-simulation: #3b6f88;
+
+  --aurora-overlay: rgba(27, 25, 20, 0.28);
+  --aurora-wash-warm: rgba(201, 120, 32, 0.07);
+  --aurora-wash-cool: rgba(59, 111, 136, 0.05);
+
+  --aurora-needs-you: var(--aurora-attention);
+  --aurora-needs-approval: #9a6b2f;
+  --aurora-monitoring: var(--aurora-simulation);
+  --aurora-blocked: var(--aurora-critical);
+  --aurora-handled: var(--aurora-success);
+  --aurora-at-risk: #a56a1e;
+
+  /* ------------------------------------------------------------------ */
+  /* Type                                                                 */
+  /* ------------------------------------------------------------------ */
+
+  --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Source Sans 3", "Source Sans Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "ui-monospace", "SFMono-Regular", Menlo, monospace;
+
+  --text-micro: 11px;
+  --text-caption: 12px;
+  --text-body: 14px;
+  --text-body-lg: 16px;
+  --text-title: 22px;
+  --text-display: 28px;
+
+  --leading-tight: 1.2;
+  --leading-body: 1.45;
+  --tracking-label: 0.14em;
+
+  /* ------------------------------------------------------------------ */
+  /* Space                                                                */
+  /* ------------------------------------------------------------------ */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ------------------------------------------------------------------ */
+  /* Radius / border / elevation                                          */
+  /* ------------------------------------------------------------------ */
+
+  --radius-chip: 4px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-overlay: 16px;
+
+  --border-hairline: 1px solid var(--aurora-hairline);
+
+  --elevate-0: none;
+  --elevate-overlay: 0 16px 40px rgba(27, 25, 20, 0.16);
+  --elevate-inspector: 0 0 0 1px var(--aurora-hairline), 0 8px 28px rgba(27, 25, 20, 0.08);
+
+  /* ------------------------------------------------------------------ */
+  /* Layout — 1440 desktop frame                                          */
+  /* ------------------------------------------------------------------ */
+
+  --os-frame-width: 1440px;
+  --os-frame-height: 900px;
+  --os-sidebar-width: 240px;
+  --os-sidebar-min: 220px;
+  --os-sidebar-max: 248px;
+  --os-inspector-width: 360px;
+  --os-inspector-min: 320px;
+  --os-inspector-max: 380px;
+  --os-header-height: 56px;
+  --os-composer-min-height: 56px;
+  --os-composer-max-width: 840px;
+  --os-nav-item-height: 34px;
+  --os-gutter-sidebar: 16px;
+  --os-gutter-workspace: 32px;
+  --os-gutter-inspector: 20px;
+
+  --workspace-focused-min: 760px;
+  --workspace-focused-max: 900px;
+  --workspace-focused: 840px;
+  --workspace-operational-min: 1080px;
+  --workspace-operational-max: 1200px;
+  --workspace-operational: 1140px;
+
+  --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0ms;
+  }
+}
