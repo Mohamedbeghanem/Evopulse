@@ -1,1180 +1,1021 @@
-# EvoPulse — PLAN.md
+# EvoPulse — Implementation Plan
 
-## Product
-EvoPulse
+## Target
 
-## Category
-AI-Native Business Operating System
+Transform EvoPulse from:
 
-## Core Thesis
+Message → Commitment → Risk → Recovery
 
-Businesses do not fail because they lack dashboards.
+into:
 
-They fail because information is fragmented, commitments are forgotten,
-dependencies break, risks are discovered too late, and humans constantly
-have to determine what should happen next.
-
-EvoPulse is an independent Business Operating System that continuously
-understands:
-
-1. What happened?
-2. What was promised?
-3. What should happen?
-4. What changed?
-5. What is at risk?
-6. What does that risk affect?
-7. What action should happen next?
-8. Can AI safely execute it?
-
-EvoPulse turns business activity into a living operational model.
+Business Events
+→ Business Twin
+→ Expectations
+→ Dependency Graph
+→ Exceptions
+→ Impact
+→ Prediction
+→ Planning
+→ Policy
+→ Execution
+→ Verification
+→ Learning
+→ Better Future Decisions
 
 ---
 
-# 1. PRODUCT VISION
+## 0. PRODUCT RULE
 
-Traditional software:
+EvoPulse has five responsibilities:
 
-Data → Dashboard → Human → Decision → Action
+1. UNDERSTAND the business.
+2. KNOW what should happen.
+3. DETECT when reality diverges.
+4. ACT safely.
+5. LEARN from outcomes.
 
-EvoPulse:
-
-Data
-↓
-Understand
-↓
-Detect commitments
-↓
-Build business context
-↓
-Compare expected vs actual
-↓
-Detect exceptions
-↓
-Calculate impact
-↓
-Plan response
-↓
-Policy check
-↓
-Human approval when necessary
-↓
-Execute
-↓
-Verify
-↓
-Learn
-↺
-
-EvoPulse is not another CRM.
-
-It is not another ERP.
-
-It is not another chatbot.
-
-It is the intelligence and control layer sitting across a business.
-
----
-
-# 2. CORE PRODUCT LOOP
+Core loop:
 
 OBSERVE
-↓
-UNDERSTAND
-↓
-EXPECT
-↓
-MONITOR
-↓
-DETECT
-↓
-ASSESS IMPACT
-↓
-PLAN
-↓
-CONTROL
-↓
-ACT
-↓
-VERIFY
+→ UNDERSTAND
+→ EXPECT
+→ DETECT
+→ EXPLAIN
+→ PLAN
+→ ACT
+→ VERIFY
+→ LEARN
 ↺
 
-This loop is the heart of EvoPulse.
+---
+
+## 1. PR #2 — Unified Business Event Layer
+
+### Goal
+
+Everything entering EvoPulse becomes an Event.
+
+Create:
+
+`events`
+
+Fields:
+
+- id
+- type
+- source
+- source_id
+- actor_id
+- entity_type
+- entity_id
+- payload
+- occurred_at
+- received_at
+- confidence
+- metadata
+
+Event examples:
+
+- message.received
+- commitment.created
+- commitment.fulfilled
+- commitment.missed
+- quote.sent
+- deal.created
+- deal.won
+- deal.lost
+- payment.expected
+- payment.received
+- shipment.delayed
+- order.created
+- task.completed
+- customer.replied
+- policy.blocked
+- action.executed
+
+Every future subsystem consumes the same event stream.
+
+### Build
+
+- EventService
+- EventRepository
+- Event dispatcher
+- Event timeline
+- Event replay support
+
+### Definition of Done
+
+A new event appears in EvoPulse and automatically reaches the relevant engines.
 
 ---
 
-# 3. CORE PRIMITIVES
+## 2. PR #3 — Business Graph
 
-## Event
+### Goal
 
-Something happened.
+Build the connected representation of the company.
 
-Examples:
+Core nodes:
 
-- message received
-- invoice issued
-- payment received
-- quote sent
-- order created
-- delivery delayed
-- customer replied
-- task completed
+Person, Company, Opportunity, Order, Quote, Invoice, Payment, Supplier, Shipment, Product, Message, Commitment, Goal, Action
 
----
+Core edges:
 
-## Entity
-
-Something that exists in the business.
-
-Examples:
-
-- person
-- company
-- deal
-- order
-- invoice
-- product
-- supplier
-- employee
-- campaign
-- ticket
-- document
-
----
-
-## Commitment
-
-Something someone said should happen.
+belongs_to, requested, depends_on, promised, expected, blocks, affects, produces, pays, supplies, assigned_to, caused_by, related_to
 
 Example:
 
-"I'll confirm Friday."
+Supplier → Shipment → Product → Order → Customer → Invoice → Payment
 
-Becomes:
+Do NOT introduce Neo4j yet.
 
-actor: customer
-action: make_decision
-deadline: Friday
+Use relational graph tables:
+
+- `graph_nodes`
+- `graph_edges`
+
+Example edge:
+
+- source_node
+- relationship
+- target_node
+- confidence
+- source_event_id
+
+### API
+
+- `GET /api/graph/:id`
+- `GET /api/graph/:id/dependencies`
+- `GET /api/graph/:id/impact`
+
+### Definition of Done
+
+Selecting any important object shows what is upstream and downstream from it.
 
 ---
 
-## Expectation
+## 3. PR #4 — Business Twin
 
-Something the system expects to happen.
+### Goal
 
-Expectations may come from:
+Create EvoPulse’s live representation of the company.
 
+BusinessState:
+
+- sales
+- customers
+- cash
+- operations
+- suppliers
+- support
+
+Each domain receives:
+
+- status
+- exceptions
 - commitments
-- contracts
-- workflows
-- historical patterns
-- policies
-- goals
-
----
-
-## Goal
-
-A desired business outcome.
-
-Examples:
-
-- collect 5M DZD this month
-- close 10 deals
-- maintain 95% on-time delivery
-- respond to leads within 10 minutes
-
----
-
-## Dependency
-
-A relationship where one outcome depends on another.
+- dependencies
+- recent_changes
+- future_expectations
 
 Example:
 
-Customer decision
-depends_on
-Revised quotation
+```
+BUSINESS
+Sales — 3 commitments at risk
+Operations — 1 critical dependency broken
+Cash — 540K expected this week
+Customers — 2 waiting for response
+Suppliers — 1 shipment delayed
+```
+
+### Critical rule
+
+Do not ask an LLM: “How healthy is this company?”
+
+Calculate state from real signals. AI may explain the state. Software determines the underlying facts.
 
 ---
 
-## Exception
+## 4. PR #5 — Expectation Engine
 
-Difference between expected state and actual state.
+### Goal
 
-Expected:
-Quote Thursday
+Make EvoPulse understand the future.
 
-Actual:
-No quote Friday
+Create:
 
-Exception:
-Commitment missed
+`expectations`
 
----
+Fields:
 
-## Policy
+- id
+- type
+- entity_id
+- expected_event
+- expected_at
+- source_type
+- source_id
+- confidence
+- status
+- condition
+- created_at
+- resolved_at
 
-Rules defining what the system may do.
+Sources:
+
+- commitment
+- contract
+- workflow
+- goal
+- historical_pattern
+- manual
 
 Example:
 
-discount <= 5%
+Customer said: “I’ll decide Friday.”
+
+Creates:
+
+- expected_event: `customer.decision`
+- expected_at: Friday
 
 ---
 
-## Action
+## 5. PR #6 — Pulse / Exception Engine
 
-Something EvoPulse can execute.
+### Goal
 
-Examples:
+Continuously compare:
 
-- create task
-- draft message
-- send message
-- update record
-- escalate issue
-- schedule follow-up
+EXPECTED vs ACTUAL
 
----
+Create:
 
-# 4. BUSINESS GRAPH
+`exceptions`
 
-All objects form one connected graph.
+Fields:
 
-Customer
-↓
-Company
-↓
-Opportunity
-↓
-Quote
-↓
-Commitment
-↓
-Expected Decision
-↓
-Revenue Goal
+- id
+- expectation_id
+- type
+- severity
+- detected_at
+- status
+- evidence
+- confidence
 
-Another example:
+Types:
 
-Supplier
-↓
-Shipment
-↓
-Production
-↓
-Customer Order
-↓
-Invoice
-↓
-Cash Flow
+- missed_commitment
+- late_payment
+- missing_response
+- delivery_delay
+- goal_drift
+- dependency_failure
+- unexpected_change
 
-This allows EvoPulse to understand consequences.
+Core:
 
----
+`ExpectedEventMatcher`
 
-# 5. COMMITMENT ENGINE
+When actual event arrives:
 
-Input:
+match expected event → resolve expectation
 
-"Send me the revised proposal tomorrow and I'll confirm Friday."
+When deadline passes:
 
-AI extracts:
+no matching event → create exception
 
-Commitment A
+### Definition of Done
 
-actor: company
-action: send_revised_proposal
-deadline: tomorrow
-
-Commitment B
-
-actor: customer
-action: provide_decision
-deadline: Friday
-
-Dependency:
-
-Commitment B
-depends_on
-Commitment A
-
-The source evidence must always be retained.
+No LLM is needed to determine whether an explicit deadline was missed.
 
 ---
 
-# 6. EXPECTATION ENGINE
+## 6. PR #7 — Impact Engine
 
-EvoPulse continuously evaluates expectations.
+### Goal
 
-Statuses:
+Answer: “What does this problem affect?”
 
-ON_TRACK
-UPCOMING
-AT_RISK
-MISSED
-FULFILLED
-BLOCKED
-CANCELLED
-
-The state engine should be deterministic.
-
-AI interprets language.
-
-Software controls state.
-
----
-
-# 7. PULSE ENGINE
-
-The Pulse Engine watches incoming events.
-
-For every event:
-
-1. Identify affected entities.
-2. Update business state.
-3. Check commitments.
-4. Check expectations.
-5. Check dependencies.
-6. Check goals.
-7. Detect exceptions.
-8. Calculate affected context.
-9. Determine whether intervention is necessary.
-
----
-
-# 8. IMPACT ENGINE
-
-An exception alone is not enough.
-
-EvoPulse determines what it affects.
+Start from exception. Traverse Business Graph.
 
 Example:
 
-Supplier delayed 2 days
-↓
-Production delayed
-↓
-3 customer orders affected
-↓
-1 contract deadline endangered
-↓
-850,000 DZD associated revenue
-↓
-Expected cash receipt delayed
+Supplier Delay → Shipment → Inventory → 3 Orders → 3 Customers → Invoices → Cash
+
+Calculate:
+
+- affected_entities
+- affected_customers
+- affected_orders
+- associated_revenue
+- cash_timing
+- dependency_depth
 
 Output:
 
-IMPACT
-
-Customers affected: 3
-Orders affected: 3
-Revenue associated: 850K
-Cash timing affected: Yes
-Urgency: High
-
-Do not claim causal certainty when it cannot be established.
-
----
-
-# 9. ATTENTION ENGINE
-
-Users should not have to inspect dashboards.
-
-EvoPulse determines what deserves attention.
-
-Each exception receives:
-
-severity
-urgency
-business impact
-confidence
-deadline proximity
-dependency count
-
-Then produces:
-
-NEEDS YOU
-
-MONITORING
-
-HANDLED
-
-HEALTHY
-
----
-
-# 10. HOME
-
-The home screen should answer:
-
-"What requires my attention?"
-
-Example:
-
-Good morning.
-
-2.1M DZD requires attention
-
-3 NEED YOU
-4 HANDLED
-2 MONITORING
-
-Critical
-
-Customer decision overdue
-320K opportunity
-Recovery ready
-
-Operations
-
-Supplier delay
+```
+OPERATIONAL CASCADE
+3 customers affected
 3 orders affected
-850K associated revenue
+850K DZD associated revenue
+540K DZD expected cash timing affected
+```
 
-Finance
+### Critical
 
-Payment expected today
-540K
-No payment detected
-
-Primary action:
-
-[ Review Exceptions ]
-
-Secondary:
-
-[ Ask EvoPulse ]
+Keep factual exposure separate from AI predictions.
 
 ---
 
-# 11. BUSINESS TIME MACHINE
+## 7. PR #8 — Causal Explorer
 
-Timeline:
+### Goal
 
-PAST
-What happened?
+Make impact visually understandable.
 
-NOW
-What requires attention?
+Build interactive:
 
-FUTURE
-What is expected?
+CAUSE → EVENT → DEPENDENCY → CONSEQUENCE
 
 Example:
 
-TODAY
-320K decision overdue
+```
+SUPPLIER DELAY +2 DAYS
+↓
+SHIPMENT
+↓
+┌──────┼──────┐
+ORDER A  ORDER B  ORDER C
+320K     280K     250K
+↓
+CUSTOMER DEADLINES
+↓
+EXPECTED CASH
+```
 
-TOMORROW
-540K quote expires
+Click any node to inspect: source, evidence, timestamp, confidence, affected objects.
 
-SEP 29
-150K payment expected
-
-OCT 02
-850K deliveries expected
-
-This should become one of EvoPulse's signature interfaces.
-
----
-
-# 12. AI COMMAND CENTER
-
-Users can ask:
-
-"What changed today?"
-
-"What am I about to miss?"
-
-"What is putting revenue at risk?"
-
-"Why are deliveries late?"
-
-"What promises did we make customers?"
-
-"What promises did customers make us?"
-
-"Protect this month's cash."
-
-"Prepare everything requiring my approval."
-
-"Fix everything you're authorized to fix."
-
-The AI must operate on business state rather than generic chat context.
+This becomes a signature demo screen.
 
 ---
 
-# 13. GOAL ENGINE
+## 8. PR #9 — Business Time Machine
 
-User:
+### Goal
 
-"Protect this month's revenue."
+Make time a first-class interface.
+
+Three modes: PAST / NOW / FUTURE
+
+- PAST — What changed?
+- NOW — What requires attention?
+- FUTURE — What is expected?
+
+Example:
+
+- 09:13 Supplier delay received
+- 09:14 Dependency cascade detected
+- NOW 850K affected
+- Tomorrow 3 deliveries expected
+- Friday 540K payment expected
+
+Add: “What happens next?”
+
+---
+
+## 9. PR #10 — Impact Simulator
+
+### Goal
+
+Allow controlled counterfactual scenarios.
+
+Question: “What if the supplier is another 3 days late?”
+
+Clone relevant business state into temporary simulation. Apply `shipment.delay += 3 days`. Propagate dependencies. Compare BASELINE vs SIMULATION.
+
+Output example:
+
+- +2 commitments missed
+- +1 customer deadline affected
+- 540K cash moves into next period
+
+Never mutate production state. Simulation only.
+
+---
+
+## 10. PR #11 — Goal Engine
+
+### Goal
+
+Allow outcome-based commands.
+
+Examples:
+
+- Protect this week’s revenue.
+- Collect overdue cash.
+- Prevent late deliveries.
+- Recover stalled opportunities.
+
+Goal schema:
+
+- id
+- objective
+- metric
+- target
+- deadline
+- constraints
+- status
+
+Pipeline:
+
+GOAL → Business State → Exceptions → Relevant Graph → AI Planner → Candidate Actions
+
+---
+
+## 11. PR #12 — Planning Engine
+
+### Goal
+
+Convert business problems into structured plans.
+
+Do NOT accept prose plans.
+
+Required schema:
+
+`plan`
+
+- goal
+- reason
+- expected_impact
+- actions[]
+
+Each action:
+
+- type
+- target
+- parameters
+- evidence
+- risk
+- confidence
+- dependencies
+- requires_approval
+
+Example:
+
+Protect 850K delivery exposure
+
+01 Reallocate available stock  
+02 Prioritize critical customer  
+03 Prepare delay notice  
+04 Update expected invoice date  
+05 Monitor supplier
+
+---
+
+## 12. PR #13 — Policy Engine
+
+### Goal
+
+Put deterministic control between AI and execution.
+
+Policies:
+
+- maximum_discount
+- payment_authority
+- message_approval
+- refund_authority
+- customer_data
+- procurement_limit
+- working_hours
+
+Every action:
+
+PLAN → VALIDATE → POLICY → PERMISSIONS → RISK → AUTO / APPROVE / BLOCK
+
+Policy decision must include: policy, decision, reason, timestamp.
+
+AI cannot override policy.
+
+---
+
+## 13. PR #14 — Action Engine
+
+### Goal
+
+Make plans actually execute.
+
+Action lifecycle:
+
+proposed → approved → queued → executing → executed → failed → reverted
+
+Initial actions:
+
+- create_task
+- update_record
+- draft_message
+- send_simulated_message
+- schedule_followup
+- escalate
+- update_expectation
+
+Every execution emits another Event.
+
+Therefore:
+
+ACTION → EVENT → BUSINESS STATE → PULSE
+
+The system closes its own loop.
+
+---
+
+## 14. PR #15 — Verification Engine
+
+### Goal
+
+EvoPulse must know whether its action worked.
+
+Example:
+
+Problem: Customer not responding.  
+Action: Follow-up sent.
+
+Do NOT mark problem solved.
+
+Instead:
+
+ACTION EXECUTED → NEW EXPECTATION (“Customer response within 24h”)
+
+Then:
+
+- response received → success
+- no response → strategy failed
+
+This is essential for learning.
+
+---
+
+## 15. PR #16 — Outcome Ledger
+
+### Goal
+
+Store what happened after every intervention.
+
+Create:
+
+`outcomes`
+
+Fields:
+
+- id
+- problem_type
+- context_signature
+- plan_id
+- action_id
+- result
+- success
+- time_to_result
+- business_effect
+- policy_state
+- feedback
+- created_at
+
+Example:
+
+- problem: stale_quote
+- action: personalized_followup
+- result: customer_replied
+- time: 2h 14m
+- success: true
+
+This becomes EvoPulse’s learning dataset.
+
+---
+
+## 16. PR #17 — Auto-Learning Engine
+
+### Goal
+
+Learn which strategies work in which contexts.
+
+Do NOT automatically retrain the base LLM. Learn operational patterns.
+
+Example:
+
+Context: existing_customer, quote_value < 500K, no_response 3–7 days
+
+Historical outcomes:
+
+- Call first: 62% response
+- Generic email: 21%
+- Personalized WhatsApp: 74%
+
+EvoPulse learns: for this context, personalized WhatsApp historically performs best.
+
+Store:
+
+`learned_patterns`
+
+Fields:
+
+- context
+- strategy
+- observations
+- successes
+- failures
+- success_rate
+- confidence
+- last_updated
+
+Minimum sample threshold required. Never learn from one example.
+
+---
+
+## 17. Learning Confidence
+
+Learning should progress through states:
+
+- OBSERVED
+- INSUFFICIENT_DATA
+- EMERGING_PATTERN
+- RELIABLE_PATTERN
+- CANDIDATE_AUTOMATION
+- APPROVED_AUTOMATION
+
+Example: “WhatsApp follow-up performs better.”
+
+- After 2 examples: INSUFFICIENT_DATA
+- After 15: EMERGING_PATTERN
+- After 100 consistent outcomes: RELIABLE_PATTERN
+
+Only then recommend: “Would you like me to make this the default strategy?”
+
+Human approves promotion.
+
+---
+
+## 18. PR #18 — Strategy Memory
+
+### Goal
+
+Give the planner access to historical performance.
+
+Before planning:
+
+CURRENT CONTEXT + BUSINESS GRAPH + POLICIES + SIMILAR HISTORICAL CASES + STRATEGY PERFORMANCE → PLAN
+
+Now EvoPulse can say:
+
+“Similar cases historically responded better to a direct follow-up than a discount.”
+
+Evidence: 38 similar cases, 71% response vs 44% for discount-first.
+
+This is real operational learning.
+
+---
+
+## 19. PR #19 — Failure Learning
+
+Success is not enough. Learn failures.
+
+Example:
+
+AI recommended 5% discount. Outcome: no response. Later: customer says delivery time was the issue.
+
+Record:
+
+- assumed_blocker: price
+- actual_blocker: delivery
+- strategy: discount
+- result: failed
+
+EvoPulse learns not to over-assume price objections in similar contexts.
+
+---
+
+## 20. PR #20 — Human Feedback Learning
+
+Every recommendation gets: ACCEPT / EDIT / REJECT
+
+Capture:
+
+- original_action
+- human_change
+- reason
+- final_action
+- outcome
+
+If managers repeatedly change email → phone call, EvoPulse can detect: “Managers changed this recommendation 73% of the time.” Then propose updating the strategy.
+
+Human behavior becomes a learning signal without silently changing company policy.
+
+---
+
+## 21. PR #21 — Pattern Discovery
+
+Periodically analyze the Outcome Ledger.
+
+Find patterns such as:
+
+- “Deals without a next action for >4 days have higher failure rates.”
+- “Supplier X misses Monday deliveries frequently.”
+- “Quotes sent within 30 minutes receive faster responses.”
+- “Payment reminders three days before due date correlate with fewer overdue invoices.”
+
+Present them as DISCOVERED PATTERN, not FACT.
+
+Show: sample size, time period, confidence, supporting evidence.
+
+---
+
+## 22. PR #22 — Early Warning Engine
+
+Now use learned patterns proactively.
+
+Current case: Deal 320K, no next action 3.5 days.
+
+Historical pattern: risk increases after 4 days.
 
 EvoPulse:
 
-GOAL
-Protect monthly revenue
+EARLY WARNING — This opportunity is approaching a historically problematic state. Evidence: 47 comparable cases.
 
-OBSERVED
-34 open opportunities
-12 pending quotes
-7 missed commitments
-
-RISKS
-5 high-impact opportunities
-
-PLAN
-1. Recover stale opportunities
-2. Follow up pending quotes
-3. Escalate blocked deals
-4. Monitor responses
-
-The user can inspect the plan before execution.
+This happens BEFORE a formal commitment is broken.
 
 ---
 
-# 14. RECOVERY ENGINE
+## 23. PR #23 — Adaptive Autonomy
 
-When an exception occurs:
+Autonomy should be earned.
 
-DETECT
-↓
-UNDERSTAND
-↓
-ASSESS
-↓
-GENERATE OPTIONS
-↓
-SELECT ALLOWED ACTIONS
-↓
-REQUEST APPROVAL
-↓
-EXECUTE
-↓
-VERIFY
+Each action type receives:
+
+- reliability
+- policy risk
+- historical success
+- human override rate
 
 Example:
 
-Customer decision missed.
+`create_task` — Reliability 99%, risk low, override 1% → AUTO
 
-Recovery:
+Customer discount — financial impact, policy sensitive → APPROVAL ALWAYS
 
-1. Review conversation.
-2. Identify likely blocker.
-3. Draft personalized follow-up.
-4. Create follow-up checkpoint.
-5. Request approval.
-6. Execute.
-7. Monitor response.
+EvoPulse gets more autonomous only where evidence and policy allow it.
 
 ---
 
-# 15. POLICY ENGINE
+## 24. PR #24 — Business Memory
 
-AI never receives unrestricted authority.
+Create three memory layers.
 
-Example policies:
+**Episodic Memory** — What happened? Events and outcomes.
 
-discount_max = 5%
+**Semantic Business Memory** — What is true? Customers, suppliers, relationships, rules, products.
 
-financial_commitment_requires_approval = true
+**Procedural Memory** — What usually works? Strategies, playbooks, successful interventions.
 
-external_message_requires_approval = true
-
-payment_over_500k_requires_approval = true
-
-customer_data_deletion = forbidden
-
-Every action goes through:
-
-AI PROPOSAL
-↓
-SCHEMA VALIDATION
-↓
-POLICY
-↓
-PERMISSIONS
-↓
-APPROVAL
-↓
-EXECUTION
-
-Possible outcomes:
-
-AUTO
-APPROVAL_REQUIRED
-BLOCKED
+This gives EvoPulse persistent operational intelligence.
 
 ---
 
-# 16. AUTONOMY LEVELS
+## 25. PR #25 — Business Health
 
-LEVEL 0 — Observe
+Build health from evidence.
 
-Detect only.
+Domains: SALES, CASH, OPERATIONS, CUSTOMERS, SUPPLIERS
 
-LEVEL 1 — Recommend
+Never ask AI for arbitrary 0–100 scores.
 
-Detect + recommend.
+Calculate from: commitment reliability, exception severity, goal progress, dependency failures, deadline performance.
 
-LEVEL 2 — Prepare
-
-Prepare actions.
-
-LEVEL 3 — Execute Safe Actions
-
-Execute low-risk operations.
-
-LEVEL 4 — Operate Within Policy
-
-Execute workflows autonomously inside defined boundaries.
-
-The system should begin conservatively.
+AI only explains the result.
 
 ---
 
-# 17. EVIDENCE
+## 26. PR #26 — Exception Autopilot
 
-Every AI-generated conclusion must expose evidence.
+Final operating model:
 
-Example:
+- NORMAL → EvoPulse observes silently.
+- LOW-RISK EXCEPTION → automatically resolves.
+- MEDIUM-RISK EXCEPTION → prepares solution.
+- HIGH-RISK EXCEPTION → escalates.
+- POLICY VIOLATION → blocks.
 
-WHY IS THIS AT RISK?
+Home:
 
-Source:
-Customer conversation
+```
+BUSINESS RUNNING
+184 events
+171 normal
+9 handled automatically
+2 monitoring
+2 need you
+```
 
-Evidence:
-"I'll confirm Friday."
-
-Expected:
-Decision Friday
-
-Actual:
-No decision received
-
-Deal:
-320,000 DZD
-
-Confidence:
-94%
-
-Never expose hidden chain-of-thought.
-
-Expose business evidence and concise rationale.
+This is the Business OS experience.
 
 ---
 
-# 18. CORE TECHNICAL ARCHITECTURE
+## 27. FINAL ARCHITECTURE
 
-INPUTS
-
-Text
-Voice
-Email
-Documents
-APIs
-Webhooks
-
-↓
-
-INGESTION
-
-↓
-
-ENTITY RESOLUTION
-
-↓
-
-BUSINESS GRAPH
-
-↓
-
-AI UNDERSTANDING
-
-↓
-
-COMMITMENT EXTRACTION
-
-↓
-
-EXPECTATION ENGINE
-
-↓
-
-PULSE ENGINE
-
-↓
-
-EXCEPTION ENGINE
-
-↓
-
-IMPACT ENGINE
-
-↓
-
-PLANNER
-
-↓
-
-POLICY ENGINE
-
-↓
-
-APPROVAL
-
-↓
-
-ACTION ENGINE
-
-↓
-
-EXTERNAL SYSTEMS
-
-↓
-
-EVENT RETURNS
-
-↓
-
-VERIFY
-
-↺
+```
+                EVOPULSE
+                    │
+             BUSINESS TWIN
+                    │
+    ┌───────────────┼────────────────┐
+    │               │                │
+BUSINESS GRAPH   BUSINESS MEMORY   GOALS
+    │               │                │
+    └───────────────┼────────────────┘
+                    ↓
+            EXPECTATION ENGINE
+                    ↓
+               PULSE ENGINE
+                    ↓
+            EXCEPTION ENGINE
+                    ↓
+              IMPACT ENGINE
+                    ↓
+              EARLY WARNING
+                    ↓
+                SIMULATOR
+                    ↓
+                 PLANNER
+                    ↓
+            STRATEGY MEMORY
+                    ↓
+                  POLICY
+                    ↓
+           AUTONOMY CONTROLLER
+                    ↓
+              ACTION ENGINE
+                    ↓
+               VERIFICATION
+                    ↓
+             OUTCOME LEDGER
+                    ↓
+             LEARNING ENGINE
+                    │
+                    └──────────→ MEMORY
+                                ↺
+```
 
 ---
 
-# 19. AI VS DETERMINISTIC SOFTWARE
+## 28. HACKATHON BUILD CUT
 
-AI handles:
+Do NOT implement all 26 PRs before submission.
 
-- natural language
-- entity extraction
-- commitment extraction
-- context interpretation
-- classification
-- planning
-- summarization
-- recovery suggestions
+Build this vertical slice:
 
-Deterministic software handles:
+| PR | Focus |
+| --- | --- |
+| #2 | Event Layer |
+| #3 | Business Graph |
+| #5 | Expectation Engine |
+| #6 | Exception Engine |
+| #7 | Impact Cascade |
+| #8 | Causal Graph UI |
+| #9 | Business Time Machine |
+| #11/#12 | Goal + Plan |
+| #13 | Policy |
+| #14 | Execution |
+| #15 | Verification |
+| #16/#17 | Minimal Outcome Learning |
 
-- deadlines
-- permissions
-- policies
-- financial calculations
-- database integrity
-- state transitions
-- execution
-- audit logs
+Everything must connect into ONE working loop.
 
-Principle:
-
-AI reasons.
-Software enforces.
-Humans govern.
+**Note (2026-09-27):** PR #1 already shipped a seed demo loop (320K proposal miss → recovery → policy block). Treat that as the clickable submit baseline. The §28 slice and §29 supplier-delay story are the next vertical expansion on top of main.
 
 ---
 
-# 20. MVP
+## 29. DEMO STORY
 
-Do NOT build the entire OS first.
+### STEP 1 — Observe
 
-Hackathon MVP:
+Supplier: “Your shipment will arrive Wednesday instead of Monday.”
 
-INPUT
-↓
-COMMITMENT EXTRACTION
-↓
-BUSINESS GRAPH
-↓
-EXPECTED VS ACTUAL
-↓
-EXCEPTION
-↓
-BUSINESS IMPACT
-↓
-RECOVERY PLAN
-↓
-POLICY
-↓
-APPROVAL
-↓
-EXECUTION
+### STEP 2 — Understand
 
-One perfect loop.
+EvoPulse: SUPPLIER DELAY +2 days
 
----
+### STEP 3 — Impact
 
-# 21. MVP OBJECTS
+EvoPulse traverses graph.
 
-Implement only:
+- 3 orders affected
+- 3 customers affected
+- 850K associated revenue
+- 540K expected cash affected
 
-Contact
-Company
-Opportunity
-Message
-Commitment
-Expectation
-Action
-Policy
-Event
+### STEP 4 — Future
 
-Avoid unnecessary ERP complexity.
+Business Time Machine updates.
 
----
+### STEP 5 — Goal
 
-# 22. MVP SCENARIO
+User: “Protect the business.”
 
-Customer:
+### STEP 6 — Plan
 
-"Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday."
+EvoPulse generates cross-functional recovery plan.
 
-EvoPulse detects:
+### STEP 7 — Policy
 
-OUR COMMITMENT
-Send revised proposal
-Tomorrow
+- Safe actions: AUTO
+- Customer communication: APPROVAL
+- Unauthorized discount: BLOCK
 
-CUSTOMER COMMITMENT
-Decision
-Friday
+### STEP 8 — Execute
 
-DEPENDENCY
-Customer decision depends on proposal
+Execute Safe Actions.
 
-Time passes.
+### STEP 9 — Verify
 
-Proposal was not sent.
+New expectations are created.
 
-EvoPulse:
+### STEP 10 — Learn
 
-COMMITMENT MISSED
+EvoPulse records strategy, context, action, result.
 
-320K opportunity requires attention.
+Then displays: LEARNING — “Recovery strategy recorded.”
 
-Recovery:
-
-Prepare proposal
-Draft apology/follow-up
-Create checkpoint
-
-User:
-
-[ Execute Recovery ]
-
-Later customer:
-
-"I'll sign today if you give me 10%."
-
-AI proposes discount.
-
-Policy:
-
-Maximum discount = 5%
-
-BLOCKED
-
-Alternative recovery generated.
-
-This single story demonstrates the whole architecture.
+This closes the entire intelligence loop.
 
 ---
 
-# 23. MVP SCREENS
+## 30. AFTER HACKATHON
 
-01 — Pulse
-
-Business attention center.
-
-02 — Timeline
-
-Past / Now / Future expectations.
-
-03 — Exception Detail
-
-Evidence + impact + dependency chain.
-
-04 — Recovery Plan
-
-AI-generated actions.
-
-05 — Commitment Graph
-
-Relationships between promises and business objects.
-
-06 — Command
-
-Ask EvoPulse.
-
-Keep navigation extremely small.
+- Phase A — Real integrations
+- Phase B — Business Graph expansion
+- Phase C — Outcome history
+- Phase D — Pattern discovery
+- Phase E — Early warnings
+- Phase F — Adaptive autonomy
+- Phase G — Cross-business intelligence
 
 ---
 
-# 24. DATABASE
+## 31. ENGINEERING PRINCIPLES
 
-Core tables:
-
-entities
-events
-commitments
-expectations
-dependencies
-goals
-exceptions
-actions
-policies
-approvals
-audit_logs
-
-Important rule:
-
-Every AI-created object should retain:
-
-source
-confidence
-model
-timestamp
-evidence
+- AI interprets.
+- Graph connects.
+- Pulse detects.
+- Impact traces.
+- Planner proposes.
+- Policy governs.
+- Actions execute.
+- Verification measures.
+- Outcomes teach.
+- Humans remain accountable.
 
 ---
 
-# 25. API
+## 32. NORTH STAR
 
-POST /ingest
+EvoPulse should eventually answer:
 
-POST /extract
+- WHAT HAPPENED?
+- WHAT WAS SUPPOSED TO HAPPEN?
+- WHAT IS HAPPENING NOW?
+- WHAT WILL PROBABLY NEED ATTENTION?
+- WHY?
+- WHAT DOES IT AFFECT?
+- WHAT SHOULD WE DO?
+- WHAT CAN YOU HANDLE WITHOUT ME?
+- DID IT WORK?
+- WHAT DID YOU LEARN?
 
-GET /pulse
-
-GET /timeline
-
-GET /exceptions
-
-GET /exceptions/:id
-
-POST /exceptions/:id/plan
-
-POST /plans/:id/approve
-
-POST /actions/:id/execute
-
-GET /graph/:entity
-
-POST /ask
+And then become better at answering those questions every day.
 
 ---
 
-# 26. BUILD ORDER
+## 33. PRODUCT DEFINITION
 
-P0 — Foundation
-
-Database
-Entities
-Events
-Commitments
-
-P1 — AI Extraction
-
-Text → structured commitments
-
-P2 — Expectations
-
-Deadlines + states
-
-P3 — Pulse
-
-Exception detection
-
-P4 — Impact
-
-Relationship traversal
-
-P5 — UI
-
-Pulse homepage
-Timeline
-Exception detail
-
-P6 — Recovery
-
-AI action plans
-
-P7 — Policy
-
-Allow / approval / block
-
-P8 — Execution
-
-Actions actually change system state
-
-P9 — Evidence
-
-Sources + confidence + audit trail
-
-P10 — Voice
-
-Speech → existing ingestion pipeline
-
-P11 — Demo hardening
-
-Fallbacks
-Seed data
-Latency
-Error handling
+EvoPulse is a self-improving Business Control System that builds a live model of a company, understands expectations and dependencies, detects operational deviations, traces their consequences, safely coordinates responses, verifies outcomes, and learns which interventions work best over time.
 
 ---
 
-# 27. NON-GOALS FOR MVP
+## 34. CORE MOAT
 
-Do not build:
+The moat is not the LLM.
 
-Full CRM
-Full ERP
-Accounting
-Payroll
-HR
-Inventory management
-Marketing platform
-Email client
-WhatsApp clone
-Workflow builder
-Dozens of agents
-Complex graph infrastructure
-Predictive analytics
+The moat becomes:
 
-Integrate these systems later.
+Business Graph
++ Commitment History
++ Expectation History
++ Outcome Ledger
++ Strategy Memory
++ Company Policies
++ Human Corrections
++ Learned Operational Patterns
 
-EvoPulse should sit above them.
+The longer EvoPulse operates inside a company, the better its understanding of how that specific business actually works.
 
----
-
-# 28. LONG-TERM INTEGRATION MODEL
-
-EvoPulse should remain vendor-neutral.
-
-Potential connectors:
-
-CRM
-ERP
-Accounting
-Email
-Messaging
-Calendar
-Commerce
-Payments
-Support
-Project management
-Logistics
-Databases
-
-Architecture:
-
-SALESFORCE ─┐
-HUBSPOT ────┤
-SAP ────────┤
-STRIPE ─────┤
-SHOPIFY ────┼──→ EVOPULSE → ACTIONS
-GMAIL ──────┤
-SLACK ──────┤
-NOTION ─────┤
-CUSTOM API ─┘
-
-EvoPulse should not require companies to replace their existing stack.
-
-It becomes the intelligence/control layer across it.
-
----
-
-# 29. NORTH STAR
-
-Eventually the owner opens EvoPulse and sees:
-
-BUSINESS STATUS
-
-Healthy: 92%
-
-Since yesterday:
-
-147 events understood
-12 commitments fulfilled
-3 exceptions detected
-8 actions safely executed
-
-NEEDS YOU
-
-2 decisions
-
-Then they can ask:
-
-"What changed?"
-
-"What will break next?"
-
-"Why?"
-
-"What does it affect?"
-
-"What can you fix?"
-
-And EvoPulse acts within policy.
-
----
-
-# 30. POSITIONING
-
-Do not position EvoPulse as:
-
-"AI CRM"
-
-"AI ERP"
-
-"AI assistant"
-
-"AI chatbot"
-
-"Another all-in-one platform"
-
-Position it as:
-
-EvoPulse
-Business Control System
-
-Other systems tell you what happened.
-
-EvoPulse understands what was supposed to happen,
-detects when reality diverges,
-shows what it affects,
-and coordinates what happens next.
-
----
-
-# 31. PRODUCT PRINCIPLES
-
-1. Exceptions over dashboards.
-2. Evidence over hallucination.
-3. Outcomes over workflows.
-4. Commitments are first-class data.
-5. Expected vs actual drives intelligence.
-6. Context before action.
-7. Policies before autonomy.
-8. Human control for consequential decisions.
-9. Integrate rather than replace.
-10. Every autonomous action must be auditable.
-
----
-
-# 32. ONE-SENTENCE PITCH
-
-EvoPulse is an AI-native Business Control System that understands
-what a business expects to happen, detects when reality diverges,
-calculates the impact, and safely coordinates what should happen next.
-
----
-
-# 33. TAGLINE
-
-EvoPulse
-
-Nothing falls through.
+That is the compounding intelligence layer.
