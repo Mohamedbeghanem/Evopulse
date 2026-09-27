@@ -24,6 +24,8 @@ export type RequestContext = {
   role: WorkspaceRole | "operator" | null;
   mode: SessionMode;
   db: DatabaseSync;
+  /** A session token was presented but is invalid or expired (the request fell back to demo). */
+  staleSession?: boolean;
 };
 
 export function sessionCookieOptions() {
@@ -36,17 +38,37 @@ export function sessionCookieOptions() {
   };
 }
 
-export async function readSessionToken(): Promise<string | null> {
+export async function readSessionToken(req?: Request): Promise<string | null> {
   try {
     const store = await cookies();
-    return store.get(SESSION_COOKIE)?.value ?? null;
+    const value = store.get(SESSION_COOKIE)?.value;
+    if (value) return value;
   } catch {
-    return null;
+    /* outside a Next request scope: fall back to the request's own Cookie header */
   }
+  return req ? sessionTokenFromHeader(req.headers.get("cookie")) : null;
 }
 
-export async function resolveRequestContext(): Promise<RequestContext> {
-  const token = await readSessionToken();
+/** The same httpOnly session cookie, read from a request's Cookie header. */
+export function sessionTokenFromHeader(header: string | null): string | null {
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index < 0) continue;
+    if (part.slice(0, index).trim() === SESSION_COOKIE) {
+      const value = part.slice(index + 1).trim();
+      try {
+        return decodeURIComponent(value) || null;
+      } catch {
+        return value || null;
+      }
+    }
+  }
+  return null;
+}
+
+export async function resolveRequestContext(req?: Request): Promise<RequestContext> {
+  const token = await readSessionToken(req);
   const session = token ? AuthService.sessionFromToken(token) : null;
 
   if (session?.mode === "user" && session.user && session.workspace) {
@@ -71,11 +93,12 @@ export async function resolveRequestContext(): Promise<RequestContext> {
     role: session?.role ?? "operator",
     mode: "demo",
     db: getDb(),
+    staleSession: Boolean(token) && !session,
   };
 }
 
-export async function requireUserContext(): Promise<RequestContext> {
-  const ctx = await resolveRequestContext();
+export async function requireUserContext(req?: Request): Promise<RequestContext> {
+  const ctx = await resolveRequestContext(req);
   if (!ctx.user || ctx.mode !== "user" || !ctx.workspace) throw new UnauthorizedError();
   return ctx;
 }
@@ -85,7 +108,7 @@ export function withWorkspace(
 ) {
   return async (req?: Request, extra?: unknown) => {
     try {
-      const ctx = await resolveRequestContext();
+      const ctx = await resolveRequestContext(req);
       return await runWithDb(ctx.db, () => handler(ctx, req ?? new Request("http://local.invalid"), extra));
     } catch (error) {
       return authErrorResponse(error);
@@ -102,7 +125,7 @@ export function withUserWorkspace<T extends Request>(
 ) {
   return async (req: T, extra?: unknown) => {
     try {
-      const ctx = await requireUserContext();
+      const ctx = await requireUserContext(req);
       return await runWithDb(ctx.db, () =>
         handler(ctx as RequestContext & { user: PublicUser; workspace: PublicWorkspace }, req, extra),
       );

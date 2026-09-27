@@ -17,9 +17,10 @@ export type ConnectorRouteContext = {
 export async function withConnectors(
   level: "read" | "write" | "admin",
   handler: (ctx: ConnectorRouteContext) => Promise<Response> | Response,
+  req?: Request,
 ): Promise<Response> {
   try {
-    const ctx = await requireUserContext();
+    const ctx = await requireUserContext(req);
     const role = (ctx.role === "operator" ? "viewer" : ctx.role) as WorkspaceRole;
     if (level === "write") assertCanWrite(role);
     if (level === "admin") assertCanAdmin(role);
