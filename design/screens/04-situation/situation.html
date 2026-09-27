@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EvoPulse Control OS — Why does this matter?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Locked Aurora tokens — copied from design/AURORA_TOKENS.css. Do not restyle the OS. */
+      :root {
+        --aurora-canvas: #07090c;
+        --aurora-nav: #090c10;
+        --aurora-surface: #0e1217;
+        --aurora-surface-raised: #141a22;
+        --aurora-surface-active: #1a212b;
+        --aurora-recessed: #0a0d11;
+        --aurora-ink: #e8ecf1;
+        --aurora-secondary: #a3adba;
+        --aurora-muted: #7c8796;
+        --aurora-quiet: #8f9aa8;
+        --aurora-hairline: #1c232c;
+        --aurora-hairline-strong: #232b35;
+        --aurora-panel-line: #1f2630;
+        --aurora-row-line: #1a2029;
+        --aurora-attention: #ff5a1f;
+        --aurora-attention-hot: #ff7a45;
+        --aurora-on-attention: #0a0c0f;
+        --aurora-watch: #f0b44c;
+        --aurora-auto: #7fb2e0;
+        --aurora-focus: #ff7a45;
+        --aurora-overlay: rgba(7, 9, 12, 0.72);
+        --aurora-need-wash: rgba(255, 90, 31, 0.08);
+        --aurora-auto-wash: rgba(127, 178, 224, 0.12);
+        --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+        --text-micro: 11px;
+        --text-caption: 12px;
+        --text-body: 14px;
+        --text-body-lg: 16px;
+        --text-title: 22px;
+        --text-display: 26px;
+        --leading-tight: 1.2;
+        --leading-body: 1.45;
+        --tracking-label: 0.12em;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --space-6: 32px;
+        --radius-chip: 4px;
+        --radius-control: 6px;
+        --radius-panel: 10px;
+        --radius-overlay: 12px;
+        --border-hairline: 1px solid var(--aurora-hairline);
+        --os-sidebar-width: 240px;
+        --os-inspector-width: 360px;
+        --os-header-height: 56px;
+        --os-nav-item-height: 34px;
+        --os-gutter-sidebar: 16px;
+        --os-gutter-workspace: 28px;
+        --os-gutter-inspector: 20px;
+        --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--aurora-canvas);
+        color: var(--aurora-ink);
+        font-family: var(--font-sans);
+        font-size: var(--text-body);
+        line-height: var(--leading-body);
+      }
+      a {
+        color: var(--aurora-attention-hot);
+        text-decoration: none;
+      }
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+      :focus {
+        outline: none;
+      }
+      :focus-visible {
+        box-shadow: var(--focus-ring);
+        border-radius: var(--radius-control);
+      }
+      .skip {
+        position: absolute;
+        left: 12px;
+        top: -40px;
+        z-index: 80;
+        padding: 8px 12px;
+        background: var(--aurora-surface-raised);
+        border: var(--border-hairline);
+        border-radius: var(--radius-control);
+        color: var(--aurora-ink);
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      /* Locked Control OS chrome */
+      .os {
+        display: flex;
+        min-height: 100vh;
+        background: var(--aurora-canvas);
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        width: var(--os-sidebar-width);
+        min-width: var(--os-sidebar-width);
+        height: 100vh;
+        padding: 0 var(--os-gutter-sidebar) var(--space-5);
+        border-right: 1px solid var(--aurora-hairline);
+        background: var(--aurora-nav);
+      }
+      .workspace {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 100vh;
+      }
+      .inspector {
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        width: var(--os-inspector-width);
+        min-width: var(--os-inspector-width);
+        height: 100vh;
+        padding: 0 var(--os-gutter-inspector) var(--space-5);
+        background: var(--aurora-nav);
+        box-shadow: inset 1px 0 0 var(--aurora-hairline);
+        overflow: auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        height: var(--os-header-height);
+        gap: 10px;
+        padding: 0 4px;
+      }
+      .brand-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        color: var(--aurora-ink);
+      }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+      .brand-name {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .sidebar-launch {
+        display: grid;
+        gap: 6px;
+        margin: 4px 0 var(--space-5);
+      }
+      .control,
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        height: var(--os-nav-item-height);
+        padding: 0 10px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-secondary);
+        text-align: left;
+      }
+      .control:hover,
+      .nav-item:hover {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+      }
+      .control-primary {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+        box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong);
+      }
+      .control kbd {
+        margin-left: auto;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+      .nav-block + .nav-block {
+        margin-top: var(--space-4);
+      }
+      .nav-label {
+        padding: 0 10px 6px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+      .nav-item[aria-current="page"] {
+        background: var(--aurora-surface-active);
+        color: var(--aurora-ink);
+        box-shadow: inset 2px 0 0 var(--aurora-attention);
+      }
+      .nav-item[aria-disabled="true"] {
+        cursor: default;
+        opacity: 0.72;
+      }
+      .nav-item svg,
+      .control svg,
+      .icon-btn svg,
+      .brand-mark svg,
+      .send svg,
+      .reopen svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .brand-mark svg {
+        width: 14px;
+        height: 14px;
+        stroke-width: 2.2;
+      }
+      .sidebar-foot {
+        margin-top: auto;
+        display: grid;
+        gap: 2px;
+        padding-top: var(--space-4);
+      }
+      .live {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 28px;
+        margin: 8px 4px 6px;
+        padding: 0 10px;
+        border: 1px solid #2a333f;
+        border-radius: 14px;
+        color: var(--aurora-secondary);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+      }
+      .live i {
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--aurora-attention);
+      }
+      .clock {
+        padding: 0 10px 8px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 40px;
+        padding: 0 8px;
+        color: var(--aurora-ink);
+      }
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        background: var(--aurora-surface-active);
+        border: 1px solid #2a333f;
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+      .user-row small {
+        display: block;
+        color: var(--aurora-muted);
+        font-size: var(--text-caption);
+        font-weight: 400;
+      }
+      .collapse {
+        display: none;
+        margin-left: auto;
+        color: var(--aurora-secondary);
+      }
+      .os.sidebar-collapsed .sidebar {
+        display: none;
+      }
+      .reopen {
+        display: none;
+        color: var(--aurora-ink);
+      }
+      .os.sidebar-collapsed .reopen {
+        display: inline-flex;
+        position: fixed;
+        left: 8px;
+        top: 12px;
+        z-index: 30;
+        width: 40px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        background: var(--aurora-surface-raised);
+        border: 1px solid var(--aurora-hairline-strong);
+        border-radius: var(--radius-control);
+      }
+
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: var(--os-header-height);
+        padding: 14px var(--os-gutter-workspace) 10px;
+      }
+      .kicker {
+        margin: 0 0 6px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+      }
+      .page-header h1 {
+        margin: 0;
+        font-size: var(--text-display);
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: var(--leading-tight);
+      }
+      .page-header h1 em {
+        font-style: normal;
+        color: var(--aurora-attention-hot);
+      }
+      .lede {
+        margin: 6px 0 0;
+        color: var(--aurora-quiet);
+        font-size: 13px;
+        max-width: 42rem;
+      }
+      .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .chip,
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-ink);
+        background: var(--aurora-surface-raised);
+        border: 1px solid #2a333f;
+      }
+      .icon-btn {
+        width: 32px;
+        padding: 0;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .status i {
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: currentColor;
+      }
+      .status--need {
+        color: var(--aurora-attention-hot);
+      }
+      .status--monitor {
+        color: var(--aurora-watch);
+      }
+      .status--risk {
+        color: var(--aurora-attention-hot);
+      }
+      .status--auto {
+        color: var(--aurora-auto);
+      }
+      .status--blocked {
+        color: var(--aurora-muted);
+      }
+      @keyframes pulse-dot {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.6);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(255, 90, 31, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 90, 31, 0);
+        }
+      }
+      .pulse i,
+      .live i {
+        animation: pulse-dot 1.8s infinite;
+      }
+
+      .workspace-body {
+        flex: 1;
+        padding: 8px var(--os-gutter-workspace) 24px;
+      }
+      .composer-dock {
+        padding: 0 var(--os-gutter-workspace) 24px;
+      }
+      .composer {
+        display: grid;
+        gap: 10px;
+        width: 100%;
+        max-width: 840px;
+        margin: 0 auto;
+        padding: 14px 14px 12px;
+        background: var(--aurora-surface);
+        border: 1px solid var(--aurora-hairline-strong);
+        border-radius: var(--radius-panel);
+      }
+      .composer-input {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--aurora-ink);
+      }
+      .composer-input::placeholder {
+        color: var(--aurora-muted);
+      }
+      .composer-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mode-hint {
+        color: var(--aurora-muted);
+        font-size: 12px;
+      }
+      .send {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        margin-left: auto;
+        border-radius: var(--radius-control);
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+
+      .inspector-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-height: var(--os-header-height);
+        padding-top: 16px;
+      }
+      .inspector-kicker {
+        margin: 0 0 4px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+      .inspector h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .inspector-section {
+        margin-top: var(--space-5);
+      }
+      .inspector-section h3 {
+        margin: 0 0 8px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+      .fact {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 0;
+        border-top: 1px solid var(--aurora-row-line);
+        font-size: 13px;
+      }
+      .fact b {
+        font-weight: 600;
+      }
+      .fact span {
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-align: right;
+      }
+      .source {
+        display: block;
+        background: var(--aurora-recessed);
+        margin: 0 -4px;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .source + .source {
+        margin-top: 6px;
+      }
+      .source small {
+        display: block;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .ev-chip {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        padding: 3px 6px;
+        border-radius: 3px;
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-secondary);
+        border: 1px solid var(--aurora-hairline-strong);
+      }
+      .inspector-cta {
+        display: flex;
+        width: 100%;
+        height: 34px;
+        margin-top: var(--space-4);
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-control);
+        background: var(--aurora-surface-raised);
+        border: 1px solid #2a333f;
+        color: var(--aurora-ink);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .btn-pri {
+        background: var(--aurora-attention);
+        border-color: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+
+      .command-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 12vh 24px 24px;
+        background: var(--aurora-overlay);
+      }
+      .command-layer.is-open {
+        display: flex;
+      }
+      .command-dialog {
+        width: min(640px, 100%);
+        background: var(--aurora-surface);
+        border: 1px solid var(--aurora-hairline-strong);
+        border-radius: var(--radius-overlay);
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+      }
+      .command-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--aurora-panel-line);
+      }
+      .command-field input {
+        flex: 1;
+        border: 0;
+        background: transparent;
+        color: var(--aurora-ink);
+        font-size: var(--text-body-lg);
+      }
+      .command-hint {
+        margin: 0;
+        padding: 16px 18px 20px;
+        color: var(--aurora-muted);
+        font-size: 13px;
+      }
+
+      /* Situation briefing — not a card wall */
+      .brief {
+        display: grid;
+        gap: 0;
+        max-width: 840px;
+      }
+      .block {
+        padding: 22px 0 24px;
+        border-top: 1px solid var(--aurora-row-line);
+      }
+      .block:first-child {
+        border-top: 0;
+        padding-top: 4px;
+      }
+      .block h2 {
+        margin: 0 0 12px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+      }
+      .quote {
+        margin: 0 0 14px;
+        font-size: 18px;
+        font-weight: 500;
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+      }
+      .meta-line {
+        margin: 0;
+        color: var(--aurora-quiet);
+        font-size: 13px;
+      }
+      .shift {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 12px;
+        align-items: center;
+        margin-top: 16px;
+      }
+      .shift b {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .shift span {
+        display: block;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        margin-bottom: 6px;
+      }
+      .shift-arrow {
+        color: var(--aurora-attention-hot);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-align: center;
+      }
+      .why-copy {
+        margin: 0 0 16px;
+        max-width: 40rem;
+        color: var(--aurora-secondary);
+      }
+      .buffer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        padding: 4px 0 0;
+      }
+      .buffer span {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        color: var(--aurora-muted);
+        margin-bottom: 6px;
+      }
+      .buffer b {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: -0.03em;
+      }
+      .buffer .short b {
+        color: var(--aurora-watch);
+      }
+      .affect {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 32px;
+      }
+      .path {
+        position: relative;
+        padding-left: 18px;
+      }
+      .path::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 12px;
+        bottom: 12px;
+        width: 1px;
+        background: var(--aurora-hairline);
+      }
+      .node {
+        display: block;
+        width: 100%;
+        text-align: left;
+        position: relative;
+        min-height: 44px;
+        padding: 8px 10px;
+        margin-bottom: 2px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-muted);
+      }
+      .node::before {
+        content: "";
+        position: absolute;
+        left: -18px;
+        top: 16px;
+        width: 7px;
+        height: 7px;
+        background: var(--aurora-muted);
+        border-radius: 1px;
+      }
+      .node:hover {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+      }
+      .node[aria-selected="true"] {
+        color: var(--aurora-ink);
+        background: var(--aurora-surface);
+      }
+      .node[aria-selected="true"]::before {
+        background: var(--aurora-attention);
+      }
+      .node small {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--aurora-muted);
+        margin-top: 2px;
+      }
+      .impact-list {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+      }
+      .impact-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--aurora-row-line);
+        font-size: 14px;
+      }
+      .impact-list b {
+        font-family: var(--font-mono);
+        font-weight: 500;
+      }
+      .orders {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .orders th,
+      .orders td {
+        text-align: left;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--aurora-row-line);
+        font-size: 13px;
+      }
+      .orders th {
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+      .orders td:last-child,
+      .orders th:last-child {
+        text-align: right;
+        font-family: var(--font-mono);
+      }
+      .orders tr {
+        cursor: pointer;
+      }
+      .orders tr:hover td {
+        color: var(--aurora-ink);
+      }
+      .orders tr[aria-selected="true"] td {
+        color: var(--aurora-ink);
+      }
+      .orders tr[aria-selected="true"] td:first-child {
+        box-shadow: inset 2px 0 0 var(--aurora-attention);
+        padding-left: 10px;
+      }
+      .first-flag {
+        color: var(--aurora-watch);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+      .evidence-list {
+        display: grid;
+        gap: 8px;
+      }
+      .evidence-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 12px 0;
+        border-top: 1px solid var(--aurora-row-line);
+        color: var(--aurora-ink);
+      }
+      .evidence-item:first-child {
+        border-top: 0;
+      }
+      .evidence-item[aria-selected="true"] .ev-kind {
+        color: var(--aurora-attention-hot);
+      }
+      .ev-kind {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        color: var(--aurora-muted);
+        margin-bottom: 4px;
+      }
+      .next-copy {
+        margin: 0 0 16px;
+        color: var(--aurora-secondary);
+        max-width: 40rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        min-width: 128px;
+        padding: 0 16px;
+        border-radius: var(--radius-control);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .btn-primary {
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+      .btn-ghost {
+        border: 1px solid var(--aurora-hairline-strong);
+        background: var(--aurora-surface);
+        color: var(--aurora-ink);
+      }
+      .btn-sim {
+        border: 1px solid #2a4158;
+        background: var(--aurora-auto-wash);
+        color: var(--aurora-auto);
+      }
+      .ask {
+        margin-top: 20px;
+        padding-top: 18px;
+        border-top: 1px solid var(--aurora-row-line);
+      }
+      .ask h3 {
+        margin: 0 0 10px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+      }
+      .ask-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .ask-chip {
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: var(--radius-chip);
+        border: 1px solid var(--aurora-hairline-strong);
+        background: transparent;
+        color: var(--aurora-secondary);
+        font-size: 13px;
+      }
+      .ask-chip[aria-pressed="true"] {
+        border-color: var(--aurora-attention);
+        color: var(--aurora-ink);
+        background: var(--aurora-need-wash);
+      }
+      .ask-answer {
+        margin: 12px 0 0;
+        color: var(--aurora-secondary);
+        font-size: 14px;
+        min-height: 1.45em;
+      }
+      .toast {
+        margin-top: 14px;
+        color: var(--aurora-quiet);
+        font-size: 13px;
+        min-height: 1.4em;
+      }
+      .banner {
+        display: none;
+        padding: 16px 0 8px;
+      }
+      .banner h2 {
+        margin: 0 0 8px;
+        font-size: var(--text-title);
+      }
+      .skeleton {
+        display: none;
+        height: 56px;
+        margin-top: 16px;
+        border-radius: var(--radius-panel);
+        background: var(--aurora-surface);
+        border: var(--border-hairline);
+      }
+
+      .drawer-back {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 35;
+        background: var(--aurora-overlay);
+      }
+      .drawer-back.open {
+        display: block;
+      }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 36;
+        height: 100%;
+        width: 400px;
+        max-width: 100%;
+        padding: 24px;
+        background: var(--aurora-nav);
+        border-left: 1px solid var(--aurora-hairline);
+        transform: translateX(100%);
+      }
+      .drawer.open {
+        transform: none;
+      }
+      .sim-kicker {
+        margin: 0 0 8px;
+        color: var(--aurora-auto);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+      }
+      .drawer h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+      .delta {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .delta div {
+        padding: 12px;
+        background: var(--aurora-auto-wash);
+        border-radius: var(--radius-control);
+      }
+      .delta span {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: var(--aurora-auto);
+        margin-bottom: 6px;
+      }
+
+      body[data-state="empty"] .brief,
+      body[data-state="loading"] .brief,
+      body[data-state="error"] .brief {
+        display: none;
+      }
+      body[data-state="empty"] .banner-empty,
+      body[data-state="loading"] .banner-loading,
+      body[data-state="error"] .banner-error {
+        display: block;
+      }
+      body[data-state="loading"] .skeleton {
+        display: block;
+      }
+      body[data-state="monitoring"] .status-primary {
+        color: var(--aurora-watch);
+      }
+      body[data-state="handled"] .status-primary {
+        color: var(--aurora-auto);
+      }
+      body[data-state="blocked"] .status-primary {
+        color: var(--aurora-muted);
+      }
+
+      @media (max-width: 1280px) {
+        .sidebar {
+          width: 220px;
+          min-width: 220px;
+        }
+        .inspector {
+          width: 320px;
+          min-width: 320px;
+        }
+        .page-header,
+        .workspace-body,
+        .composer-dock {
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+        .buffer b {
+          font-size: 20px;
+        }
+      }
+      @media (max-width: 1024px) {
+        .collapse {
+          display: inline-flex;
+        }
+        .inspector {
+          position: fixed;
+          right: 0;
+          top: 0;
+          z-index: 25;
+          height: 100vh;
+          width: 320px;
+          min-width: 320px;
+        }
+        .os.inspector-closed .inspector {
+          display: none;
+        }
+        .os:not(.inspector-closed) .workspace::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          background: var(--aurora-overlay);
+          pointer-events: none;
+          z-index: 20;
+        }
+        .affect,
+        .shift,
+        .buffer {
+          grid-template-columns: 1fr;
+        }
+        .actions .btn {
+          flex: 1 1 100%;
+        }
+        .page-header,
+        .workspace-body,
+        .composer-dock {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body data-state="needs-you">
+    <a class="skip" href="#workspace">Skip to workspace</a>
+    <div class="os os--inspector" data-active="pulse">
+      <aside class="sidebar" aria-label="Control OS" data-os-sidebar></aside>
+      <button class="reopen" type="button" data-reopen-sidebar aria-label="Open sidebar">
+        <svg viewBox="0 0 16 16"><path d="M5 3h8M5 8h8M5 13h8M3 3v10" /></svg>
+      </button>
+
+      <div class="workspace" id="workspace">
+        <header class="page-header">
+          <div>
+            <p class="kicker">SITUATION · SH-204</p>
+            <h1>Why does this matter?</h1>
+            <p class="lede" id="lede">
+              Atlas Supply moved SH-204 Monday → Wednesday. One situation. The
+              <em style="font-style: normal; color: var(--aurora-attention-hot)">850,000 DZD</em>
+              is associated revenue — not lost.
+            </p>
+          </div>
+          <div class="header-actions">
+            <p class="status status-primary status--need pulse" id="attn">
+              <i></i> <span id="attn-label">Needs you</span>
+            </p>
+            <p class="status status--risk" id="layer"><i></i> At risk — not missed</p>
+          </div>
+        </header>
+
+        <main class="workspace-body" aria-labelledby="page-title">
+          <h2 id="page-title" class="visually-hidden">Situation briefing</h2>
+
+          <div class="banner banner-empty" id="banner-empty">
+            <h2>No situation to open.</h2>
+            <p class="meta-line">Sun 27 Sep 2026 · 09:14 Africa/Tunis. The queue is quiet. Return to Pulse.</p>
+          </div>
+          <div class="banner banner-loading" id="banner-loading">
+            <h2>Situation · SH-204</h2>
+            <p class="status status--need"><i></i> Needs you</p>
+            <p class="meta-line">Identity first. Cascade is still arriving.</p>
+            <div class="skeleton" aria-hidden="true"></div>
+          </div>
+          <div class="banner banner-error" id="banner-error">
+            <h2>This situation could not be opened.</h2>
+            <p class="meta-line">Do not treat a partial cascade as complete. Return to Pulse and try again.</p>
+          </div>
+
+          <article class="brief" id="brief">
+            <section class="block" id="changed" aria-labelledby="changed-title">
+              <h2 id="changed-title">What changed</h2>
+              <blockquote class="quote">
+                “Your shipment will arrive Wednesday instead of Monday.”
+              </blockquote>
+              <p class="meta-line">
+                Atlas Supply · supplier conversation · Sun 27 Sep 2026 · 09:13 Africa/Tunis ·
+                observed fact · 96%
+              </p>
+              <div class="shift" aria-label="Shipment expectation change">
+                <div>
+                  <span>EXPECTED</span>
+                  <b>Mon 28 Sep 09:00</b>
+                </div>
+                <div class="shift-arrow">+2 DAYS</div>
+                <div>
+                  <span>REVISED</span>
+                  <b>Wed 30 Sep 09:00</b>
+                </div>
+              </div>
+            </section>
+
+            <section class="block" id="matters" aria-labelledby="matters-title">
+              <h2 id="matters-title">Why it matters</h2>
+              <p class="why-copy">
+                Pallet racking kit RK-7 rides on SH-204. Three customer orders require RK-7.
+                Order A must be delivered to Oran Fresh Tuesday 29 Sep 10:00 — before the
+                revised Wednesday arrival. Tuesday has not passed. This is
+                <strong>AT RISK</strong>, not missed.
+              </p>
+              <div class="buffer" aria-label="Time buffer">
+                <div>
+                  <span>AVAILABLE</span>
+                  <b>−23h</b>
+                </div>
+                <div>
+                  <span>REQUIRED</span>
+                  <b>18h</b>
+                </div>
+                <div class="short">
+                  <span>SHORTFALL</span>
+                  <b>−41h</b>
+                </div>
+              </div>
+              <p class="meta-line" style="margin-top: 12px">
+                Available is Wednesday 09:00 versus Tuesday 10:00. Required is 6h processing +
+                4h preparation + 8h transport. Shortfall is available minus required.
+              </p>
+            </section>
+
+            <section class="block" id="affects" aria-labelledby="affects-title">
+              <h2 id="affects-title">What it affects</h2>
+              <div class="affect">
+                <div>
+                  <p class="meta-line" style="margin-bottom: 10px">
+                    Atlas Supply → SH-204 → RK-7 → Orders → Customers
+                  </p>
+                  <div class="path" id="path" role="listbox" aria-label="Causal path" aria-activedescendant="node-ship">
+                    <button class="node" type="button" role="option" id="node-sup" data-id="supplier" aria-selected="false">
+                      Atlas Supply
+                      <small>CAUSE · supplies</small>
+                    </button>
+                    <button class="node" type="button" role="option" id="node-ship" data-id="shipment" aria-selected="true">
+                      Shipment SH-204
+                      <small>EVENT · delayed +2</small>
+                    </button>
+                    <button class="node" type="button" role="option" id="node-rk7" data-id="product" aria-selected="false">
+                      Pallet racking kit RK-7
+                      <small>DEPENDENCY · contains</small>
+                    </button>
+                    <button class="node" type="button" role="option" id="node-orders" data-id="orders" aria-selected="false">
+                      Orders A · B · C
+                      <small>CONSEQUENCE · required_by</small>
+                    </button>
+                    <button class="node" type="button" role="option" id="node-cust" data-id="customers" aria-selected="false">
+                      Oran Fresh · Constantine Clinic · Sétif Depot
+                      <small>CONSEQUENCE · belongs_to</small>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <ul class="impact-list">
+                    <li><span>Orders</span><b>3</b></li>
+                    <li><span>Customers</span><b>3</b></li>
+                    <li><span>Associated revenue</span><b>850,000 DZD</b></li>
+                    <li><span>Expected cash timing</span><b>540,000 DZD</b></li>
+                  </ul>
+                  <p class="meta-line">Associated is not lost. Cash week is monitoring — not a miss.</p>
+                </div>
+              </div>
+              <table class="orders" aria-label="Affected orders">
+                <thead>
+                  <tr>
+                    <th scope="col">Order</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Deadline</th>
+                    <th scope="col">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-id="orderA" aria-selected="false">
+                    <td>Order A <span class="first-flag">FIRST</span></td>
+                    <td>Oran Fresh Market</td>
+                    <td>Tue 29 Sep 10:00</td>
+                    <td>320,000</td>
+                  </tr>
+                  <tr data-id="orderB" aria-selected="false">
+                    <td>Order B</td>
+                    <td>Constantine Clinic</td>
+                    <td>Fri 2 Oct 17:00</td>
+                    <td>280,000</td>
+                  </tr>
+                  <tr data-id="orderC" aria-selected="false">
+                    <td>Order C</td>
+                    <td>Sétif Depot</td>
+                    <td>Tue 6 Oct 17:00</td>
+                    <td>250,000</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="meta-line" style="margin-top: 12px">
+                Invoices A 200,000 + B 180,000 + C 160,000 = 540,000 DZD expected cash · week of 28 Sep.
+              </p>
+            </section>
+
+            <section class="block" id="evidence" aria-labelledby="evidence-title">
+              <h2 id="evidence-title">Evidence</h2>
+              <p class="meta-line" style="margin-bottom: 8px">
+                Business sources. Not a hidden model trace.
+              </p>
+              <div class="chip-row" aria-label="Source lanes">
+                <span class="ev-chip">EVENT</span>
+                <span class="ev-chip">GRAPH</span>
+                <span class="ev-chip">POLICY</span>
+              </div>
+              <div class="evidence-list" id="evidence-list">
+                <button class="evidence-item" type="button" data-id="supplier" aria-selected="false">
+                  <span class="ev-kind">SUPPLIER MESSAGE</span>
+                  Atlas Supply, 09:13 — “Your shipment will arrive Wednesday instead of Monday.”
+                </button>
+                <button class="evidence-item" type="button" data-id="shipment" aria-selected="true">
+                  <span class="ev-kind">SHIPMENT · EVENT</span>
+                  SH-204 expected Monday 28 Sep 09:00. Event shipment.delayed revises Wednesday 30 Sep 09:00.
+                </button>
+                <button class="evidence-item" type="button" data-id="orderA" aria-selected="false">
+                  <span class="ev-kind">CUSTOMER COMMITMENT</span>
+                  Deliver Order A to Oran Fresh Tuesday. Status at risk. Tuesday has not passed.
+                </button>
+                <button class="evidence-item" type="button" data-id="cash" aria-selected="false">
+                  <span class="ev-kind">EXPECTATION · CASH</span>
+                  Invoices A/B/C still dated week of 28 Sep. 540,000 DZD expected cash timing.
+                </button>
+              </div>
+            </section>
+
+            <section class="block" id="next" aria-labelledby="next-title">
+              <h2 id="next-title">What can happen next</h2>
+              <p class="next-copy">
+                If nothing is done, Order A’s Tuesday commitment stays AT RISK — the racking
+                arrives Wednesday. Prioritize Oran Fresh first. A customer notice needs a human.
+                Executing that notice is not resolution.
+              </p>
+              <div class="actions">
+                <button class="btn btn-primary" type="button" id="act-primary">
+                  Prioritize Order A
+                </button>
+                <button class="btn btn-ghost" type="button" id="act-notice">
+                  Prepare delay notice
+                </button>
+                <button class="btn btn-ghost" type="button" id="act-evidence">
+                  Open evidence
+                </button>
+                <button class="btn btn-sim" type="button" id="act-sim">
+                  Simulate +3 days
+                </button>
+              </div>
+              <p class="toast" id="action-toast" aria-live="polite"></p>
+              <div class="ask">
+                <h3>Ask EvoPulse about this…</h3>
+                <div class="ask-row">
+                  <button class="ask-chip" type="button" data-ask="850">Why is 850K at risk?</button>
+                  <button class="ask-chip" type="button" data-ask="first">Which customer is affected first?</button>
+                  <button class="ask-chip" type="button" data-ask="sim">What if Atlas is another 3 days late?</button>
+                </div>
+                <p class="ask-answer" id="ask-answer" aria-live="polite"></p>
+              </div>
+            </section>
+          </article>
+        </main>
+
+        <div class="composer-dock">
+          <form class="composer" id="composer" role="search">
+            <label class="visually-hidden" for="composer-query">Ask your business</label>
+            <input
+              class="composer-input"
+              id="composer-query"
+              name="q"
+              placeholder="Ask your business… e.g. why is 850K at risk?"
+              autocomplete="off"
+            />
+            <div class="composer-bar">
+              <span class="mode-hint">Ask · Search · Navigate · Simulate · Act</span>
+              <button class="send" type="submit" aria-label="Run command">
+                <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-label="Inspector">
+        <div class="inspector-head">
+          <div>
+            <p class="inspector-kicker" id="insp-kicker">SHIPMENT</p>
+            <h2 id="insp-title">Shipment SH-204</h2>
+          </div>
+          <button class="icon-btn" type="button" data-close-inspector aria-label="Close inspector">
+            <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </button>
+        </div>
+        <div class="inspector-section">
+          <h3>Current state</h3>
+          <p class="status status--risk pulse" id="insp-state" style="margin: 0">
+            <i></i> At risk — not missed
+          </p>
+        </div>
+        <div class="inspector-section" aria-live="polite">
+          <h3>Impact</h3>
+          <div class="fact"><b>Relationship</b><span id="insp-rel">delayed +2</span></div>
+          <div class="fact"><b>Orders</b><span id="insp-orders">3 · A B C</span></div>
+          <div class="fact"><b>Associated revenue</b><span id="insp-rev">850,000 DZD</span></div>
+          <div class="fact"><b>Cash timing</b><span id="insp-cash">540,000 DZD</span></div>
+          <div class="fact"><b>Confidence</b><span id="insp-conf">96%</span></div>
+          <div class="fact"><b>Timestamp</b><span id="insp-time">27 Sep 09:13</span></div>
+        </div>
+        <div class="inspector-section">
+          <h3>Evidence</h3>
+          <div class="chip-row">
+            <span class="ev-chip">EVENT</span>
+            <span class="ev-chip">GRAPH</span>
+          </div>
+          <div class="source" id="insp-source">
+            Supplier message
+            <small id="insp-quote">Your shipment will arrive Wednesday instead of Monday.</small>
+          </div>
+        </div>
+        <button class="inspector-cta" type="button" id="insp-open">Open full view</button>
+        <button class="inspector-cta btn-pri" type="button" id="insp-why">Why?</button>
+      </aside>
+    </div>
+
+    <div class="command-layer" id="command" aria-hidden="true">
+      <div class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
+        <div class="command-field">
+          <h2 id="command-title" class="visually-hidden">EvoPulse Command</h2>
+          <input id="command-query" type="search" placeholder="Ask your business…" />
+          <button class="icon-btn" type="button" data-close-command aria-label="Close command">
+            <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </button>
+        </div>
+        <p class="command-hint">
+          Ask, search, navigate, simulate, or act. Policy still applies. This is not a chat page.
+        </p>
+      </div>
+    </div>
+
+    <div class="drawer-back" id="drawer-back" hidden></div>
+    <aside class="drawer" id="drawer" aria-labelledby="sim-title" hidden>
+      <p class="sim-kicker">SIMULATION · NOT LIVE BUSINESS STATE</p>
+      <h2 id="sim-title">What if Atlas is another 3 days late?</h2>
+      <p class="meta-line">
+        Wednesday arrival becomes Saturday. Reality is not written. Isolation hash unchanged.
+      </p>
+      <div class="delta">
+        <div>
+          <span>CURRENT</span>
+          Invoice C in week of 28 Sep
+        </div>
+        <div>
+          <span>SIMULATED</span>
+          Invoice C next period
+        </div>
+        <div>
+          <span>DELTA</span>
+          160,000 DZD timing — not 540,000
+        </div>
+      </div>
+      <button class="btn btn-ghost" type="button" id="close-sim" style="margin-top: 24px">Close</button>
+    </aside>
+
+    <script>
+      const ICONS = {
+        plus: '<path d="M8 3v10M3 8h10" />',
+        search: '<circle cx="7" cy="7" r="4.2" /><path d="m13 13-3-3" />',
+        pulse: '<path d="M3 9.5 8 3.5l5 6" /><path d="M5 8.5V13h6V8.5" />',
+        command: '<path d="M3 12.5 6.2 8 3 3.5h3L8 6.2 10 3.5h3L9.8 8 13 12.5h-3L8 9.8 6 12.5H3z" />',
+        timeline: '<circle cx="8" cy="8" r="5.2" /><path d="M8 5.2V8l2 1.4" />',
+        business: '<rect x="3" y="3" width="4" height="4" rx="0.8" /><rect x="9" y="3" width="4" height="4" rx="0.8" /><rect x="3" y="9" width="4" height="4" rx="0.8" /><rect x="9" y="9" width="4" height="4" rx="0.8" />',
+        goals: '<circle cx="8" cy="8" r="5.2" /><circle cx="8" cy="8" r="2" />',
+        policy: '<path d="M4 3.5h8v9.2L8 11.2l-4 1.5V3.5z" />',
+        settings: '<circle cx="8" cy="8" r="2.1" /><path d="M8 2.6v1.3M8 12.1v1.3M2.6 8h1.3M12.1 8h1.3" />',
+        collapse: '<path d="M10 3 5 8l5 5" />',
+        wave: '<path d="M2 12h4l3-7 4 14 3-7h6" />',
+      };
+      const svg = (name) => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICONS[name]}</svg>`;
+
+      const OBJECTS = {
+        supplier: {
+          kicker: "SUPPLIER",
+          title: "Atlas Supply",
+          state: "At risk — not missed",
+          rel: "supplies SH-204",
+          orders: "3 via SH-204",
+          rev: "850,000 DZD",
+          cash: "540,000 DZD",
+          conf: "100%",
+          time: "seeded record",
+          quote: "Your shipment will arrive Wednesday instead of Monday.",
+        },
+        shipment: {
+          kicker: "SHIPMENT",
+          title: "Shipment SH-204",
+          state: "At risk — not missed",
+          rel: "delayed +2",
+          orders: "3 · A B C",
+          rev: "850,000 DZD",
+          cash: "540,000 DZD",
+          conf: "96%",
+          time: "27 Sep 09:13",
+          quote: "Your shipment will arrive Wednesday instead of Monday.",
+        },
+        product: {
+          kicker: "PRODUCT",
+          title: "Pallet racking kit RK-7",
+          state: "Blocked on SH-204",
+          rel: "contains",
+          orders: "required_by A B C",
+          rev: "850,000 DZD",
+          cash: "540,000 DZD",
+          conf: "100%",
+          time: "graph edge",
+          quote: "RK-7 kit rides on SH-204.",
+        },
+        orders: {
+          kicker: "ORDERS",
+          title: "Orders A · B · C",
+          state: "Associated — not lost",
+          rel: "required_by RK-7",
+          orders: "3",
+          rev: "850,000 DZD",
+          cash: "540,000 DZD",
+          conf: "100%",
+          time: "graph sums",
+          quote: "320,000 + 280,000 + 250,000 = 850,000 associated revenue.",
+        },
+        customers: {
+          kicker: "CUSTOMERS",
+          title: "Three customers",
+          state: "Attention",
+          rel: "belongs_to",
+          orders: "Oran Fresh first",
+          rev: "850,000 DZD",
+          cash: "540,000 DZD",
+          conf: "100%",
+          time: "deadlines",
+          quote: "Oran Fresh Tuesday is the earliest customer commitment.",
+        },
+        orderA: {
+          kicker: "ORDER",
+          title: "Order A — Oran Fresh",
+          state: "At risk — not missed",
+          rel: "depends on SH-204",
+          orders: "1 of 3",
+          rev: "320,000 DZD",
+          cash: "200,000 DZD",
+          conf: "91%",
+          time: "Tue 29 Sep 10:00",
+          quote: "Deliver Order A to Oran Fresh Tuesday. Tuesday has not passed.",
+        },
+        orderB: {
+          kicker: "ORDER",
+          title: "Order B — Constantine Clinic",
+          state: "Monitoring",
+          rel: "required_by RK-7",
+          orders: "1 of 3",
+          rev: "280,000 DZD",
+          cash: "180,000 DZD",
+          conf: "100%",
+          time: "Fri 2 Oct 17:00",
+          quote: "Still has calendar buffer. Not a second NEEDS YOU.",
+        },
+        orderC: {
+          kicker: "ORDER",
+          title: "Order C — Sétif Depot",
+          state: "Monitoring",
+          rel: "required_by RK-7",
+          orders: "1 of 3",
+          rev: "250,000 DZD",
+          cash: "160,000 DZD",
+          conf: "100%",
+          time: "Tue 6 Oct 17:00",
+          quote: "Lead +2 days after RK-7 is in stock.",
+        },
+        cash: {
+          kicker: "CASH",
+          title: "Expected cash — week of 28 Sep",
+          state: "Monitoring",
+          rel: "expected_payment",
+          orders: "invoices A B C",
+          rev: "associated 850,000",
+          cash: "540,000 DZD",
+          conf: "100%",
+          time: "Fri 2 Oct 17:00",
+          quote: "200,000 + 180,000 + 160,000. Timing, not a loss.",
+        },
+      };
+
+      const ANSWERS = {
+        850: "850,000 DZD is associated revenue on three orders that require RK-7 from SH-204: Order A 320,000, Order B 280,000, Order C 250,000. It is not lost and not a forecast.",
+        first: "Oran Fresh is first. Order A is due Tuesday 29 Sep 10:00. The revised shipment arrives Wednesday 30 Sep 09:00. Constantine Clinic and Sétif Depot still have calendar buffer.",
+        sim: "That question is a simulation, not this situation. Another +3 days moves Invoice C 160,000 DZD timing into the next period. Isolation hash stays unchanged.",
+      };
+
+      const os = document.querySelector(".os");
+      const layer = document.querySelector("#command");
+      const field = document.querySelector("#command-query");
+      const dock = document.querySelector("#composer-query");
+
+      function mountSidebar() {
+        const host = document.querySelector("[data-os-sidebar]");
+        host.innerHTML = `
+          <div class="brand">
+            <a class="brand-link" href="#workspace">
+              <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24">${ICONS.wave}</svg></span>
+              <span class="brand-name">EvoPulse</span>
+            </a>
+            <button class="collapse icon-btn" type="button" data-collapse aria-expanded="true" aria-label="Collapse sidebar">${svg("collapse")}</button>
+          </div>
+          <div class="sidebar-launch">
+            <button class="control control-primary" type="button" data-open-command>${svg("plus")} New command</button>
+            <button class="control" type="button" data-open-command>${svg("search")} Ask your business <kbd>⌘K</kbd></button>
+          </div>
+          <nav class="nav-block" aria-label="Primary">
+            <div class="nav-label">Primary</div>
+            <a class="nav-item" href="#workspace" aria-current="page">${svg("pulse")}Pulse</a>
+            <button class="nav-item" type="button" data-open-command>${svg("command")}Command</button>
+            <span class="nav-item" aria-disabled="true">${svg("timeline")}Timeline</span>
+          </nav>
+          <nav class="nav-block" aria-label="Workspace">
+            <div class="nav-label">Workspace</div>
+            <span class="nav-item" aria-disabled="true">${svg("business")}Business</span>
+            <span class="nav-item" aria-disabled="true">${svg("goals")}Goals</span>
+          </nav>
+          <div class="sidebar-foot">
+            <span class="nav-item" aria-disabled="true">${svg("policy")}Policies / Control</span>
+            <span class="nav-item" aria-disabled="true">${svg("settings")}Settings</span>
+            <div class="live" aria-label="Live event clock"><i></i> LIVE</div>
+            <div class="clock">SUN 27 SEP · 09:14 AFRICA/TUNIS</div>
+            <div class="user-row"><span class="avatar" aria-hidden="true">MO</span><span>Mohamed<small>Operator</small></span></div>
+          </div>
+        `;
+      }
+
+      function applyState() {
+        const state = new URLSearchParams(location.search).get("state") || "needs-you";
+        document.body.dataset.state = state;
+        const label = document.querySelector("#attn-label");
+        const lede = document.querySelector("#lede");
+        const attn = document.querySelector("#attn");
+        attn.classList.remove("status--need", "status--monitor", "status--auto", "status--blocked", "pulse");
+        const map = {
+          "needs-you": ["Needs you", "status--need pulse", "Atlas Supply moved SH-204 Monday → Wednesday. One situation. The 850,000 DZD is associated revenue — not lost."],
+          monitoring: ["Monitoring", "status--monitor", "Cash timing 540,000 DZD is still in the week of 28 Sep. Watch. Not a miss."],
+          blocked: ["Blocked", "status--blocked", "Policy refused an unauthorized outbound. The situation remains. EvoPulse cannot approve itself."],
+          handled: ["Handled", "status--auto", "Verification SUCCESS. Execution of a notice was not enough on its own."],
+          empty: ["Quiet", "status--auto", "No situation to open."],
+          loading: ["Needs you", "status--need", "Situation · SH-204. Loading the cascade."],
+          error: ["Error", "status--blocked", "This situation could not be opened."],
+        };
+        const row = map[state] || map["needs-you"];
+        label.textContent = row[0];
+        attn.className = `status status-primary ${row[1]}`;
+        lede.innerHTML = row[2];
+      }
+
+      function selectObject(id) {
+        const data = OBJECTS[id];
+        if (!data) return;
+        document.querySelector("#insp-kicker").textContent = data.kicker;
+        document.querySelector("#insp-title").textContent = data.title;
+        document.querySelector("#insp-state").innerHTML = `<i></i> ${data.state}`;
+        document.querySelector("#insp-rel").textContent = data.rel;
+        document.querySelector("#insp-orders").textContent = data.orders;
+        document.querySelector("#insp-rev").textContent = data.rev;
+        document.querySelector("#insp-cash").textContent = data.cash;
+        document.querySelector("#insp-conf").textContent = data.conf;
+        document.querySelector("#insp-time").textContent = data.time;
+        document.querySelector("#insp-quote").textContent = data.quote;
+        document.querySelectorAll(".node").forEach((n) => n.setAttribute("aria-selected", n.dataset.id === id ? "true" : "false"));
+        document.querySelectorAll(".orders tr[data-id]").forEach((n) => n.setAttribute("aria-selected", n.dataset.id === id ? "true" : "false"));
+        document.querySelectorAll(".evidence-item").forEach((n) => n.setAttribute("aria-selected", n.dataset.id === id ? "true" : "false"));
+        const selectedNode = document.querySelector(`.node[data-id="${id}"]`);
+        if (selectedNode) document.querySelector("#path").setAttribute("aria-activedescendant", selectedNode.id);
+        os.classList.remove("inspector-closed");
+      }
+
+      function openCommand() {
+        layer.classList.add("is-open");
+        layer.setAttribute("aria-hidden", "false");
+        field.focus();
+      }
+      function closeCommand() {
+        layer.classList.remove("is-open");
+        layer.setAttribute("aria-hidden", "true");
+      }
+      function openSim() {
+        document.querySelector("#drawer-back").hidden = false;
+        document.querySelector("#drawer").hidden = false;
+        document.querySelector("#drawer-back").classList.add("open");
+        document.querySelector("#drawer").classList.add("open");
+        document.querySelector("#close-sim").focus();
+      }
+      function closeSim() {
+        document.querySelector("#drawer-back").classList.remove("open");
+        document.querySelector("#drawer").classList.remove("open");
+        document.querySelector("#drawer-back").hidden = true;
+        document.querySelector("#drawer").hidden = true;
+      }
+
+      mountSidebar();
+      applyState();
+
+      document.addEventListener("click", (event) => {
+        if (event.target.closest("[data-open-command]")) {
+          event.preventDefault();
+          openCommand();
+        }
+        if (event.target.closest("[data-close-command]")) closeCommand();
+        if (event.target.closest("[data-collapse]") || event.target.closest("[data-reopen-sidebar]")) {
+          event.preventDefault();
+          os.classList.toggle("sidebar-collapsed");
+        }
+        if (event.target.closest("[data-close-inspector]")) os.classList.add("inspector-closed");
+        const node = event.target.closest(".node");
+        if (node) selectObject(node.dataset.id);
+        const row = event.target.closest(".orders tr[data-id]");
+        if (row) selectObject(row.dataset.id);
+        const ev = event.target.closest(".evidence-item");
+        if (ev) selectObject(ev.dataset.id);
+        const ask = event.target.closest(".ask-chip");
+        if (ask) {
+          document.querySelectorAll(".ask-chip").forEach((c) => c.setAttribute("aria-pressed", c === ask ? "true" : "false"));
+          document.querySelector("#ask-answer").textContent = ANSWERS[ask.dataset.ask];
+          if (ask.dataset.ask === "sim") openSim();
+        }
+      });
+
+      document.querySelector("#act-primary").addEventListener("click", () => {
+        selectObject("orderA");
+        document.querySelector("#action-toast").textContent =
+          "Order A queued first. Situation stays NEEDS YOU until verification. Execution is not resolution.";
+      });
+      document.querySelector("#act-notice").addEventListener("click", () => {
+        document.querySelector("#action-toast").textContent =
+          "Delay notice prepared for Oran Fresh. Policy: external_message_requires_approval. NEEDS APPROVAL — EvoPulse cannot approve itself.";
+      });
+      document.querySelector("#act-evidence").addEventListener("click", () => {
+        document.querySelector("#evidence").scrollIntoView({ behavior: "smooth", block: "start" });
+        selectObject("shipment");
+      });
+      document.querySelector("#act-sim").addEventListener("click", openSim);
+      document.querySelector("#close-sim").addEventListener("click", closeSim);
+      document.querySelector("#drawer-back").addEventListener("click", closeSim);
+      document.querySelector("#insp-why").addEventListener("click", () => {
+        document.querySelector("#matters").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      document.querySelector("#insp-open").addEventListener("click", () => {
+        document.querySelector("#affects").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      document.querySelector("#composer").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const q = dock.value.toLowerCase();
+        if (q.includes("3 days") || q.includes("late")) openSim();
+        else if (q.includes("850") || q.includes("risk")) {
+          document.querySelector("#ask-answer").textContent = ANSWERS["850"];
+        } else if (q.includes("first") || q.includes("customer")) {
+          document.querySelector("#ask-answer").textContent = ANSWERS.first;
+        } else {
+          openCommand();
+          field.value = dock.value;
+        }
+      });
+      layer.addEventListener("click", (event) => {
+        if (event.target === layer) closeCommand();
+      });
+      document.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          layer.classList.contains("is-open") ? closeCommand() : openCommand();
+        }
+        if (event.key === "Escape") {
+          if (layer.classList.contains("is-open")) closeCommand();
+          else if (document.querySelector("#drawer").classList.contains("open")) closeSim();
+          else if (window.matchMedia("(max-width: 1024px)").matches) os.classList.add("inspector-closed");
+        }
+      });
+    </script>
+  </body>
+</html>
