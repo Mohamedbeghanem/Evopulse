@@ -8,12 +8,15 @@ import {
 } from "./clock";
 import { EVENT_TYPES, eventsFor } from "./events";
 import { IDS } from "./ids";
+import { wipeCommandTables } from "./command/schema";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
 import { seedSupplierGraph } from "./engine/seed-graph";
 import { upsertExpectation } from "./engine/expectations";
 import { EXCEPTION_TYPES } from "./engine/exception-types";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
+import { wipeAutopilotTables } from "./autopilot";
+import { wipeWarningTables } from "./warnings";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -354,6 +357,9 @@ export function seedWorld(db: DatabaseSync) {
 
 export function wipeAndSeed(db: DatabaseSync) {
   wipeLearningTables(db);
+  wipeWarningTables(db);
+  wipeAutopilotTables(db);
+  wipeCommandTables(db);
   const tables = [
     "audit_logs",
     "approvals",

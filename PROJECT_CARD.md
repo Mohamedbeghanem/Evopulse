@@ -48,7 +48,7 @@ Businesses do not fail because they lack dashboards. They fail because promises 
 2. Extract OUR commitment + CUSTOMER commitment + dependency (offline heuristic; optional live model).
 3. Time passes, proposal not sent → **Exception** with evidence + **320,000 DZD** impact.
 4. Recovery: prepare proposal, draft follow-up, checkpoint → **APPROVAL_REQUIRED**.
-5. Approve → execute → state updates (HANDLED).
+5. Approve → execute → verification PENDING (MONITORING). A later customer reply can verify SUCCESS → HANDLED.
 6. Later: “I'll sign today if you give me 10%.” → policy `discount_max=5%` → **BLOCKED** → 5% / Net-14 alternative.
 
 ### Demo (no typing)
@@ -62,7 +62,7 @@ Cold start Pulse → exception → recovery Approve → demo bar **Later message
 | Problem & User Value | 20 | 320K forgotten promise, not another CRM |
 | Functional Execution | 20 | Full loop; `npm test`; actions change state |
 | Quality of AI Use | 20 | Extract + recover; software owns policy/state |
-| Testing & Reliability | 15 | Offline fallback, seed, 11 tests |
+| Testing & Reliability | 15 | Offline fallback, seed, `npm test` |
 | User Experience & Demo | 15 | Clickable 90s path, Time Machine |
 | Responsible AI & Data | 10 | Evidence, approval, synthetic data, Brev unused |
 
