@@ -415,10 +415,15 @@ button {
   max-width: calc(var(--workspace-operational) + var(--os-gutter-workspace) * 2);
 }
 
-.placeholder-note {
+.placeholder-note,
+.command-hint {
   margin: 0 0 var(--space-5);
   color: var(--aurora-muted);
   font-size: 13px;
+}
+
+.command-hint {
+  padding: 16px 18px 20px;
 }
 
 .ghost-stack {

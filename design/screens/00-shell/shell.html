@@ -9,77 +9,8 @@
   </head>
   <body>
     <a class="skip" href="#workspace">Skip to workspace</a>
-    <div class="os" data-frame="1440">
-      <aside class="sidebar" aria-label="Control OS">
-        <div class="brand">
-          <a class="brand-link" href="shell.html">
-            <span class="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M2 12h4l3-7 4 14 3-7h6" /></svg>
-            </span>
-            <span class="brand-name">EvoPulse</span>
-          </a>
-          <button class="collapse icon-btn" type="button" data-collapse aria-expanded="true" aria-label="Collapse sidebar">
-            <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" /></svg>
-          </button>
-        </div>
-
-        <div class="sidebar-launch">
-          <button class="control control-primary" type="button" data-open-command>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg>
-            New command
-          </button>
-          <button class="control" type="button" data-open-command>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" /><path d="m13 13-3-3" /></svg>
-            Ask your business
-            <kbd>⌘K</kbd>
-          </button>
-        </div>
-
-        <nav class="nav-block" aria-label="Primary">
-          <div class="nav-label">Primary</div>
-          <a class="nav-item" href="shell.html" aria-current="page">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9.5 8 3.5l5 6" /><path d="M5 8.5V13h6V8.5" /></svg>
-            Pulse
-          </a>
-          <a class="nav-item" href="command-overlay.html">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 12.5 6.2 8 3 3.5h3L8 6.2 10 3.5h3L9.8 8 13 12.5h-3L8 9.8 6 12.5H3z" /></svg>
-            Command
-          </a>
-          <span class="nav-item" aria-disabled="true">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><path d="M8 5.2V8l2 1.4" /></svg>
-            Timeline
-          </span>
-        </nav>
-
-        <nav class="nav-block" aria-label="Workspace">
-          <div class="nav-label">Workspace</div>
-          <span class="nav-item" aria-disabled="true">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="0.8" /><rect x="9" y="3" width="4" height="4" rx="0.8" /><rect x="3" y="9" width="4" height="4" rx="0.8" /><rect x="9" y="9" width="4" height="4" rx="0.8" /></svg>
-            Business
-          </span>
-          <span class="nav-item" aria-disabled="true">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><circle cx="8" cy="8" r="2" /></svg>
-            Goals
-          </span>
-        </nav>
-
-        <div class="sidebar-foot">
-          <span class="nav-item" aria-disabled="true">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3.5h8v9.2L8 11.2l-4 1.5V3.5z" /></svg>
-            Policies / Control
-          </span>
-          <span class="nav-item" aria-disabled="true">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.1" /><path d="M8 2.6v1.3M8 12.1v1.3M2.6 8h1.3M12.1 8h1.3" /></svg>
-            Settings
-          </span>
-          <div class="live" aria-label="Live event clock"><i></i> LIVE</div>
-          <div class="clock">SUN 27 SEP · 14:32 CET</div>
-          <div class="user-row">
-            <span class="avatar" aria-hidden="true">MO</span>
-            <span>Mohamed<small>Operator</small></span>
-          </div>
-        </div>
-      </aside>
+    <div class="os" data-frame="1440" data-active="pulse">
+      <aside class="sidebar" aria-label="Control OS" data-os-sidebar></aside>
 
       <button class="reopen" type="button" data-reopen-sidebar aria-label="Open sidebar">
         <svg viewBox="0 0 16 16"><path d="M5 3h8M5 8h8M5 13h8M3 3v10" /></svg>
@@ -127,7 +58,7 @@
               <button class="icon-btn" type="button" aria-label="Add context later">
                 <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" /></svg>
               </button>
-              <span class="mode-hint">Ask · Search · Simulate · Act</span>
+              <span class="mode-hint">Ask · Search · Navigate · Simulate · Act</span>
               <button class="send" type="submit" aria-label="Run command">
                 <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
               </button>
@@ -147,8 +78,8 @@
             <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
           </button>
         </div>
-        <p class="placeholder-note" style="padding: 16px 18px 20px">
-          Type a business object, a question, or an act. Grouped results are on the Command overlay artifact.
+        <p class="placeholder-note command-hint">
+          Type a business object, a question, or an act. Grouped ASK / SEARCH / NAVIGATE / SIMULATE / ACT results are on the Command overlay artifact.
         </p>
       </div>
     </div>

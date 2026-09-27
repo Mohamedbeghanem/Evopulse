@@ -10,7 +10,7 @@ Where am I? How do I ask my business anything? How do I stay in context?
 
 ## ROUTE
 
-Persistent. Artifacts: shell.html · command-overlay.html · inspector.html
+Persistent. Artifacts: shell.html · command-overlay.html · inspector.html · `?state=quiet` for the calm briefing.
 
 ## PURPOSE
 
