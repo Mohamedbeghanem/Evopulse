@@ -99,6 +99,20 @@ The key stays on the server. It is never sent to the client and must not be pref
 
 If the primary model fails, the gateway tries `OPENROUTER_FALLBACK_MODEL` when configured, then throws. `DeepSeekHarnessRuntime` still falls back to `DeterministicRuntime`. Observability may include runtime, provider, model, duration, and tool names — never API keys or hidden chain-of-thought.
 
+### Provider routing and data policy
+
+Calling a model sends business data (supplier, customer, and email text) to an upstream provider. OpenRouter's `provider` preferences restrict where that data can go:
+
+| Variable | Effect on the request body |
+| --- | --- |
+| `OPENROUTER_DATA_POLICY=standard` (default) | No `provider` object. Default OpenRouter routing. |
+| `OPENROUTER_DATA_POLICY=no_training` | `provider.data_collection = "deny"`. Only providers that do not store data. |
+| `OPENROUTER_DATA_POLICY=allowlisted_only` | `provider.only = OPENROUTER_ALLOWED_PROVIDERS`, `allow_fallbacks = false`, `data_collection = "deny"`. |
+| `OPENROUTER_ALLOWED_PROVIDERS=a,b` | With `standard` / `no_training`: `provider.order = [a, b]`. |
+| `OPENROUTER_ALLOW_PROVIDER_FALLBACK=false` | With an ordered list: `allow_fallbacks = false`. |
+
+`allowlisted_only` without an allowlist fails closed: no request is sent, and the Harness falls back to the deterministic runtime. The same preferences apply to `OPENROUTER_FALLBACK_MODEL`.
+
 ## Tools
 
 Every call returns structured data:
