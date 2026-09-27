@@ -11,18 +11,18 @@ export function PageHeader({
 }) {
   return (
     <header className="max-w-[42rem]">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mute">{kicker}</p>
-      <h1 className="mt-3 text-[26px] leading-[1.2] tracking-tight text-paper sm:text-[32px]">{title}</h1>
-      {children ? <div className="mt-3 text-sm text-sand">{children}</div> : null}
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-teal">{kicker}</p>
+      <h1 className="mt-2 text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-ink">{title}</h1>
+      {children ? <div className="mt-1.5 text-sm text-muted">{children}</div> : null}
     </header>
   );
 }
 
 export function SectionHeader({ title, count }: { title: string; count?: number | string }) {
   return (
-    <div className="flex items-baseline justify-between border-b border-hairline pb-2">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-mute">{title}</h2>
-      {count !== undefined ? <p className="font-mono text-[11px] text-mute">{count}</p> : null}
+    <div className="flex items-baseline justify-between border-b border-line pb-2">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{title}</h2>
+      {count !== undefined ? <p className="text-[11px] text-muted">{count}</p> : null}
     </div>
   );
 }
@@ -34,15 +34,15 @@ export function ActionBar({ children }: { children: ReactNode }) {
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="py-8">
-      <p className="text-xl text-paper">{title}</p>
-      <p className="mt-2 text-sm text-sand">{body}</p>
+      <p className="text-xl font-semibold text-ink">{title}</p>
+      <p className="mt-2 text-sm text-muted">{body}</p>
     </div>
   );
 }
 
 export function LoadingState({ label = "Listening for expected versus actual." }: { label?: string }) {
   return (
-    <p className="font-mono text-sm text-mute" role="status" aria-live="polite">
+    <p className="text-sm text-muted" role="status" aria-live="polite">
       {label}
     </p>
   );
@@ -50,9 +50,9 @@ export function LoadingState({ label = "Listening for expected versus actual." }
 
 export function ErrorState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-md border border-hairline p-4" role="status">
-      <p className="text-lg text-paper">{title}</p>
-      <p className="mt-2 text-sm text-sand">{body}</p>
+    <div className="rounded-card border border-line bg-card p-4" role="status">
+      <p className="text-lg font-semibold text-ink">{title}</p>
+      <p className="mt-2 text-sm text-muted">{body}</p>
     </div>
   );
 }
@@ -68,9 +68,9 @@ export function ImpactMetric({
 }) {
   return (
     <div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mute">{label}</p>
-      <p className="mt-1 font-mono text-xl text-paper">{value}</p>
-      {caption ? <p className="mt-1 text-xs text-mute">{caption}</p> : null}
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className="mt-1 text-xl font-semibold tracking-tight text-ink">{value}</p>
+      {caption ? <p className="mt-1 text-xs text-muted">{caption}</p> : null}
     </div>
   );
 }

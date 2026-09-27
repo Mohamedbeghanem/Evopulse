@@ -2,9 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { presentSimulation, SIMULATION_BANNER } from "@/components/sim/copy";
-import { StatusBadge } from "@/components/ui/badges";
-import { SectionHeader } from "@/components/ui/chrome";
-import { Button } from "@/components/ui/primitives";
 import type { EntityChange, SimulationResult } from "@/lib/simulation/types";
 
 type Shipment = {
@@ -16,6 +13,9 @@ type Shipment = {
 };
 
 const DAY_OPTIONS = [1, 2, 3, 5, 7];
+
+const selectClass =
+  "mt-1 rounded-lg border border-[#D8DDD6] bg-[#FFFEFB] px-3 py-2 text-[#0D1B24]";
 
 export function Simulator({
   shipments,
@@ -79,26 +79,30 @@ export function Simulator({
   }
 
   if (!shipments.length) {
-    return <p className="text-sand">No shipment with an expected arrival exists in the Business Graph.</p>;
+    return <p className="text-[#5C6B73]">No shipment with an expected arrival exists in the Business Graph.</p>;
   }
 
   return (
-    <div className="space-y-8">
-      <section className={`rounded-md border p-5 ${result ? "sim-banner" : "border-hairline bg-ink-800/50"}`}>
+    <div className="space-y-8 font-[Inter,ui-sans-serif,system-ui,sans-serif] text-[#0D1B24]">
+      <section
+        className={`rounded-[14px] border p-5 ${
+          result ? "border-[#0F4C5C]/30 bg-[#E8F1F4]" : "border-[#D8DDD6] bg-[#FFFEFB]"
+        }`}
+      >
         <div className="flex flex-wrap items-end gap-4">
           <label className="text-sm">
-            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Scenario</span>
-            <select disabled className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper">
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-[#5C6B73]">Scenario</span>
+            <select disabled className={selectClass}>
               <option>Supplier delay</option>
             </select>
           </label>
           <label className="text-sm">
-            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Shipment</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-[#5C6B73]">Shipment</span>
             <select
               value={targetId}
               onChange={(event) => setTargetId(event.target.value)}
               disabled={Boolean(result)}
-              className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper"
+              className={selectClass}
             >
               {shipments.map((shipment) => (
                 <option key={shipment.id} value={shipment.id}>
@@ -109,12 +113,12 @@ export function Simulator({
             </select>
           </label>
           <label className="text-sm">
-            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Additional delay</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.18em] text-[#5C6B73]">Additional delay</span>
             <select
               value={days}
               onChange={(event) => setDays(Number(event.target.value))}
               disabled={Boolean(result)}
-              className="mt-1 rounded-md border border-hairline bg-ink-900 px-3 py-2 text-paper"
+              className={selectClass}
             >
               {DAY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -124,45 +128,56 @@ export function Simulator({
             </select>
           </label>
           {result ? (
-            <Button type="button" variant="ghost" onClick={exit}>
+            <button
+              type="button"
+              onClick={exit}
+              className="inline-flex min-h-[34px] items-center rounded-lg border border-[#D8DDD6] bg-[#FFFEFB] px-3 text-sm text-[#0D1B24]"
+            >
               EXIT SIMULATION
-            </Button>
+            </button>
           ) : (
-            <Button type="button" variant="attention" onClick={run} disabled={busy || !targetId}>
+            <button
+              type="button"
+              onClick={run}
+              disabled={busy || !targetId}
+              className="inline-flex min-h-[34px] items-center rounded-lg bg-[#0D1B24] px-3 text-sm font-medium text-white disabled:opacity-50"
+            >
               {busy ? "Simulating…" : "RUN SIMULATION"}
-            </Button>
+            </button>
           )}
         </div>
         {target ? (
-          <p className="mt-4 text-sm text-sand">
-            LIVE: {target.label} expected <span className="text-paper">{day(target.expectedAt)}</span>
+          <p className="mt-4 text-sm text-[#5C6B73]">
+            LIVE: {target.label} expected <span className="text-[#0D1B24]">{day(target.expectedAt)}</span>
             {target.originalExpectedAt && target.originalExpectedAt !== target.expectedAt
               ? ` (originally ${day(target.originalExpectedAt)})`
               : ""}
-            <span className="ml-2 font-mono text-[11px] text-mute">source: {source}</span>
+            <span className="ml-2 font-mono text-[11px] text-[#5C6B73]">source: {source}</span>
           </p>
         ) : null}
-        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-mute" aria-live="polite">
+        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#5C6B73]" aria-live="polite">
           {busy
             ? "Simulating recovery. Twin not written."
             : result
               ? SIMULATION_BANNER
               : "Idle. Twin not cloned. Run the scenario to open LIVE / SIMULATION / DELTA."}
         </p>
-        {error ? <p className="mt-3 text-sm text-miss">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-[#B42318]">{error}</p> : null}
       </section>
 
       {exitCheck ? (
         <section
-          className={`rounded-md border p-5 text-sm ${exitCheck.unchanged ? "border-ice/40 bg-ice/5" : "border-miss/40 bg-miss/5"}`}
+          className={`rounded-[14px] border p-5 text-sm ${
+            exitCheck.unchanged ? "border-[#1B7A4A]/40 bg-[#E4F3EA]" : "border-[#B42318]/40 bg-[#FDECEC]"
+          }`}
           aria-live="polite"
         >
-          <p className={`font-mono text-xs uppercase tracking-[0.14em] ${exitCheck.unchanged ? "text-ice" : "text-miss"}`}>
+          <p className={`font-mono text-xs uppercase tracking-[0.14em] ${exitCheck.unchanged ? "text-[#1B7A4A]" : "text-[#B42318]"}`}>
             {exitCheck.unchanged ? "SIMULATION DISCARDED · REALITY UNCHANGED" : "WARNING · REAL STATE CHANGED"}
           </p>
-          <p className="mt-2 text-sand">
-            {target?.label} is still expected <span className="text-paper">{day(exitCheck.expectedAt)}</span>. State
-            fingerprint <span className="font-mono text-paper">{exitCheck.fingerprint}</span>
+          <p className="mt-2 text-[#5C6B73]">
+            {target?.label} is still expected <span className="text-[#0D1B24]">{day(exitCheck.expectedAt)}</span>. State
+            fingerprint <span className="font-mono text-[#0D1B24]">{exitCheck.fingerprint}</span>
             {exitCheck.unchanged ? " matches the pre-simulation snapshot." : " differs from the pre-simulation snapshot."}
           </p>
         </section>
@@ -187,21 +202,21 @@ function Results({
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-3">
-        <StatusBadge value="SIMULATION" />
-        <span className="text-sm text-sand">
+        <Pill tone="teal">SIMULATION</Pill>
+        <span className="text-sm text-[#5C6B73]">
           {result.scope.origin.label} +{result.scenario.days} days · {result.scope.nodes} entities ·{" "}
           {result.scope.edges} dependencies cloned
         </span>
       </div>
 
-      <section className="rounded-md border border-watch/40 bg-watch/10 p-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-watch">DELTA · if this runs</p>
-        <ul className="mt-3 space-y-1 text-2xl text-paper">
+      <section className="rounded-[14px] border border-[#B45309]/40 bg-[#F8EFCC] p-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#B45309]">DELTA · if this runs</p>
+        <ul className="mt-3 space-y-1 text-[22px] font-semibold tracking-tight">
           {view.headlines.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
-        <p className="mt-3 text-sm text-sand">{view.cashTiming.note}</p>
+        <p className="mt-3 text-sm text-[#5C6B73]">{view.cashTiming.note}</p>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3" aria-label="Live versus simulation versus delta">
@@ -211,15 +226,18 @@ function Results({
       </section>
 
       <p
-        className={`font-mono text-[11px] ${result.isolation.unchanged ? "text-ice" : "text-miss"}`}
+        className={`font-mono text-[11px] ${result.isolation.unchanged ? "text-[#1B7A4A]" : "text-[#B42318]"}`}
         aria-live="polite"
       >
         {view.isolationLine}
       </p>
 
       <section className="space-y-3">
-        <SectionHeader title="What changes" count={`${result.changes.length} objects`} />
-        <div className="divide-y divide-hairline rounded-md border border-hairline">
+        <div className="flex items-baseline justify-between border-b border-[#D8DDD6] pb-2">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#0F4C5C]">What changes</h2>
+          <p className="font-mono text-[11px] text-[#5C6B73]">{result.changes.length} objects</p>
+        </div>
+        <div className="divide-y divide-[#D8DDD6] rounded-[14px] border border-[#D8DDD6] bg-[#FFFEFB]">
           {result.changes.map((change) => (
             <ChangeRow key={change.id} change={change} open={why === change.id} toggle={setWhy} />
           ))}
@@ -232,30 +250,30 @@ function Results({
 function WorldColumn({ world }: { world: ReturnType<typeof presentSimulation>["worlds"][number] }) {
   const surface =
     world.kind === "LIVE"
-      ? "border-hairline bg-[#0a0d11]"
+      ? "border-[#D8DDD6] bg-[#FFFEFB]"
       : world.kind === "SIMULATION"
-        ? "border-dashed border-ice/50 bg-ice/[0.08]"
-        : "border-watch/50 bg-watch/10";
+        ? "border-dashed border-[#0F4C5C] bg-[#E8F1F4]"
+        : "border-[#B45309] bg-[#F8EFCC]";
 
   return (
-    <article className={`min-w-0 rounded-md border p-5 ${surface}`}>
+    <article className={`min-w-0 rounded-[14px] border p-5 ${surface}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <StatusBadge value={world.kind} />
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-mute">{world.word}</p>
+        <Pill tone={world.kind === "DELTA" ? "warn" : world.kind === "SIMULATION" ? "teal" : "ink"}>{world.kind}</Pill>
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#5C6B73]">{world.word}</p>
       </div>
-      <h2 className="mt-3 text-2xl text-paper">{world.title}</h2>
+      <h2 className="mt-3 text-[22px] font-semibold tracking-tight">{world.title}</h2>
       <dl className="mt-4 space-y-3 text-sm">
         {world.facts.map((fact) => (
           <div key={fact.label}>
             <div className="flex justify-between gap-4">
-              <dt className="text-mute">{fact.label}</dt>
-              <dd className="font-mono text-paper">{fact.value}</dd>
+              <dt className="text-[#5C6B73]">{fact.label}</dt>
+              <dd className="font-mono text-[#0D1B24]">{fact.value}</dd>
             </div>
-            {fact.detail ? <p className="mt-0.5 text-xs text-sand">{fact.detail}</p> : null}
+            {fact.detail ? <p className="mt-0.5 text-xs text-[#5C6B73]">{fact.detail}</p> : null}
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-xs text-sand">{world.note}</p>
+      <p className="mt-4 text-xs text-[#5C6B73]">{world.note}</p>
     </article>
   );
 }
@@ -273,36 +291,55 @@ function ChangeRow({
   return (
     <div className="p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="w-24 font-mono text-[10px] uppercase tracking-wider text-mute">{change.type}</span>
+        <span className="w-24 font-mono text-[10px] uppercase tracking-wider text-[#5C6B73]">{change.type}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-paper">{change.label}</p>
-          <p className={`text-sm ${worsened ? "text-need" : "text-sand"}`}>{change.consequence}</p>
+          <p className="text-[#0D1B24]">{change.label}</p>
+          <p className={`text-sm ${worsened ? "text-[#EC6025]" : "text-[#5C6B73]"}`}>{change.consequence}</p>
         </div>
-        <Button type="button" variant="quiet" onClick={() => toggle(open ? null : change.id)}>
+        <button
+          type="button"
+          onClick={() => toggle(open ? null : change.id)}
+          className="inline-flex min-h-8 items-center rounded-lg px-3 text-sm text-[#5C6B73]"
+        >
           {open ? "HIDE" : "WHY"}
-        </Button>
+        </button>
       </div>
       {open ? (
-        <ol className="mt-4 space-y-2 border-l border-ice/40 pl-4 text-sm">
+        <ol className="mt-4 space-y-2 border-l border-[#0F4C5C]/40 pl-4 text-sm">
           {change.why.steps.map((step) => (
             <li key={step.nodeId}>
               {step.relationship ? (
-                <span className="font-mono text-[11px] text-ice">—{step.relationship}→ </span>
+                <span className="font-mono text-[11px] text-[#0F4C5C]">—{step.relationship}→ </span>
               ) : null}
-              <span className="text-paper">{step.label}</span>
+              <span className="text-[#0D1B24]">{step.label}</span>
               {step.baselineAt || step.simulatedAt ? (
-                <span className="ml-2 text-xs text-mute">
+                <span className="ml-2 text-xs text-[#5C6B73]">
                   {step.baselineAt === step.simulatedAt
                     ? day(step.simulatedAt)
                     : `${day(step.baselineAt)} → ${day(step.simulatedAt)}`}
                 </span>
               ) : null}
-              {step.edgeId ? <span className="ml-2 font-mono text-[10px] text-mute">{step.edgeId}</span> : null}
+              {step.edgeId ? <span className="ml-2 font-mono text-[10px] text-[#5C6B73]">{step.edgeId}</span> : null}
             </li>
           ))}
         </ol>
       ) : null}
     </div>
+  );
+}
+
+function Pill({ children, tone }: { children: string; tone: "teal" | "warn" | "ink" }) {
+  const cls =
+    tone === "warn"
+      ? "bg-[#F8EFCC] text-[#B45309]"
+      : tone === "teal"
+        ? "bg-[#E8F1F4] text-[#0F4C5C]"
+        : "bg-[#F7F8F5] text-[#0D1B24]";
+  return (
+    <span className={`inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] ${cls}`}>
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+      {children.replaceAll("_", " ")}
+    </span>
   );
 }
 

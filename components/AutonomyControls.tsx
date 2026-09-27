@@ -27,7 +27,7 @@ export function ApproverField() {
   const [name, setName] = useState("");
   useEffect(() => setName(readApprover()), []);
   return (
-    <label className="flex items-center gap-2 text-xs text-mute">
+    <label className="flex items-center gap-2 text-xs text-[#5C6B73]">
       Approving as
       <input
         value={name}
@@ -36,7 +36,7 @@ export function ApproverField() {
           writeApprover(e.target.value.trim());
         }}
         placeholder="Your name"
-        className="w-40 rounded-full border border-white/15 bg-ink-900 px-3 py-1.5 text-sm text-paper placeholder:text-mute"
+        className="w-40 rounded-lg border border-[#D8DDD6] bg-[#FFFEFB] px-3 py-1.5 text-sm text-[#0D1B24] placeholder:text-[#5C6B73]"
       />
     </label>
   );
@@ -94,7 +94,7 @@ export function AutonomyActionControls({
             type="button"
             disabled={busy}
             onClick={() => run(`${base}/promote`, { toLevel: candidateLevel })}
-            className="rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink-950 hover:bg-need disabled:opacity-50"
+            className="rounded-lg bg-[#0D1B24] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
           >
             Approve promotion → L{candidateLevel} {candidateName}
           </button>
@@ -104,7 +104,7 @@ export function AutonomyActionControls({
             type="button"
             disabled={busy}
             onClick={() => run(`${base}/reinstate`, {})}
-            className="rounded-full border border-ok/40 px-3 py-1.5 text-xs text-ok disabled:opacity-50"
+            className="rounded-lg border border-[#1B7A4A]/40 px-3 py-1.5 text-xs text-[#1B7A4A] disabled:opacity-50"
           >
             Reinstate
           </button>
@@ -113,13 +113,13 @@ export function AutonomyActionControls({
             type="button"
             disabled={busy}
             onClick={() => run(`${base}/suspend`, { reason: "Suspended from the autonomy page." })}
-            className="rounded-full border border-miss/40 px-3 py-1.5 text-xs text-miss disabled:opacity-50"
+            className="rounded-lg border border-[#B42318]/40 px-3 py-1.5 text-xs text-[#B42318] disabled:opacity-50"
           >
             Suspend
           </button>
         )}
       </div>
-      {error ? <p className="max-w-xs text-right text-xs text-miss">{error}</p> : null}
+      {error ? <p className="max-w-xs text-right text-xs text-[#B42318]">{error}</p> : null}
     </div>
   );
 }
@@ -133,7 +133,7 @@ export function EmergencyPauseControl({ paused }: { paused: boolean }) {
           type="button"
           disabled={busy}
           onClick={() => run("/api/autonomy/resume", { reason: "Resumed from the autonomy page." })}
-          className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
+          className="rounded-lg bg-[#0D1B24] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
         >
           Resume earned autonomy
         </button>
@@ -142,12 +142,12 @@ export function EmergencyPauseControl({ paused }: { paused: boolean }) {
           type="button"
           disabled={busy}
           onClick={() => run("/api/autonomy/pause", { reason: "Emergency pause from the autonomy page." })}
-          className="rounded-full bg-miss px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
+          className="rounded-lg bg-[#B42318] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
         >
           Emergency pause
         </button>
       )}
-      {error ? <p className="text-sm text-miss">{error}</p> : null}
+      {error ? <p className="text-sm text-[#B42318]">{error}</p> : null}
     </div>
   );
 }

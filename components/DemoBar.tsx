@@ -1,22 +1,67 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+
+const ITEMS: { id: string; label: string; busy: string; path: string; next: string }[] = [
+  { id: "reset", label: "Reset demo", busy: "Resetting…", path: "/api/demo/reset", next: "/" },
+  { id: "supplier", label: "Trigger supplier delay", busy: "Cascading…", path: "/api/demo/supplier-delay", next: "/explore" },
+  { id: "earlier", label: "Earlier arrival", busy: "Revising…", path: "/api/demo/shipment-earlier", next: "/warnings" },
+  {
+    id: "discount",
+    label: "Customer requests 10%",
+    busy: "Ingesting…",
+    path: "/api/demo/discount",
+    next: "/exceptions/exc_discount_blocked",
+  },
+  { id: "safe", label: "Handle safe actions", busy: "Handling…", path: "/api/autopilot/handle-safe", next: "/" },
+];
 
 export function DemoBar() {
   const router = useRouter();
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function post(path: string, label: string, next?: string) {
-    setBusy(label);
+  useEffect(() => {
+    if (!open) return;
+    firstItemRef.current?.focus();
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      buttonRef.current?.focus();
+    }
+
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [open]);
+
+  async function post(path: string, id: string, next: string) {
+    setBusy(id);
     setError(null);
     try {
       const res = await fetch(path, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Request failed");
+      setOpen(false);
       router.refresh();
-      if (next) router.push(next);
+      router.push(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
@@ -25,51 +70,53 @@ export function DemoBar() {
   }
 
   return (
-    <div className="border-b border-hairline bg-ink-800/80">
-      <div className="flex flex-wrap items-center gap-3 px-4 py-2 text-xs lg:px-8">
-        <span className="font-mono text-need">DEMO</span>
-        <span className="text-mute">
-          Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded
-        </span>
-        <span className="ml-auto flex flex-wrap gap-2">
-          <button
-            disabled={Boolean(busy)}
-            onClick={() => post("/api/autopilot/handle-safe", "safe", "/")}
-            className="rounded-full border border-ok/40 px-3 py-1 text-ok hover:bg-ok hover:text-ink-950 disabled:opacity-50"
-          >
-            {busy === "safe" ? "Handling…" : "Handle safe actions"}
-          </button>
-          <button
-            disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/reset", "reset", "/")}
-            className="rounded-full border border-white/15 px-3 py-1 text-sand hover:border-paper hover:text-paper disabled:opacity-50"
-          >
-            {busy === "reset" ? "Resetting…" : "Reset demo"}
-          </button>
-          <button
-            disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/supplier-delay", "supplier", "/explore")}
-            className="rounded-full border border-need/40 px-3 py-1 text-need hover:bg-need hover:text-ink-950 disabled:opacity-50"
-          >
-            {busy === "supplier" ? "Cascading…" : "Trigger Supplier Delay"}
-          </button>
-          <button
-            disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/shipment-earlier", "earlier", "/warnings")}
-            className="rounded-full border border-ok/40 px-3 py-1 text-ok hover:bg-ok hover:text-ink-950 disabled:opacity-50"
-          >
-            {busy === "earlier" ? "Revising…" : "Earlier arrival"}
-          </button>
-          <button
-            disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/discount", "discount", "/exceptions/exc_discount_blocked")}
-            className="rounded-full bg-need px-3 py-1 font-medium text-ink-950 hover:bg-paper disabled:opacity-50"
-          >
-            {busy === "discount" ? "Ingesting…" : "Later message: 10%"}
-          </button>
-        </span>
-        {error ? <span className="w-full text-miss">{error}</span> : null}
-      </div>
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="inline-flex h-8 items-center gap-1.5 rounded-btn border border-line bg-card px-2.5 text-[12px] text-ink hover:bg-cream"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-controls={menuId}
+        aria-busy={Boolean(busy)}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Icon name="demo" size={16} />
+        Demo
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="DEMO"
+          className="motion-pop absolute right-0 z-50 mt-2 w-64 rounded-card border border-line bg-card p-2 text-ink shadow-sm"
+        >
+          <p className="px-2 pb-1 pt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted">DEMO</p>
+          {ITEMS.map((item, index) => (
+            <button
+              key={item.id}
+              ref={index === 0 ? firstItemRef : undefined}
+              type="button"
+              role="menuitem"
+              disabled={Boolean(busy)}
+              className="flex w-full rounded-md px-2 py-2 text-left text-[13px] text-ink hover:bg-cream disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => post(item.path, item.id, item.next)}
+            >
+              {busy === item.id ? item.busy : item.label}
+            </button>
+          ))}
+          {error ? (
+            <p className="px-2 py-1 text-[12px] text-bad" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {!open && error ? (
+        <p className="absolute right-0 top-full z-50 mt-1 max-w-xs rounded-btn border border-line bg-card px-2 py-1 text-[12px] text-bad" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

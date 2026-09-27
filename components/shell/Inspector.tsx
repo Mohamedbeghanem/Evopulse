@@ -30,20 +30,20 @@ export function Inspector({
       <button
         type="button"
         aria-label="Close inspector"
-        className="fixed inset-0 z-30 bg-ink-950/70 lg:hidden"
+        className="fixed inset-0 z-30 bg-ink/50 min-[900px]:hidden"
         onClick={onClose}
       />
       <aside
-        className="fixed inset-y-0 right-0 z-40 flex w-[min(360px,92vw)] flex-col border-l border-hairline bg-[#0a0d11] lg:static lg:z-0"
+        className="fixed inset-y-0 right-0 z-40 flex w-[min(360px,92vw)] flex-col border-l border-line bg-card min-[900px]:static min-[900px]:z-0"
         aria-label={title}
       >
-        <div className="flex h-14 items-center justify-between border-b border-hairline px-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">{title}</p>
-          <button type="button" className="font-mono text-[11px] uppercase text-sand hover:text-paper" onClick={onClose}>
+        <div className="flex h-14 items-center justify-between border-b border-line px-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">{title}</p>
+          <button type="button" className="text-[12px] text-muted hover:text-ink" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto px-4 py-4 text-sm text-sand">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto px-4 py-4 text-sm text-ink-2">{children}</div>
       </aside>
     </>
   );

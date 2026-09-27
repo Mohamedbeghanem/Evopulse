@@ -1,10 +1,39 @@
 "use client";
 
+import { Icon } from "@/components/icons";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DemoBar } from "./DemoBar";
 import { Sidebar } from "./shell/Sidebar";
+
+const CRUMBS: [string, string][] = [
+  ["/warnings", "Warnings"],
+  ["/autopilot", "Autopilot"],
+  ["/explore", "Explore"],
+  ["/graph", "Graph"],
+  ["/impact", "Impact"],
+  ["/timeline", "Timeline"],
+  ["/business", "Business"],
+  ["/simulate", "Simulate"],
+  ["/command", "Command"],
+  ["/goals", "Goals"],
+  ["/control", "Control"],
+  ["/settings", "Settings"],
+  ["/policy", "Policy"],
+  ["/autonomy", "Autonomy"],
+  ["/learning", "Learning"],
+  ["/situations", "Situation"],
+  ["/exceptions", "Exception"],
+  ["/evidence", "Evidence"],
+  ["/verification", "Verification"],
+];
+
+function crumbLabel(path: string) {
+  if (path === "/") return "Pulse";
+  const hit = CRUMBS.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
+  return hit ? hit[1] : "EvoPulse";
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -32,31 +61,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to workspace
       </a>
       {navOpen ? (
-        <button type="button" className="fixed inset-0 z-30 bg-ink-950/70 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-ink/50 min-[900px]:hidden"
+          aria-label="Close menu"
+          onClick={() => setNavOpen(false)}
+        />
       ) : null}
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 items-center justify-between border-b border-hairline px-4 lg:px-8">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-4 min-[900px]:px-6">
           <button
             type="button"
-            className="font-mono text-[11px] uppercase tracking-[0.16em] text-sand lg:hidden"
+            className="shrink-0 text-[12px] font-medium text-ink min-[900px]:hidden"
             aria-expanded={navOpen}
             onClick={() => setNavOpen((value) => !value)}
           >
             Menu
           </button>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Sunday 27 Sep 2026 · Africa/Tunis</p>
-          <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-ok sm:block">LIVE</p>
+          <p className="min-w-0 flex-1 truncate text-[13px] text-muted">
+            Atlas Retail Group
+            <span aria-hidden> / </span>
+            <strong className="font-semibold text-ink">{crumbLabel(path)}</strong>
+          </p>
+          <div className="flex shrink-0 items-center gap-3">
+            <Link
+              href="/command"
+              aria-label="Search"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-btn text-ink hover:bg-cream"
+            >
+              <Icon name="search" className="h-[18px] w-[18px]" />
+            </Link>
+            <DemoBar />
+            <p className="text-[12px] text-muted">Pulse · Ready</p>
+          </div>
         </header>
-        <DemoBar />
         <div id="workspace" className="flex min-h-0 flex-1 flex-col">
           {children}
         </div>
-        <p className="sr-only">
-          Contextual tools stay off the primary rail:{" "}
-          <Link href="/explore">Explore</Link>, <Link href="/simulate">Simulate</Link>,{" "}
-          <Link href="/warnings">Warnings</Link>, <Link href="/autopilot">Autopilot</Link>.
-        </p>
       </div>
     </div>
   );

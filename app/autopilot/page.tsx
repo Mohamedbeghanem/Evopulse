@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { InspectorPanel } from "@/components/shell/InspectorPanel";
-import { Workspace } from "@/components/shell/Workspace";
-import { PolicyBadge, StatusBadge, VerificationBadge } from "@/components/ui/badges";
-import { ActionBar, EmptyState, ImpactMetric, PageHeader, SectionHeader } from "@/components/ui/chrome";
+import { Aside, btn, EmptyNote, Metric, PageTitle, Pill, Screen, SectionTitle } from "@/components/pulse/attend";
 import { projectAttention, type AttentionItem } from "@/lib/attention";
 import { getDb, getMeta } from "@/lib/db";
 
@@ -48,76 +45,79 @@ export default function AutopilotPage() {
   const prepared = cards.filter((card) => card.classification === "PREPARED" || card.classification === "NORMAL");
 
   return (
-    <Workspace
-      mode="operational"
-      inspector={
-        <InspectorPanel title="Control loop">
-          <p>AUTO · APPROVAL_REQUIRED · BLOCKED. Autopilot classifies. Policy determines permission.</p>
-          <p className="mt-3">
-            AUTO_HANDLED is not resolution. A safe internal action ran. The business outcome is still unverified.
+    <Screen className="flex min-h-0">
+      <div className="min-w-0 max-w-[920px] flex-1 px-4 py-6 lg:px-8">
+        <PageTitle title="What can run without me?">
+          <p>
+            {attention.summary.needsYou} need you · {attention.summary.needsApproval} need approval ·{" "}
+            {attention.summary.blocked} blocked · {attention.summary.autoHandled} auto-handled (not resolved) ·{" "}
+            {attention.summary.handled} handled after verification SUCCESS.
           </p>
-          <p className="mt-3">Verification SUCCESS is HANDLED. Executed, AUTO_HANDLED, and MONITORING are not.</p>
-          <p className="mt-3">AI cannot approve itself. Policy is rechecked before every execution.</p>
-        </InspectorPanel>
-      }
-    >
-      <PageHeader kicker="Autopilot · Control loop" title="What can run without me?">
-        <p>
-          {attention.summary.needsYou} need you · {attention.summary.needsApproval} need approval ·{" "}
-          {attention.summary.blocked} blocked · {attention.summary.autoHandled} auto-handled (not resolved) ·{" "}
-          {attention.summary.handled} handled after verification SUCCESS.
+        </PageTitle>
+        <p className="mt-3">
+          <Link href="/policy" className="text-sm text-[#0F4C5C] underline underline-offset-4">
+            Policies
+          </Link>
         </p>
-      </PageHeader>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 max-w-2xl sm:grid-cols-4">
-        <ImpactMetric label="AUTO" value={String(autoHandled.length + prepared.length + monitoring.length)} caption="Safe / watching. Not HANDLED." />
-        <ImpactMetric label="APPROVAL" value={String(approval.length)} caption="Human gate. 320K send stays here." />
-        <ImpactMetric label="BLOCKED" value={String(blocked.length)} caption="discount_max=5% refused 10%." />
-        <ImpactMetric label="HANDLED" value={String(handled.length)} caption="Verification SUCCESS only." />
+        <div className="mt-6 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <Metric label="AUTO" value={String(autoHandled.length + prepared.length + monitoring.length)} caption="Safe / watching. Not HANDLED." />
+          <Metric label="APPROVAL" value={String(approval.length)} caption="Human gate. 320K send stays here." />
+          <Metric label="BLOCKED" value={String(blocked.length)} caption="discount_max=5% refused 10%." />
+          <Metric label="HANDLED" value={String(handled.length)} caption="Verification SUCCESS only." />
+        </div>
+
+        <Bucket
+          title="Blocked by policy"
+          count={blocked.length}
+          empty="No policy blocks in the current loop."
+          items={blocked}
+          note="BLOCKED is successful governance. 10% cannot execute. Safe alternative may be 5% + Net-14 — still APPROVAL_REQUIRED."
+        />
+        <Bucket
+          title="Needs approval"
+          count={approval.length}
+          empty="Nothing is waiting on a human authorization."
+          items={approval}
+          note="Canonical: the 320K recovery requires approval. AI cannot approve itself."
+        />
+        <Bucket
+          title="Needs you"
+          count={needsYou.length}
+          empty="No high-impact tradeoff is waiting."
+          items={needsYou}
+        />
+        <Bucket
+          title="Auto-handled — not resolved"
+          count={autoHandled.length}
+          empty="No AUTO action has run."
+          items={autoHandled}
+          note="AUTO_HANDLED means a policy-AUTO internal action executed. It is not verification. It is not HANDLED."
+        />
+        <Bucket
+          title="Monitoring"
+          count={monitoring.length}
+          empty="Nothing is waiting on verification."
+          items={monitoring}
+          note="Executed is not solved. VERIFICATION PENDING stays MONITORING until SUCCESS."
+        />
+        <Bucket
+          title="Handled — verification SUCCESS"
+          count={handled.length}
+          empty="No situation is HANDLED yet. AUTO_HANDLED does not fill this list."
+          items={handled}
+          note="Only verification SUCCESS resolves a situation."
+        />
       </div>
-
-      <Bucket
-        title="Blocked by policy"
-        count={blocked.length}
-        empty="No policy blocks in the current loop."
-        items={blocked}
-        note="BLOCKED is successful governance. 10% cannot execute. Safe alternative may be 5% + Net-14 — still APPROVAL_REQUIRED."
-      />
-      <Bucket
-        title="Needs approval"
-        count={approval.length}
-        empty="Nothing is waiting on a human authorization."
-        items={approval}
-        note="Canonical: the 320K recovery requires approval. AI cannot approve itself."
-      />
-      <Bucket
-        title="Needs you"
-        count={needsYou.length}
-        empty="No high-impact tradeoff is waiting."
-        items={needsYou}
-      />
-      <Bucket
-        title="Auto-handled — not resolved"
-        count={autoHandled.length}
-        empty="No AUTO action has run."
-        items={autoHandled}
-        note="AUTO_HANDLED means a policy-AUTO internal action executed. It is not verification. It is not HANDLED."
-      />
-      <Bucket
-        title="Monitoring"
-        count={monitoring.length}
-        empty="Nothing is waiting on verification."
-        items={monitoring}
-        note="Executed is not solved. VERIFICATION PENDING stays MONITORING until SUCCESS."
-      />
-      <Bucket
-        title="Handled — verification SUCCESS"
-        count={handled.length}
-        empty="No situation is HANDLED yet. AUTO_HANDLED does not fill this list."
-        items={handled}
-        note="Only verification SUCCESS resolves a situation."
-      />
-    </Workspace>
+      <Aside title="Control loop">
+        <p className="text-[#5C6B73]">AUTO · APPROVAL_REQUIRED · BLOCKED. Autopilot classifies. Policy determines permission.</p>
+        <p className="text-[#5C6B73]">
+          AUTO_HANDLED is not resolution. A safe internal action ran. The business outcome is still unverified.
+        </p>
+        <p className="text-[#5C6B73]">Verification SUCCESS is HANDLED. Executed, AUTO_HANDLED, and MONITORING are not.</p>
+        <p className="text-[#5C6B73]">AI cannot approve itself. Policy is rechecked before every execution.</p>
+      </Aside>
+    </Screen>
   );
 }
 
@@ -135,13 +135,17 @@ function Bucket({
   note?: string;
 }) {
   return (
-    <section className="mt-10 space-y-3">
-      <SectionHeader title={title} count={count} />
-      {note ? <p className="text-sm text-sand">{note}</p> : null}
+    <section className="mt-9">
+      <SectionTitle title={title} count={count} />
+      {note ? <p className="mb-3 text-sm text-[#5C6B73]">{note}</p> : null}
       {items.length ? (
-        items.map((card) => <AutopilotRow key={card.id} card={card} />)
+        <div className="space-y-2">
+          {items.map((card) => (
+            <AutopilotRow key={card.id} card={card} />
+          ))}
+        </div>
       ) : (
-        <EmptyState title={empty} body="One situation, one classification." />
+        <EmptyNote title={empty} body="One situation, one classification." />
       )}
     </section>
   );
@@ -152,37 +156,35 @@ function AutopilotRow({ card }: { card: AttentionItem }) {
   const verification = verificationFace(card);
   const resolved = card.classification === "HANDLED";
   return (
-    <article className="border-b border-hairline py-4">
-      <div className="flex flex-wrap gap-3">
-        <StatusBadge value={card.classification} />
-        <PolicyBadge outcome={policy} />
-        <VerificationBadge status={verification} />
-        <StatusBadge value={card.reasonCode} />
+    <article className="rounded-[14px] border border-[#D8DDD6] bg-[#FFFEFB] p-4">
+      <div className="flex flex-wrap gap-2">
+        <Pill>{card.classification}</Pill>
+        <Pill>{policy}</Pill>
+        <Pill>{verification}</Pill>
+        <Pill>{card.reasonCode}</Pill>
       </div>
-      <h2 className="mt-3 text-xl text-paper">{card.title}</h2>
-      <p className="mt-2 text-sm text-sand">{card.summary}</p>
-      <p className="mt-2 text-sm text-paper">{card.needsFromYou}</p>
+      <h3 className="mt-3 text-[15px] font-semibold text-[#0D1B24]">{card.title}</h3>
+      <p className="mt-1 text-sm text-[#5C6B73]">{card.summary}</p>
+      <p className="mt-2 text-sm text-[#0D1B24]">{card.needsFromYou}</p>
       {card.classification === "AUTO_HANDLED" ? (
-        <p className="mt-2 text-xs text-mute" role="status">
+        <p className="mt-2 text-xs text-[#5C6B73]" role="status">
           AUTO_HANDLED is not resolution. Verification SUCCESS is HANDLED.
         </p>
       ) : null}
       {resolved ? (
-        <p className="mt-2 text-xs text-ice" role="status">
+        <p className="mt-2 text-xs text-[#1B7A4A]" role="status">
           Verification SUCCESS. The situation is HANDLED.
         </p>
       ) : null}
-      <div className="mt-4">
-        <ActionBar>
-          <Link href={card.href} className="inline-flex min-h-8 items-center rounded-md bg-paper px-4 py-2 text-sm font-medium text-ink-950">
-            Review situation
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href={card.href} className={btn.ink}>
+          Review situation
+        </Link>
+        {card.autopilotDecisionId ? (
+          <Link href={`/autopilot/${card.autopilotDecisionId}`} className={btn.quiet}>
+            Why this classification?
           </Link>
-          {card.autopilotDecisionId ? (
-            <Link href={`/autopilot/${card.autopilotDecisionId}`} className="inline-flex min-h-8 items-center px-4 text-sm text-need">
-              Why this classification?
-            </Link>
-          ) : null}
-        </ActionBar>
+        ) : null}
       </div>
     </article>
   );

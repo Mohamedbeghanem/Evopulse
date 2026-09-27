@@ -4,23 +4,43 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
   min-height: 100%;
-  background: var(--aurora-canvas, #07090c);
-  color: var(--aurora-ink, #e8ecf1);
+  background: #f7f8f5;
+  color: #0d1b24;
 }
 
 body {
-  background: var(--aurora-canvas, #07090c);
+  background: #f7f8f5;
+  color: #0d1b24;
+  font-size: 14px;
+  line-height: 1.45;
+  caret-color: #0d1b24;
+  --font-serif: var(--font-sans), Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+::selection {
+  background: #e7f1f3;
+  color: #0d1b24;
+}
+
+:focus-visible {
+  outline: 2px solid #0f4c5c;
+  outline-offset: 2px;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1c232c transparent;
+  scrollbar-color: #d8ddd6 transparent;
 }
 
 a {
@@ -28,7 +48,7 @@ a {
 }
 
 .rule {
-  background: linear-gradient(90deg, transparent, rgba(232, 236, 241, 0.14), transparent);
+  background: #d8ddd6;
   height: 1px;
 }
 
@@ -37,9 +57,9 @@ a {
   left: 1rem;
   top: -3rem;
   z-index: 80;
-  border-radius: 999px;
-  background: #e8ecf1;
-  color: #07090c;
+  border-radius: 8px;
+  background: #0d1b24;
+  color: #fffefb;
   padding: 0.5rem 0.9rem;
 }
 
@@ -49,16 +69,49 @@ a {
 
 .os-frame {
   min-height: 100vh;
-  background: #07090c;
+  background: #f7f8f5;
+  color: #0d1b24;
 }
 
 .nav-active {
-  background: #1a212b;
-  box-shadow: inset 2px 0 0 #ff5a1f;
+  background: #1c3642;
+  color: #fff;
 }
 
 .sim-banner {
-  border: 1px solid rgba(127, 178, 224, 0.35);
-  background: rgba(127, 178, 224, 0.08);
-  color: #7fb2e0;
+  border: 1px solid #d8ddd6;
+  background: #e7f1f3;
+  color: #0f4c5c;
 }
+
+/* Pages still use translucent white chrome from the dark shell. */
+.border-white\/10,
+.border-white\/15,
+.border-white\/25 {
+  border-color: #d8ddd6;
+}
+
+.bg-white\/10 {
+  background-color: #e8eef0;
+}
+
+.motion-safe {
+  transition: background-color 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+
+.motion-pop {
+  animation: evopulse-pop 180ms ease;
+}
+
+@keyframes evopulse-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) { .motion-safe, .motion-pop { transition: none !important; animation: none !important; } }

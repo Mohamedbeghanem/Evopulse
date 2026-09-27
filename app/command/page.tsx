@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { PulseAgent, phaseToPulseState, type PulseAgentState } from "@/components/agent/PulseAgent";
 import { Inspector } from "@/components/shell/Inspector";
 import { Workspace } from "@/components/shell/Workspace";
 import { CommandComposer } from "@/components/ui/CommandComposer";
-import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
-import { ActionBar, PageHeader } from "@/components/ui/chrome";
-import { Button } from "@/components/ui/primitives";
 import { COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {
@@ -69,44 +67,117 @@ type CommandResponse = {
   agent?: AgentPayload;
 };
 
+type BusinessContext = {
+  company: string;
+  needs: number;
+  monitoring: number;
+  handled: number;
+};
+
+const btn =
+  "inline-flex min-h-[34px] items-center justify-center rounded-lg bg-ink px-3 text-sm font-medium text-card disabled:opacity-50";
+const ghost =
+  "inline-flex min-h-[34px] items-center justify-center rounded-lg border border-line bg-card px-3 text-sm text-ink disabled:opacity-50";
+const quiet =
+  "inline-flex min-h-[34px] items-center justify-center rounded-lg px-3 text-sm text-muted hover:text-ink disabled:opacity-50";
+
+function countOf(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stateFromResult(result: CommandResponse): PulseAgentState {
+  const agent = result.agent;
+  const report = agent?.report || {};
+  const pending = agent?.approvals?.some((item) => item.status === "pending" || item.status === "edited");
+  if (report.policyBlocked || result.status === "BLOCKED" || agent?.status === "BLOCKED") return "BLOCKED";
+  if (pending) return "WAITING_FOR_APPROVAL";
+  if (agent?.phase) return phaseToPulseState(agent.phase, agent.status);
+  if (result.status === "FAILED") return "ERROR";
+  if (result.status === "APPROVAL_REQUIRED") return "WAITING_FOR_APPROVAL";
+  if (result.status === "OK" || result.status === "EXECUTED") return "SUCCESS";
+  return "IDLE";
+}
+
 export default function CommandPage() {
   const [message, setMessage] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [turns, setTurns] = useState<{ message: string; result: CommandResponse }[]>([]);
   const [busy, setBusy] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [inflight, setInflight] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [context, setContext] = useState<BusinessContext | null>(null);
   const latest = turns[turns.length - 1];
+  const liveState: PulseAgentState = busy ? "THINKING" : latest ? stateFromResult(latest.result) : "IDLE";
+  const approvalPending = Boolean(
+    latest?.result.agent?.approvals?.some((item) => item.status === "pending" || item.status === "edited"),
+  );
+
+  useEffect(() => {
+    if (approvalPending) setInspectorOpen(true);
+  }, [approvalPending]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/pulse")
+      .then((res) => {
+        if (!res.ok) throw new Error("pulse");
+        return res.json();
+      })
+      .then((data: { company?: { name?: unknown }; counts?: Record<string, unknown> }) => {
+        if (cancelled) return;
+        const needs = countOf(data.counts?.NEEDS_YOU);
+        const monitoring = countOf(data.counts?.MONITORING);
+        const handled = countOf(data.counts?.HANDLED);
+        const company = data.company?.name;
+        if (needs === null || monitoring === null || handled === null || typeof company !== "string" || !company) return;
+        setContext({ company, needs, monitoring, handled });
+      })
+      .catch(() => {
+        if (!cancelled) setContext(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function ask(text: string) {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || busy) return;
     setBusy(true);
-    const res = await fetch("/api/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: trimmed, sessionId }),
-    });
-    const result = (await res.json()) as CommandResponse;
-    setSessionId(result.agent?.sessionId || result.session?.id);
-    setTurns((current) => [...current, { message: trimmed, result }]);
-    setMessage("");
-    setBusy(false);
-    setInspectorOpen(true);
+    setInflight(trimmed);
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, sessionId }),
+      });
+      const result = (await res.json()) as CommandResponse;
+      setSessionId(result.agent?.sessionId || result.session?.id);
+      setTurns((current) => [...current, { message: trimmed, result }]);
+      setMessage("");
+      setInspectorOpen(true);
+    } finally {
+      setBusy(false);
+      setInflight(null);
+    }
   }
 
   async function decide(runId: string, approval: Approval, decision: "approve" | "reject" | "edit") {
     setBusy(true);
-    const path = decision === "reject" ? "reject" : "approve";
-    const res = await fetch(`/api/agent/runs/${runId}/${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approvalId: approval.id, actionId: approval.actionId, decision }),
-    });
-    const result = (await res.json()) as CommandResponse;
-    setTurns((current) =>
-      current.map((turn) => (turn.result.agent?.runId === runId ? { ...turn, result } : turn)),
-    );
-    setBusy(false);
+    try {
+      const path = decision === "reject" ? "reject" : "approve";
+      const res = await fetch(`/api/agent/runs/${runId}/${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalId: approval.id, actionId: approval.actionId, decision }),
+      });
+      const result = (await res.json()) as CommandResponse;
+      setTurns((current) =>
+        current.map((turn) => (turn.result.agent?.runId === runId ? { ...turn, result } : turn)),
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -114,44 +185,81 @@ export default function CommandPage() {
       mode="focused"
       inspector={
         <Inspector title="Operation" open={inspectorOpen} onClose={() => setInspectorOpen(false)}>
-          {latest?.result.agent ? (
+          {latest ? (
             <div className="space-y-3">
-              <StatusBadge value={latest.result.agent.phase} />
-              <p>Runtime: {latest.result.agent.runtime}</p>
-              {latest.result.agent.fallbackUsed ? <p>Governed fallback is active. The demo continues.</p> : null}
-              <p>Policy still owns permission. The model does not calculate money.</p>
+              <PulseAgent state={stateFromResult(latest.result)} />
+              <p className="text-sm text-ink">{latest.result.agent?.summary || latest.result.summary}</p>
             </div>
-          ) : (
-            <p>Ask the business. Visible steps only — no hidden chain-of-thought.</p>
-          )}
+          ) : null}
         </Inspector>
       }
     >
-      <PageHeader kicker="Command · Operating console" title="Ask your business.">
-        <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
-      </PageHeader>
+      <div>
+        <header>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-teal">Command</p>
+          <h1 className="mt-2 text-[30px] font-semibold tracking-tight text-ink">Ask your business</h1>
+          <p className="mt-2 max-w-[640px] text-[15px] text-muted">
+            Investigate, simulate and act across your business.
+          </p>
+        </header>
 
-      <div className="mt-8">
-        <CommandComposer
-          value={message}
-          onChange={setMessage}
-          onSubmit={(value) => void ask(value)}
-          busy={busy}
-          suggestions={COMMAND_PROMPTS}
-          onSuggestion={(value) => void ask(value)}
-        />
-      </div>
-
-      <div className="mt-8 space-y-6">
-        {turns.map((turn) => (
-          <AgentTurn
-            key={turn.result.commandId}
-            message={turn.message}
-            result={turn.result}
+        <div className="mt-8">
+          <CommandComposer
+            value={message}
+            onChange={setMessage}
+            onSubmit={(value) => void ask(value)}
             busy={busy}
-            onDecide={decide}
+            agentState={liveState}
+            suggestions={[
+              "What needs me?",
+              "What changed today?",
+              "Why is 850K at risk?",
+              "Protect everything at risk this week.",
+              ...COMMAND_PROMPTS.filter(
+                (prompt) =>
+                  prompt !== "What needs me?" &&
+                  prompt !== "What changed today?" &&
+                  prompt !== "Why is 850K at risk?" &&
+                  prompt !== "Protect everything at risk this week.",
+              ),
+            ]}
+            onSuggestion={(value) => void ask(value)}
           />
-        ))}
+          {context ? (
+            <p className="mt-4 flex max-w-[760px] flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+              <span className="font-medium text-ink">{context.company}</span>
+              <span aria-hidden>·</span>
+              <span className={context.needs > 0 ? "text-need" : undefined}>
+                {context.needs === 1 ? "1 needs you" : `${context.needs} need you`}
+              </span>
+              <span aria-hidden>·</span>
+              <span>{context.monitoring} monitoring</span>
+              <span aria-hidden>·</span>
+              <span>{context.handled} handled</span>
+            </p>
+          ) : null}
+        </div>
+
+        <div className="mt-8 max-w-[760px] space-y-8">
+          {turns.map((turn) => (
+            <AgentTurn
+              key={turn.result.commandId}
+              message={turn.message}
+              result={turn.result}
+              busy={busy}
+              onDecide={decide}
+            />
+          ))}
+          {inflight ? (
+            <article>
+              <p className="text-[13px] text-muted">{inflight}</p>
+              <div className="mt-3">
+                <PulseAgent state="THINKING" />
+                <p className="mt-2 text-sm text-muted">Investigating</p>
+              </div>
+            </article>
+          ) : null}
+        </div>
       </div>
     </Workspace>
   );
@@ -170,91 +278,88 @@ function AgentTurn({
 }) {
   const agent = result.agent;
   const report = agent?.report || {};
+  const state = stateFromResult(result);
+  const pending = agent?.approvals?.filter((item) => item.status === "pending" || item.status === "edited") ?? [];
+
   return (
-    <article className="border-t border-hairline pt-6">
-      <p className="text-sm text-mute">{message}</p>
-      <div className="mt-3 flex flex-wrap gap-3">
-        <StatusBadge value={phaseLabel(agent?.phase || result.status)} />
-        {agent?.fallbackUsed ? <PolicyBadge outcome="FALLBACK" /> : null}
-      </div>
-      <h2 className="mt-3 text-2xl text-paper">{agent?.summary || result.summary}</h2>
-
-      {agent?.steps?.length ? (
-        <ol className="mt-5 space-y-3">
-          {agent.steps.map((step) => (
-            <li key={step.id} className="border-l border-hairline pl-4">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">{step.label}</p>
-              <p className="mt-1 text-sand">{step.detail}</p>
-              {step.policy ? <p className="mt-1 text-xs text-mute">{step.policy}</p> : null}
-            </li>
-          ))}
-        </ol>
-      ) : null}
-
-      {typeof report.associatedRevenue === "number" ? (
-        <p className="mt-4 text-sand">
-          {report.orders} orders · {report.customers} customers · {report.associatedRevenue.toLocaleString("en-US")} DZD
-          associated · {Number(report.expectedCash || 0).toLocaleString("en-US")} DZD expected cash timing
-        </p>
-      ) : null}
-
-      {typeof report.safe === "number" && report.safe + (report.approval || 0) + (report.blocked || 0) > 0 ? (
-        <p className="mt-3 text-sand">
-          {report.safe} safe · {report.approval || 0} approval · {report.blocked || 0} blocked
-          {report.executed ? ` · ${report.executed} executed` : ""}
-          {report.verificationPending ? ` · ${report.verificationPending} verifying` : ""}
-        </p>
-      ) : null}
-
-      {report.simulationUnchanged ? (
-        <p className="sim-banner mt-3 rounded-md px-3 py-2 font-mono text-xs uppercase">Simulation — reality unchanged</p>
-      ) : null}
-
-      {report.allowedAlternative ? <p className="mt-3 text-sand">{report.allowedAlternative}</p> : null}
-
-      {agent?.approvals
-        ?.filter((item) => item.status === "pending" || item.status === "edited")
-        .map((approval) => (
-          <section key={approval.id} className="mt-5 rounded-md border border-need/40 p-4">
-            <PolicyBadge outcome="APPROVAL REQUIRED" />
-            <p className="mt-2 text-xl text-paper">{approval.title}</p>
-            <p className="mt-2 text-sand">{approval.why}</p>
-            {approval.policy ? <p className="mt-1 text-sm text-mute">Policy: {approval.policy}</p> : null}
-            <div className="mt-4">
-              <ActionBar>
-                <Button type="button" disabled={busy} onClick={() => onDecide(agent.runId, approval, "approve")}>
-                  Approve
-                </Button>
-                <Link href="/goals">
-                  <Button variant="ghost">Edit</Button>
-                </Link>
-                <Button type="button" variant="quiet" disabled={busy} onClick={() => onDecide(agent.runId, approval, "reject")}>
-                  Reject
-                </Button>
-              </ActionBar>
-            </div>
-          </section>
-        ))}
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {result.links.map((link) => (
-          <Link key={link.href + link.label} href={link.href} className="text-sm text-need">
-            {link.label}
-          </Link>
-        ))}
+    <article>
+      <p className="text-[13px] text-muted">{message}</p>
+      <div className="mt-3">
+        <PulseAgent state={state} />
+        {agent?.steps?.length ? (
+          <ul className="mt-3 space-y-2">
+            {agent.steps.map((step) => (
+              <li key={step.id} className="flex gap-2.5 text-sm">
+                <span className="mt-0.5 text-ok" aria-hidden="true">
+                  ✓
+                </span>
+                <span className="min-w-0">
+                  <span className="text-ink">{step.label}</span>
+                  {step.detail ? <span className="mt-0.5 block text-muted">{step.detail}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="mt-4 text-[15px] leading-snug text-ink">{agent?.summary || result.summary}</p>
+        {typeof report.associatedRevenue === "number" || typeof report.expectedCash === "number" ? (
+          <div className="mt-4 space-y-1">
+            {typeof report.associatedRevenue === "number" ? (
+              <p className="text-sm text-ink">
+                <span className="font-semibold tracking-tight">
+                  {report.associatedRevenue.toLocaleString("en-US")} DZD
+                </span>
+                <span className="text-muted"> / Associated revenue</span>
+              </p>
+            ) : null}
+            {typeof report.expectedCash === "number" ? (
+              <p className="text-sm text-ink">
+                <span className="font-semibold tracking-tight">{report.expectedCash.toLocaleString("en-US")} DZD</span>
+                <span className="text-muted"> / Expected cash timing</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {typeof report.safe === "number" && report.safe + (report.approval || 0) + (report.blocked || 0) > 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            {report.safe} safe · {report.approval || 0} approval · {report.blocked || 0} blocked
+            {report.executed ? ` · ${report.executed} executed` : ""}
+            {report.verificationPending ? ` · ${report.verificationPending} verifying` : ""}
+          </p>
+        ) : null}
+        {report.simulationUnchanged ? <p className="mt-3 text-sm text-muted">Simulation — reality unchanged</p> : null}
+        {report.allowedAlternative ? <p className="mt-3 text-sm text-muted">{report.allowedAlternative}</p> : null}
+        {result.links.length ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {result.links.map((link) => (
+              <Link key={link.href + link.label} href={link.href} className={quiet}>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+        {agent
+          ? pending.map((approval) => (
+              <section key={approval.id} className="mt-4 rounded-[14px] border border-orange/40 bg-cream p-4">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Approval</p>
+                <p className="mt-2 text-lg font-semibold text-ink">{approval.title}</p>
+                <p className="mt-1 text-sm text-muted">{approval.why}</p>
+                {approval.policy ? <p className="mt-1 text-sm text-muted">{approval.policy}</p> : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" disabled={busy} className={btn} onClick={() => onDecide(agent.runId, approval, "approve")}>
+                    Approve
+                  </button>
+                  <button type="button" disabled={busy} className={ghost} onClick={() => onDecide(agent.runId, approval, "edit")}>
+                    Edit
+                  </button>
+                  <button type="button" disabled={busy} className={quiet} onClick={() => onDecide(agent.runId, approval, "reject")}>
+                    Reject
+                  </button>
+                </div>
+              </section>
+            ))
+          : null}
       </div>
     </article>
   );
-}
-
-function phaseLabel(phase: string) {
-  if (phase === "INTERPRETING") return "Inspecting business";
-  if (phase === "RUNNING_TOOL" || phase === "WAITING_FOR_TOOL") return "Inspecting business";
-  if (phase === "EXECUTING") return "Executing safe action";
-  if (phase === "VERIFYING") return "Verifying";
-  if (phase === "WAITING_FOR_APPROVAL") return "Waiting for approval";
-  if (phase === "COMPLETE") return "COMPLETE";
-  if (phase === "FAILED") return "FAILED";
-  if (phase === "CANCELLED") return "CANCELLED";
-  return phase.replaceAll("_", " ");
 }
