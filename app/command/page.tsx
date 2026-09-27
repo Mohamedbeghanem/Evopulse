@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { Inspector } from "@/components/shell/Inspector";
 import { Workspace } from "@/components/shell/Workspace";
@@ -83,9 +83,13 @@ export default function CommandPage() {
     latest?.result.agent?.status,
   );
 
+  const startedQuery = useRef(false);
   useEffect(() => {
+    if (startedQuery.current) return;
     const query = new URLSearchParams(window.location.search).get("q");
-    if (query) void ask(query);
+    if (!query) return;
+    startedQuery.current = true;
+    void ask(query);
     // Run once for the judge path from Pulse chips.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
