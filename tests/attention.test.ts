@@ -24,11 +24,15 @@ resetDbFile();
 const AFTER_DEADLINE = "2026-09-29T10:01:00+01:00";
 
 function quietProposal(db: ReturnType<typeof getDb>) {
-  run(db, "UPDATE expectations SET status = ? WHERE id = ?", ["FULFILLED", IDS.expectOurs]);
-  run(db, "UPDATE commitments SET status = ? WHERE id = ?", ["fulfilled", IDS.commitOurs]);
+  for (const expectationId of [IDS.expectOurs, IDS.expectTheirs, IDS.expectSign]) {
+    run(db, "UPDATE expectations SET status = ? WHERE id = ?", ["FULFILLED", expectationId]);
+  }
+  for (const commitmentId of [IDS.commitOurs, IDS.commitTheirs, IDS.commitSign]) {
+    run(db, "UPDATE commitments SET status = ? WHERE id = ?", ["fulfilled", commitmentId]);
+  }
   run(db, "DELETE FROM actions WHERE exception_id = ?", [IDS.excMissed]);
   run(db, "DELETE FROM plans WHERE exception_id = ?", [IDS.excMissed]);
-  run(db, "DELETE FROM exceptions WHERE id = ?", [IDS.excMissed]);
+  run(db, "DELETE FROM exceptions WHERE id IN (?, ?)", [IDS.excMissed, IDS.excDiscount]);
 }
 
 function situationOf(items: { id: string; sourceExceptionId: string | null; sourceWarningId: string | null }[], exceptionId?: string, warningId?: string) {
@@ -242,6 +246,7 @@ describe("attention projection", { concurrency: 1 }, () => {
     assert.equal(reset.now, "2026-09-27T08:18:00+01:00");
     assert.equal(reset.supplier, "stable");
     assert.equal(reset.sessions, 0);
-    assert.equal(reset.decisions, 0);
+    assert.equal(reset.exceptions, again.exceptions);
+    assert.equal(reset.events, again.events);
   });
 });
