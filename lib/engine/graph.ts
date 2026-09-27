@@ -1,24 +1,37 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all } from "../db";
 import { graphFor } from "../graph";
-import type { CommitmentRow, DependencyRow, ExceptionRow, ExpectationRow } from "../types";
+import type { CommitmentRow, DependencyRow, EntityRow, ExceptionRow, ExpectationRow } from "../types";
 
 export function businessGraph(db: DatabaseSync) {
   const persisted = graphFor(db);
+  const entities = all<EntityRow>(db, "SELECT * FROM entities");
   const commitments = all<CommitmentRow>(db, "SELECT * FROM commitments");
   const expectations = all<ExpectationRow>(db, "SELECT * FROM expectations");
   const dependencies = all<DependencyRow>(db, "SELECT * FROM dependencies");
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions");
 
+  const graphNodes = persisted.listNodes();
+  const inGraph = new Set(graphNodes.map((n) => n.id));
+  const commitmentStatus = new Map(commitments.map((c) => [c.id, c.status]));
+
   const nodes = [
-    ...persisted.listNodes().map((n) => ({
+    ...graphNodes.map((n) => ({
       id: n.id,
       kind: n.type,
       label: n.label,
-      status: typeof n.metadata.status === "string" ? n.metadata.status : "",
+      // Commitment status lives on the commitments table; graph metadata may not carry it.
+      status:
+        typeof n.metadata.status === "string"
+          ? n.metadata.status
+          : n.type === "commitment"
+            ? commitmentStatus.get(n.entity_id) || ""
+            : "",
     })),
+    // Entities not (yet) projected into graph_nodes — e.g. the 320K contact, company, proposal.
+    ...entities.filter((e) => !inGraph.has(e.id)).map((e) => ({ id: e.id, kind: e.type, label: e.name, status: "" })),
     ...commitments
-      .filter((c) => !persisted.getNode(c.id))
+      .filter((c) => !inGraph.has(c.id))
       .map((c) => ({
         id: c.id,
         kind: "commitment",

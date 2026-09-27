@@ -194,5 +194,20 @@ export function seedSupplierGraph(db: DatabaseSync) {
     idempotent: true,
   });
 
+  // Delivery expectation depends on the shipment expectation, so Pulse re-derives
+  // "at risk" when SH-204 is scheduled after the Tuesday delivery deadline.
+  run(
+    db,
+    `INSERT OR REPLACE INTO dependencies (id, from_id, from_type, to_id, to_type, description) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      "dep_deliver_a_on_ship",
+      IDS.expectDeliverA,
+      "expectation",
+      IDS.expectShip,
+      "expectation",
+      "Order A delivery depends on shipment SH-204 arriving",
+    ],
+  );
+
   run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["supplier_phase", "stable"]);
 }

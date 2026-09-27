@@ -33,10 +33,15 @@ export function calculateGraphImpact(db: DatabaseSync, nodeId: string, maxDepth 
   const customers = hits.filter((h) => h.node.type === "customer");
   const invoices = hits.filter((h) => h.node.type === "invoice");
   const commitments = hits.filter((h) => h.node.type === "commitment");
-  const atRisk = all<CommitmentRow>(
-    db,
-    "SELECT * FROM commitments WHERE id IN (SELECT entity_id FROM graph_nodes WHERE type = 'commitment') AND status = 'at_risk'",
-  );
+  // Only commitments downstream of this node; status of record is the commitments table.
+  const downstreamCommitmentIds = commitments.map((h) => h.node.entity_id);
+  const atRisk = downstreamCommitmentIds.length
+    ? all<CommitmentRow>(
+        db,
+        `SELECT * FROM commitments WHERE status = 'at_risk' AND id IN (${downstreamCommitmentIds.map(() => "?").join(", ")})`,
+        downstreamCommitmentIds,
+      )
+    : [];
   const associated_revenue = orders.reduce((sum, h) => sum + amountOf(h.node.metadata), 0);
   const affected_expected_cash = invoices.reduce((sum, h) => sum + amountOf(h.node.metadata), 0);
   const dependency_depth = hits.reduce((max, h) => Math.max(max, h.depth), 0);
