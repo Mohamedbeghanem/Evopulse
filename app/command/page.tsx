@@ -10,7 +10,27 @@ import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { ActionBar, PageHeader } from "@/components/ui/chrome";
 import { Button } from "@/components/ui/primitives";
 import { avatarStateFromAgent } from "@/lib/company/avatar";
-import { COMMAND_PROMPTS, USER_COMMAND_PROMPTS } from "@/lib/ui/commands";
+import { COMMAND_PROMPTS, SUGGESTED_PROMPTS, USER_COMMAND_PROMPTS } from "@/lib/ui/commands";
+
+const SUGGESTIONS = Array.from(new Set<string>([...SUGGESTED_PROMPTS, ...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]));
+
+type BusinessContext = {
+  overview: {
+    company: { name: string };
+    census: { suppliers: number; customers: number; orders: number; invoices: number; commitments: number };
+    canonical: {
+      supplier: string;
+      shipment: string;
+      product: string;
+      orders: number;
+      customers: number;
+      associatedRevenue: number;
+      expectedCash: number;
+    };
+    supplierDelayed: boolean;
+  };
+  pulse: { needsYou: number; monitoring: number; handled: number };
+};
 
 type TraceStep = {
   id: string;
@@ -83,6 +103,14 @@ export default function CommandPage() {
     latest?.result.agent?.status,
   );
 
+  const [context, setContext] = useState<BusinessContext | null>(null);
+  useEffect(() => {
+    void fetch("/api/business")
+      .then((res) => (res.ok ? (res.json() as Promise<BusinessContext>) : null))
+      .then(setContext)
+      .catch(() => setContext(null));
+  }, [turns.length]);
+
   const startedQuery = useRef(false);
   useEffect(() => {
     if (startedQuery.current) return;
@@ -141,12 +169,13 @@ export default function CommandPage() {
           ) : (
             <p>Ask the business. Visible steps only — no hidden chain-of-thought.</p>
           )}
+          {context ? <ContextPanel context={context} /> : null}
         </Inspector>
       }
     >
       <div className="flex flex-wrap items-start justify-between gap-6">
         <PageHeader kicker="Command · Operating console" title="Ask your business.">
-          <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
+          <p>AI investigates. The business record determines truth. Policy determines permission.</p>
         </PageHeader>
         <PulseAvatar state={avatar} size="sm" />
       </div>
@@ -158,7 +187,7 @@ export default function CommandPage() {
           onSubmit={(value) => void ask(value)}
           busy={busy}
           placeholder="Ask Pulse anything about your business..."
-          suggestions={[...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]}
+          suggestions={SUGGESTIONS}
           onSuggestion={(value) => void ask(value)}
         />
       </div>
@@ -265,6 +294,30 @@ function AgentTurn({
         ))}
       </div>
     </article>
+  );
+}
+
+function ContextPanel({ context }: { context: BusinessContext }) {
+  const { overview, pulse } = context;
+  const c = overview.canonical;
+  return (
+    <div className="mt-6 space-y-2 border-t border-hairline pt-4" data-testid="command-context">
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Context</p>
+      <p className="text-paper">{overview.company.name}</p>
+      <p>
+        {overview.census.suppliers} suppliers · {overview.census.customers} customers · {overview.census.orders} orders ·{" "}
+        {overview.census.invoices} invoices · {overview.census.commitments} commitments
+      </p>
+      <p>
+        {pulse.needsYou} need you · {pulse.monitoring} monitoring · {pulse.handled} handled
+      </p>
+      <p>
+        {c.supplier} → {c.shipment} → {c.product}
+        {overview.supplierDelayed ? " (delayed)" : ""}: {c.orders} orders · {c.customers} customers ·{" "}
+        {c.associatedRevenue.toLocaleString("en-US")} DZD associated · {c.expectedCash.toLocaleString("en-US")} DZD expected
+        cash timing
+      </p>
+    </div>
   );
 }
 

@@ -3,6 +3,8 @@ import { PulseBoard } from "@/components/pulse/PulseBoard";
 import { workspaceMode } from "@/lib/company";
 import { getDb, getMeta } from "@/lib/db";
 import { pulseSummary } from "@/lib/engine/pulse";
+import { agentRoster, businessOverview } from "@/lib/business";
+import { pulseCounts } from "@/lib/ui/pulse-counts";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +23,13 @@ export default function HomePage() {
       summary: pulse.attention.summary,
     },
   };
+  const overview = businessOverview(db);
+  const agents = agentRoster(db, pulseCounts(pulse.attention.summary), overview);
   return (
     <PulseBoard
       pulse={JSON.parse(JSON.stringify(board))}
-      companyName={getMeta(db, "company_name", "Atlas Medical Distribution")}
+      companyName={overview.company.name || getMeta(db, "company_name")}
+      agents={JSON.parse(JSON.stringify(agents))}
     />
   );
 }

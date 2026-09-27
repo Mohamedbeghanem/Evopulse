@@ -11,6 +11,7 @@ const PRIMARY = [
 
 const WORKSPACE = [
   { href: "/business", label: "Business", match: (path: string) => path.startsWith("/business") || path.startsWith("/graph") },
+  { href: "/agents", label: "Agents", match: (path: string) => path.startsWith("/agents") },
   { href: "/goals", label: "Goals", match: (path: string) => path.startsWith("/goals") },
 ];
 

@@ -1,3 +1,12 @@
+/** The five suggested prompts shown on Pulse and first in Command. */
+export const SUGGESTED_PROMPTS = [
+  "What needs me?",
+  "What changed today?",
+  "Why is 850K at risk?",
+  "What if Atlas is another 3 days late?",
+  "Protect everything at risk this week.",
+] as const;
+
 export const USER_COMMAND_PROMPTS = [
   "What's happening?",
   "What needs me?",
