@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/primitives";
+
+const EXECUTE_SAFE = (planId: string) => `/api/plans/${planId}/execute-safe`;
 
 export function ExecuteSafeButton({ planId }: { planId: string }) {
   const router = useRouter();
@@ -15,9 +18,10 @@ export function ExecuteSafeButton({ planId }: { planId: string }) {
   } | null>(null);
 
   async function run() {
+    if (busy) return;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/plans/${planId}/execute-safe`, { method: "POST" });
+    const res = await fetch(EXECUTE_SAFE(planId), { method: "POST" });
     const data = await res.json();
     setBusy(false);
     if (!res.ok) {
@@ -30,20 +34,30 @@ export function ExecuteSafeButton({ planId }: { planId: string }) {
 
   return (
     <div className="space-y-2">
-      <button
+      <Button
+        type="button"
+        variant="primary"
         onClick={() => void run()}
         disabled={busy}
-        className="animate-throb rounded-full bg-need px-6 py-3 text-sm font-medium text-ink-950 disabled:opacity-50"
+        aria-busy={busy}
+        aria-label="Execute AUTO actions only — policy is rechecked first"
       >
-        {busy ? "Executing safe actions…" : "Execute safe actions"}
-      </button>
+        {busy ? "Executing AUTO actions…" : "Execute safe AUTO actions"}
+      </Button>
+      <p className="text-xs text-mute">
+        AUTO only. APPROVAL_REQUIRED and BLOCKED stay put. Policy is rechecked immediately before execution.
+      </p>
       {counts ? (
-        <p className="text-sm text-ok">
-          {counts.prepared} actions prepared · {counts.executed} executed automatically ·{" "}
-          {counts.waitingForApproval} waiting for approval · {counts.blocked} blocked by policy
+        <p className="text-sm text-ice" role="status">
+          {counts.prepared} prepared · {counts.executed} AUTO executed · {counts.waitingForApproval} waiting for
+          approval · {counts.blocked} BLOCKED by policy. AUTO_HANDLED is not resolution.
         </p>
       ) : null}
-      {error ? <p className="text-sm text-miss">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-miss" role="status">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

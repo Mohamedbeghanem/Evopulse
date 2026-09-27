@@ -1,28 +1,26 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./lib/**/*.{ts,tsx}",
-  ],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
         ink: {
-          950: "#080a0d",
-          900: "#0c1016",
-          800: "#131922",
-          700: "#1b2330",
-          600: "#253042",
+          950: "#07090c",
+          900: "#090c10",
+          800: "#0e1217",
+          700: "#141a22",
+          600: "#1a212b",
         },
-        paper: "#efe7d6",
-        sand: "#c8b896",
-        mute: "#8a8476",
-        need: "#f0a202",
-        miss: "#e85d4c",
-        ok: "#3dba8b",
-        ice: "#7eb6d9",
+        paper: "#e8ecf1",
+        sand: "#a3adba",
+        mute: "#7c8796",
+        need: "#ff5a1f",
+        miss: "#ff7a45",
+        ok: "#7fb2e0",
+        ice: "#7fb2e0",
+        watch: "#f0b44c",
+        hairline: "#1c232c",
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],
@@ -30,13 +28,13 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        pulse: "0 0 0 0 rgba(240, 162, 2, 0.45)",
+        pulse: "0 0 0 0 rgba(255, 90, 31, 0.45)",
       },
       keyframes: {
         throb: {
-          "0%": { boxShadow: "0 0 0 0 rgba(240, 162, 2, 0.45)" },
-          "70%": { boxShadow: "0 0 0 14px rgba(240, 162, 2, 0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(240, 162, 2, 0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(255, 90, 31, 0.45)" },
+          "70%": { boxShadow: "0 0 0 14px rgba(255, 90, 31, 0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(255, 90, 31, 0)" },
         },
       },
       animation: {

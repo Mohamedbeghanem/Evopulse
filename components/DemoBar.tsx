@@ -25,8 +25,8 @@ export function DemoBar() {
   }
 
   return (
-    <div className="border-t border-white/5 bg-ink-800/70">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-2 text-xs">
+    <div className="border-b border-hairline bg-ink-800/80">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-2 text-xs lg:px-8">
         <span className="font-mono text-need">DEMO</span>
         <span className="text-mute">
           Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded

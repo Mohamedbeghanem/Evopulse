@@ -21,9 +21,11 @@ USER
 
 ## DeepSeek Harness audit
 
-Read from source (`deepseek-ai/deepseek-harness` @ `477b4f420553e8a52c2fbccc464d7561b239c443`, version `0.1.7-rc.2`, MIT).
+Re-read from source on 2026-09-27 (`deepseek-ai/deepseek-harness` `master` @ `477b4f420553e8a52c2fbccc464d7561b239c443`, tag `dsh-v0.1.7-rc.2`, version `0.1.7-rc.2`, MIT). That SHA is still HEAD of `master`. Decision record: `docs/HARNESS_DECISION.md`.
 
-Harness is a developer-preview **coding-agent product**: Cordis plugins, session JSONL, an agent loop (`turn` / `step` / `tool/call` / `tool/result`), LLM adapters, and default capabilities for shell, filesystem, git, computer use, and browsers. Public APIs are pre-stable. Compatibility-breaking changes are expected. Safety docs warn it can execute model-generated commands.
+Harness is a developer-preview **coding-agent product**: Cordis plugins, session JSONL, an agent loop (`turn` / `step` / `tool/call` / `tool/result`), LLM adapters, and default capabilities for shell, filesystem, git, computer use, and browsers. Public APIs are pre-stable. Compatibility-breaking changes are expected. `SAFETY.md` says the project is not audited, can execute model-generated commands, and that sandbox/approvals do not guarantee isolation.
+
+Official launchers are named `dsh` profiles (`web`, `headless`, `sdk`, `sdk-minimal`, `acp`). Direct in-process plugin mounting is not a supported application launcher. The TypeScript / Python SDKs spawn `dsh --profile sdk` over JSON-RPC. npm `@deepseek-ai/dsh@0.1.7-rc.2` still depends on `dsh-tool-bash`, `dsh-tool-fs`, terminals, web fetch, credentials, and MCP. Minimal mode still ships bash + a file editor. **Privilege isolation to EvoPulse tools only: NO.**
 
 Stable enough to *learn from*:
 
@@ -33,18 +35,18 @@ Stable enough to *learn from*:
 - loop / repeat guards
 - replaceable model providers
 
-Not stable enough to embed:
+Not stable enough to embed (MODE A) or sidecar (MODE B):
 
 - in-process Cordis plugin tree
-- session format generations
-- desktop / web / shell / filesystem packages
-- `npx @deepseek-ai/dsh` as a sidecar inside the hackathon demo
+- session format generations (including model reasoning)
+- desktop / web / shell / filesystem / credentials packages
+- `npx @deepseek-ai/dsh` or `@deepseek-ai/dsh-sdk-client` as a subprocess inside the hackathon demo
 
-Official npm packages (`@deepseek-ai/dsh`, `@deepseek-ai/dsh-sdk-client`) drive a Harness subprocess. That subprocess is a software-development agent. EvoPulse must not expose shell, filesystem mutation, git, or SQL.
+**MODE C — current governed adapter.** Official npm packages drive a software-development agent. EvoPulse must not expose shell, filesystem mutation, git, SQL, env, credentials, network, or deploy.
 
 ## Integration method
 
-**Isolated adapter. No vendored Harness tree. No runtime dependency on `@deepseek-ai/dsh*`.**
+**MODE C isolated adapter. No vendored Harness tree. No runtime dependency on `@deepseek-ai/dsh*`.**
 
 | Piece | Role |
 | --- | --- |
@@ -53,7 +55,7 @@ Official npm packages (`@deepseek-ai/dsh`, `@deepseek-ai/dsh-sdk-client`) drive 
 | `DeterministicRuntime` | Default, offline, hackathon-safe operating path |
 | Tool registry | Narrow calls into existing engines |
 
-If Harness, the model, or the provider is disabled, missing, upgraded, or on fire, EvoPulse keeps working.
+If Harness, the model, or the provider is disabled, missing, upgraded, times out, throws, or requests an invalid tool, EvoPulse falls back to `DeterministicRuntime` and keeps working.
 
 ## Runtime interface
 
@@ -76,9 +78,26 @@ EVOPULSE_AGENT_RUNTIME=deterministic   # default
 EVOPULSE_AGENT_RUNTIME=deepseek        # optional provider loop
 ```
 
-Default is deterministic. DeepSeek mode uses a separable provider (`DEEPSEEK_*`, `EVOPULSE_LLM_*`, or existing OpenAI / Groq keys). Secrets stay in the environment. No model brand is hardcoded into product identity.
+Default is deterministic. DeepSeek mode uses a separable provider (`OPENROUTER_*` first when set, then `DEEPSEEK_*`, `EVOPULSE_LLM_*`, or existing OpenAI / Groq keys). Secrets stay in the environment. No model brand is hardcoded into product identity.
 
 On provider miss, timeout, or throw: fall back to `DeterministicRuntime`. The Command Router remains a last-resort API fallback.
+
+## OpenRouter
+
+OpenRouter is an optional **server-side inference gateway**. It is not business truth. EvoPulse engines remain the source of what is true; policy, verification, and money stay with the existing engines.
+
+When `OPENROUTER_API_KEY` is set, `resolveConfiguredProvider()` prefers OpenRouter, then DeepSeek / `EVOPULSE_LLM_*`, then Groq, then OpenAI.
+
+```bash
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+# Optional. Tried only after the primary model fails.
+OPENROUTER_FALLBACK_MODEL=
+```
+
+The key stays on the server. It is never sent to the client and must not be prefixed `NEXT_PUBLIC_`. Requests go to `https://openrouter.ai/api/v1/chat/completions` using the existing OpenAI-compatible JSON tool protocol: `{"toolCalls":[...],"stop":false}`.
+
+If the primary model fails, the gateway tries `OPENROUTER_FALLBACK_MODEL` when configured, then throws. `DeepSeekHarnessRuntime` still falls back to `DeterministicRuntime`. Observability may include runtime, provider, model, duration, and tool names — never API keys or hidden chain-of-thought.
 
 ## Tools
 
@@ -131,6 +150,10 @@ The Command Center trace is product language: inspecting business, tracing depen
 
 ```bash
 EVOPULSE_AGENT_RUNTIME=deterministic
+# Optional inference gateway (server-side only)
+# OPENROUTER_API_KEY=
+# OPENROUTER_MODEL=
+# OPENROUTER_FALLBACK_MODEL=
 # Optional when EVOPULSE_AGENT_RUNTIME=deepseek
 # DEEPSEEK_API_KEY=
 # DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions
