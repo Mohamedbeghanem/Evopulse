@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one, run } from "../db";
+import { gateAction } from "../autonomy/service";
 import { executeAction } from "../engine/execute";
 import { recheckActionPolicy } from "../engine/policy";
 import type { ActionRow, PlanRow } from "../types";
@@ -18,14 +19,23 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
   const skippedBlocked = actions.filter((action) => action.policy_outcome === "BLOCKED");
 
   const executed: ActionRow[] = [];
+  const heldByAutonomy: string[] = [];
   for (const action of auto) {
     if (action.policy_outcome !== "AUTO") {
       throw new Error("Safe execution refused a non-AUTO action.");
     }
+    // Adaptive autonomy: the emergency pause or a suspended action type holds the step.
+    if (!gateAction(db, action, now, { humanInitiated: true }).mayAutoExecute) {
+      heldByAutonomy.push(action.id);
+      continue;
+    }
     executed.push(executeAction(db, action.id, now, actor)!);
   }
 
-  run(db, "UPDATE plans SET status = ? WHERE id = ?", ["safe_executed", planId]);
+  // Nothing ran because autonomy held every safe step (e.g. emergency pause): keep the plan's status.
+  if (!(executed.length === 0 && heldByAutonomy.length > 0)) {
+    run(db, "UPDATE plans SET status = ? WHERE id = ?", ["safe_executed", planId]);
+  }
   if (plan.goal_id) refreshGoalStatus(db, plan.goal_id, now);
 
   const after = hydratePlan(db, planId);
@@ -35,6 +45,7 @@ export function executeSafeActions(db: DatabaseSync, planId: string, now: string
     executed: executed.map((row) => row.id),
     pendingApproval: skippedApproval.map((row) => row.id),
     blocked: skippedBlocked.map((row) => row.id),
+    heldByAutonomy,
     counts: {
       prepared: live.length,
       executed: live.filter((row) => row.policy_outcome === "AUTO" && row.status === "executed").length,
