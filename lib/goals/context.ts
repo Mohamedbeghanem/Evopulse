@@ -3,6 +3,7 @@ import { all } from "../db";
 import { evidenceForCompatibleKind } from "../learning";
 import { loadPolicies } from "../engine/policy";
 import type { ActionRow, ExceptionRow } from "../types";
+import { EarlyWarningEngine } from "../warnings";
 import { collectBusinessRisks } from "./intelligence";
 import { prioritizeRisks } from "./prioritize";
 import type { GoalContext, InterpretedGoal } from "./types";
@@ -47,6 +48,21 @@ export function buildGoalContext(db: DatabaseSync, goal: InterpretedGoal, goalId
     policies: loadPolicies(db),
     strategyEvidence,
     pendingApprovals,
+    earlyWarnings: EarlyWarningEngine.for(db)
+      .getActiveWarnings()
+      .map((row) => {
+        const summary = EarlyWarningEngine.for(db).summarize(row);
+        return {
+          id: summary.id,
+          title: summary.title,
+          status: summary.status,
+          bufferState: summary.buffer_state,
+          expectationId: summary.expectation_id,
+          shortfallMinutes: summary.shortfall_minutes,
+          availableBufferMinutes: summary.available_buffer_minutes,
+          requiredBufferMinutes: summary.required_buffer_minutes,
+        };
+      }),
   };
 }
 

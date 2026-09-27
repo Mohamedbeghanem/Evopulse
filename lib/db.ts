@@ -38,7 +38,6 @@ function migrate(db: DatabaseSync) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
-    CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
     CREATE INDEX IF NOT EXISTS idx_events_occurred ON events(occurred_at);
 
     CREATE TABLE IF NOT EXISTS commitments (
@@ -200,6 +199,7 @@ function migrate(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_node_id);
     CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_node_id);
   `);
+  migrateAutonomy(db);
   migrateEventsTable(db);
   migrateExpectationsTable(db);
   migrateExceptionsTable(db);
@@ -207,6 +207,20 @@ function migrate(db: DatabaseSync) {
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
   migrateGoalTables(db);
+  const { migrateWarningTables } = require("./warnings/schema") as typeof import("./warnings/schema");
+  migrateWarningTables(db);
+  const { migrateCommandTables } = require("./command/schema") as typeof import("./command/schema");
+  migrateCommandTables(db);
+  const { migrateAutopilotTables } = require("./autopilot/schema") as typeof import("./autopilot/schema");
+  migrateAutopilotTables(db);
+  const { migrateAgentTables } = require("./agent/schema") as typeof import("./agent/schema");
+  migrateAgentTables(db);
+}
+
+/** Adaptive Autonomy tables (lib/autonomy). Additive only. */
+function migrateAutonomy(db: DatabaseSync) {
+  const { migrateAutonomyTables } = require("./autonomy/schema") as typeof import("./autonomy/schema");
+  migrateAutonomyTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
@@ -217,6 +231,7 @@ function migrateEventsTable(db: DatabaseSync) {
   if (!cols.has("source_id")) add("ALTER TABLE events ADD COLUMN source_id TEXT");
   if (!cols.has("actor_id")) add("ALTER TABLE events ADD COLUMN actor_id TEXT");
   if (!cols.has("entity_type")) add("ALTER TABLE events ADD COLUMN entity_type TEXT");
+  if (!cols.has("entity_id")) add("ALTER TABLE events ADD COLUMN entity_id TEXT");
   if (!cols.has("received_at")) {
     add("ALTER TABLE events ADD COLUMN received_at TEXT NOT NULL DEFAULT ''");
     if (cols.has("created_at")) {
@@ -227,6 +242,7 @@ function migrateEventsTable(db: DatabaseSync) {
   }
   if (!cols.has("confidence")) add("ALTER TABLE events ADD COLUMN confidence REAL NOT NULL DEFAULT 1");
   if (!cols.has("metadata")) add("ALTER TABLE events ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id)");
 }
 
 function tableColumns(db: DatabaseSync, table: string): Set<string> {
@@ -283,6 +299,10 @@ export function peekDb(): DatabaseSync | undefined {
 function wireEngineHooks(db: DatabaseSync) {
   const { ensureDetectHooks } = require("./engine/hooks") as typeof import("./engine/hooks");
   ensureDetectHooks(db);
+  const { ensureWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+  ensureWarningHooks(db);
+  const { ensureAutopilotHooks } = require("./autopilot/hooks") as typeof import("./autopilot/hooks");
+  ensureAutopilotHooks(db);
 }
 
 export function getDb(): DatabaseSync {
@@ -305,6 +325,18 @@ export function getDb(): DatabaseSync {
 }
 
 export function resetDbFile() {
+  try {
+    const { releaseWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+    releaseWarningHooks();
+  } catch {
+    /* warnings module may not be loaded yet */
+  }
+  try {
+    const { releaseAutopilotHooks } = require("./autopilot/hooks") as typeof import("./autopilot/hooks");
+    releaseAutopilotHooks();
+  } catch {
+    /* autopilot module may not be loaded yet */
+  }
   const path = dbPath();
   if (globalForDb.evopulseDb) {
     try {

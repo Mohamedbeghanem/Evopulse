@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurora — Warning master</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="aurora.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="top-inner">
+        <a class="brand" href="index.html"><strong>EvoPulse</strong><span>Business Control System</span></a>
+        <nav class="nav">
+          <a href="pulse.html">Pulse</a>
+          <a href="command.html">Command</a>
+          <a class="active" href="warning.html">Warnings</a>
+          <a class="ghost" href="index.html">Explore</a>
+        </nav>
+      </div>
+    </header>
+    <main class="page">
+      <p class="kicker">Early warning</p>
+      <h1>What may go wrong?</h1>
+      <p class="lede">Customer delivery — Order A under current timing. Failure has not occurred.</p>
+      <div class="chips" style="margin-top:10px">
+        <span class="chip">AT RISK</span>
+        <span class="chip">NOT MISSED</span>
+        <span class="chip">ACTIVE</span>
+      </div>
+
+      <section class="ops section">
+        <article class="card card-ice">
+          <p class="mono">Has it failed?</p>
+          <h3>No.</h3>
+          <p class="sand">The customer delivery is still a future commitment. Detect owns MISSED only after the deadline. This warning is evidence on the supplier cascade — not a second Pulse problem.</p>
+          <div class="grid-3" style="margin-top:14px">
+            <div class="stat"><p>Available</p><b class="ice">14h</b></div>
+            <div class="stat"><p>Required</p><b>18h</b></div>
+            <div class="stat"><p>Shortfall</p><b class="need">4h</b></div>
+          </div>
+          <div class="meter" aria-hidden="true"><span></span></div>
+          <p class="tiny">14h available vs 18h required. Buffer math, not a forecast of lost revenue.</p>
+        </article>
+
+        <div class="stack">
+          <article class="card">
+            <p class="mono">What changed?</p>
+            <p class="sand">Atlas Supply revised Shipment SH-204. Monday → Wednesday.</p>
+          </article>
+          <article class="card">
+            <p class="mono">Dependency</p>
+            <ol class="path">
+              <li>Atlas Supply</li>
+              <li>SH-204</li>
+              <li>Order A</li>
+              <li>Friday delivery</li>
+            </ol>
+          </article>
+          <article class="card">
+            <p class="mono">Business context</p>
+            <p class="sand">3 orders · 3 customers · 850,000 DZD associated · 540,000 DZD expected cash timing.</p>
+            <p class="tiny">If the deadline passes, Detect owns MISSED. Pulse still shows one cascade situation.</p>
+            <div class="actions">
+              <a class="btn btn-paper" href="pulse.html">Back to Pulse</a>
+              <a class="btn btn-line" href="command.html">Ask Command</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

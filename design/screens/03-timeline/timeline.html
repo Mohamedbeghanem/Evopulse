@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EvoPulse · Timeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Locked Aurora tokens — local copy so this file opens without design/AURORA_TOKENS.css on main. */
+      :root {
+        --aurora-canvas: #07090c;
+        --aurora-nav: #090c10;
+        --aurora-surface: #0e1217;
+        --aurora-surface-raised: #141a22;
+        --aurora-surface-active: #1a212b;
+        --aurora-recessed: #0a0d11;
+        --aurora-ink: #e8ecf1;
+        --aurora-secondary: #a3adba;
+        --aurora-muted: #7c8796;
+        --aurora-quiet: #8f9aa8;
+        --aurora-hairline: #1c232c;
+        --aurora-hairline-strong: #232b35;
+        --aurora-panel-line: #1f2630;
+        --aurora-row-line: #1a2029;
+        --aurora-attention: #ff5a1f;
+        --aurora-attention-hot: #ff7a45;
+        --aurora-on-attention: #0a0c0f;
+        --aurora-watch: #f0b44c;
+        --aurora-auto: #7fb2e0;
+        --aurora-focus: #ff7a45;
+        --aurora-need-wash: rgba(255, 90, 31, 0.08);
+        --aurora-need-line: rgba(255, 90, 31, 0.45);
+        --aurora-watch-wash: rgba(240, 180, 76, 0.12);
+        --aurora-auto-wash: rgba(127, 178, 224, 0.12);
+        --aurora-sim-wash: repeating-linear-gradient(
+          -45deg,
+          rgba(127, 178, 224, 0.05),
+          rgba(127, 178, 224, 0.05) 6px,
+          rgba(127, 178, 224, 0.1) 6px,
+          rgba(127, 178, 224, 0.1) 12px
+        );
+        --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+        --text-micro: 11px;
+        --text-caption: 12px;
+        --text-body: 14px;
+        --text-title: 22px;
+        --leading-body: 1.45;
+        --tracking-label: 0.12em;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --radius-chip: 4px;
+        --radius-control: 6px;
+        --radius-panel: 10px;
+        --os-sidebar-width: 240px;
+        --os-inspector-width: 360px;
+        --os-header-height: 56px;
+        --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--aurora-canvas);
+        color: var(--aurora-ink);
+        font-family: var(--font-sans);
+        font-size: var(--text-body);
+        line-height: var(--leading-body);
+      }
+      button, input { font: inherit; color: inherit; }
+      a { color: inherit; text-decoration: none; }
+      :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .skip, .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+      .skip:focus {
+        width: auto;
+        height: auto;
+        clip: auto;
+        left: 8px;
+        top: 8px;
+        z-index: 20;
+        background: var(--aurora-surface-raised);
+        padding: 8px 12px;
+      }
+
+      .os {
+        display: grid;
+        grid-template-columns: var(--os-sidebar-width) minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .os[data-bp="1440"].inspector-open {
+        grid-template-columns: var(--os-sidebar-width) minmax(0, 1fr) var(--os-inspector-width);
+      }
+      .os[data-bp="1280"] { --os-sidebar-width: 220px; }
+      .os[data-bp="1024"] { grid-template-columns: minmax(0, 1fr); }
+      .os.sidebar-collapsed { grid-template-columns: minmax(0, 1fr); }
+
+      .sidebar {
+        background: var(--aurora-nav);
+        border-right: 1px solid var(--aurora-hairline);
+        display: flex;
+        flex-direction: column;
+        padding: 12px 16px 16px;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 44px;
+        margin-bottom: 8px;
+      }
+      .brand-name { font-weight: 600; letter-spacing: -0.02em; }
+      .brand-name em { font-style: normal; color: var(--aurora-secondary); }
+      .nav-label {
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        color: var(--aurora-muted);
+        margin: 16px 0 6px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-secondary);
+        width: 100%;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+      .nav-item[aria-current="page"] {
+        background: var(--aurora-surface-active);
+        color: var(--aurora-ink);
+        font-weight: 500;
+        box-shadow: inset 2px 0 0 var(--aurora-attention);
+      }
+      .nav-item[aria-disabled="true"] { opacity: 0.55; cursor: default; }
+      .sidebar-foot { margin-top: auto; }
+      .live-clock {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: 0.08em;
+        color: var(--aurora-secondary);
+        padding: 10px 4px;
+      }
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--aurora-attention);
+      }
+      @keyframes throb {
+        0% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.55); }
+        70% { box-shadow: 0 0 0 8px rgba(255, 90, 31, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0); }
+      }
+      .live-dot.pulse { animation: throb 1.8s ease-out infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .live-dot.pulse { animation: none; }
+      }
+      .icon-btn, .reopen {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--aurora-hairline-strong);
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-secondary);
+        border-radius: var(--radius-control);
+        cursor: pointer;
+      }
+      .reopen {
+        display: none;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 8;
+      }
+      .os.sidebar-collapsed .reopen { display: inline-flex; align-items: center; justify-content: center; }
+
+      .workspace { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+      .page-header {
+        height: var(--os-header-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        border-bottom: 1px solid var(--aurora-hairline);
+        gap: 16px;
+      }
+      .page-header h1 {
+        margin: 0;
+        font-size: var(--text-title);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .lede { margin: 2px 0 0; color: var(--aurora-secondary); font-size: var(--text-caption); }
+      .lede strong { color: var(--aurora-attention-hot); font-weight: 500; }
+      .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+      .workspace-body {
+        flex: 1;
+        padding: 20px 28px 88px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .kind-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      .kind {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: var(--radius-chip);
+        border: 1px solid var(--aurora-hairline-strong);
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-secondary);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .kind i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .kind[data-kind="EXPECTED"] { color: var(--aurora-auto); }
+      .kind[data-kind="OBSERVED"] { color: var(--aurora-ink); }
+      .kind[data-kind="DETECTED"] { color: var(--aurora-attention-hot); }
+      .kind[data-kind="PLANNED"] { color: var(--aurora-watch); }
+      .kind[data-kind="EXECUTED"] { color: var(--aurora-auto); }
+      .kind[data-kind="VERIFIED"] { color: var(--aurora-quiet); }
+      .kind[aria-pressed="true"] {
+        background: var(--aurora-surface-active);
+        border-color: currentColor;
+      }
+      .kind[aria-pressed="false"] { opacity: 0.38; }
+
+      .status {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--aurora-secondary);
+      }
+      .status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+      .status--need { color: var(--aurora-attention-hot); }
+      .status--approval { color: var(--aurora-attention-hot); }
+      .status--monitor { color: var(--aurora-watch); }
+      .status--blocked { color: var(--aurora-quiet); }
+      .status--handled { color: var(--aurora-auto); }
+      .status--risk { color: var(--aurora-attention-hot); }
+
+      .money {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.01em;
+      }
+
+      .spine {
+        background: var(--aurora-surface);
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: var(--radius-panel);
+        padding: 14px 16px 10px;
+      }
+      .spine-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 10px;
+      }
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        color: var(--aurora-muted);
+      }
+      .rail {
+        position: relative;
+        height: 72px;
+        margin: 8px 8px 0;
+      }
+      .rail-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 28px;
+        height: 1px;
+        background: var(--aurora-hairline-strong);
+      }
+      .rail-now {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--aurora-attention);
+        transform: translateX(-1px);
+      }
+      .mark {
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        width: 112px;
+        text-align: center;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+      .mark .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin: 24px auto 6px;
+        background: var(--aurora-muted);
+        box-shadow: 0 0 0 3px var(--aurora-surface);
+      }
+      .mark[data-kind="DETECTED"] .dot,
+      .mark[data-kind="NOW"] .dot { background: var(--aurora-attention); }
+      .mark[data-kind="EXPECTED"] .dot { background: var(--aurora-auto); }
+      .mark[data-kind="OBSERVED"] .dot { background: var(--aurora-ink); }
+      .mark[data-kind="PLANNED"] .dot { background: var(--aurora-watch); }
+      .mark time, .mark .lab {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        color: var(--aurora-muted);
+      }
+      .mark[aria-pressed="true"] .lab { color: var(--aurora-ink); }
+      .mark.now-mark .lab { color: var(--aurora-attention-hot); font-weight: 600; }
+
+      .tape {
+        display: grid;
+        grid-template-columns: 1.15fr 0.9fr 1.15fr;
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: var(--radius-panel);
+        background: var(--aurora-surface);
+        min-height: 360px;
+        overflow: hidden;
+      }
+      .lane {
+        min-width: 0;
+        padding: 14px 16px 16px;
+      }
+      .lane + .lane { border-left: 1px solid var(--aurora-panel-line); }
+      .lane-now {
+        background: var(--aurora-need-wash);
+        box-shadow: inset 0 0 0 1px var(--aurora-need-line);
+      }
+      .lane-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 12px;
+      }
+      .lane-head h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .spot {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 78px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px 0;
+        border: 0;
+        border-top: 1px solid var(--aurora-row-line);
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+      .spot:first-of-type { border-top: 0; }
+      .spot[hidden] { display: none; }
+      .spot[aria-pressed="true"] { background: rgba(255, 255, 255, 0.02); }
+      .spot time {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--aurora-muted);
+      }
+      .spot .title { color: var(--aurora-ink); }
+      .spot .detail { color: var(--aurora-secondary); font-size: 13px; margin-top: 2px; }
+      .spot .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+      .vs {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 6px 8px;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .vs dt {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--aurora-muted);
+      }
+      .vs dd { margin: 0; color: var(--aurora-secondary); }
+
+      .situation {
+        padding: 4px 0 8px;
+      }
+      .situation h3 {
+        margin: 8px 0 4px;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+      }
+      .situation .amount {
+        font-size: 28px;
+        line-height: 1.1;
+        color: var(--aurora-attention-hot);
+        margin: 10px 0 2px;
+      }
+      .situation .amount-note { color: var(--aurora-muted); font-size: 12px; }
+
+      .btn {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: var(--radius-control);
+        border: 1px solid #2a333f;
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .btn-pri {
+        background: var(--aurora-attention);
+        border-color: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+      .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+      .plan-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 0;
+        border-top: 1px solid var(--aurora-row-line);
+        font-size: 13px;
+      }
+      .empty-kind {
+        color: var(--aurora-muted);
+        font-size: 13px;
+        padding: 8px 0;
+      }
+
+      .sim {
+        display: none;
+        border: 1px dashed var(--aurora-auto);
+        border-radius: var(--radius-panel);
+        background: var(--aurora-sim-wash);
+        padding: 12px 16px;
+      }
+      .sim.is-open { display: block; }
+      .sim-banner {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--aurora-auto);
+        margin-bottom: 8px;
+      }
+      .delta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .delta-col h3 {
+        margin: 0 0 6px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--aurora-muted);
+      }
+      .delta-col.delta h3 { color: var(--aurora-auto); }
+
+      .inspector {
+        display: none;
+        background: var(--aurora-recessed);
+        border-left: 1px solid var(--aurora-hairline);
+        padding: 16px 20px 24px;
+        min-height: 100vh;
+      }
+      .os.inspector-open .inspector { display: block; }
+      .os[data-bp="1280"].inspector-open .inspector,
+      .os[data-bp="1024"].inspector-open .inspector {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: min(320px, 92vw);
+        height: 100vh;
+        z-index: 10;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+      }
+      .os[data-bp="1024"] .sidebar {
+        display: none;
+      }
+      .os[data-bp="1024"]:not(.sidebar-collapsed) .sidebar {
+        display: flex;
+        position: fixed;
+        z-index: 9;
+        height: 100vh;
+        width: 240px;
+      }
+      .os[data-bp="1024"] .reopen,
+      .os.sidebar-collapsed .reopen { display: inline-flex; align-items: center; justify-content: center; }
+      .os[data-bp="1024"] .page-header { padding-left: 56px; }
+      .inspector h2 { margin: 0 0 4px; font-size: 16px; }
+      .kv { display: grid; grid-template-columns: 96px 1fr; gap: 8px 10px; margin-top: 14px; }
+      .kv dt {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--aurora-muted);
+      }
+      .kv dd { margin: 0; color: var(--aurora-secondary); font-size: 13px; }
+      .quote {
+        margin: 14px 0 0;
+        padding: 10px 12px;
+        border-left: 2px solid var(--aurora-attention);
+        color: var(--aurora-ink);
+        font-size: 13px;
+      }
+
+      .ask-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        max-width: 840px;
+        margin: 0;
+        padding: 8px 10px 8px 14px;
+        background: var(--aurora-surface);
+        border: 1px solid var(--aurora-hairline-strong);
+        border-radius: var(--radius-panel);
+      }
+      .ask-bar input {
+        flex: 1;
+        min-width: 0;
+        height: 32px;
+        border: 0;
+        background: transparent;
+        color: var(--aurora-ink);
+      }
+      .ask-bar input::placeholder { color: var(--aurora-muted); }
+      .ask-note { font-size: 12px; color: var(--aurora-muted); }
+
+      .states {
+        padding: 10px 28px 16px;
+        border-top: 1px solid var(--aurora-hairline);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        color: var(--aurora-muted);
+        font-size: 12px;
+      }
+      .states select, .states button.ghost {
+        background: var(--aurora-surface);
+        border: 1px solid var(--aurora-hairline-strong);
+        color: var(--aurora-secondary);
+        height: 28px;
+        border-radius: 4px;
+        padding: 0 8px;
+      }
+
+      .placeholder {
+        display: none;
+        padding: 48px 8px;
+        color: var(--aurora-secondary);
+      }
+      .workspace-body[data-view="empty"] .live-only,
+      .workspace-body[data-view="loading"] .live-only,
+      .workspace-body[data-view="error"] .live-only { display: none; }
+      .workspace-body[data-view="empty"] .placeholder-empty,
+      .workspace-body[data-view="loading"] .placeholder-loading,
+      .workspace-body[data-view="error"] .placeholder-error { display: block; }
+      .ghost-lanes {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 24px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+      }
+
+      .toast {
+        display: none;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--aurora-secondary);
+      }
+      .toast.is-on { display: block; }
+
+      @media (max-width: 1280px) {
+        :root { --os-sidebar-width: 220px; --os-inspector-width: 320px; }
+        .workspace-body, .page-header { padding-left: 20px; padding-right: 20px; }
+        .delta-grid { grid-template-columns: 1fr; }
+        .mark { width: 88px; }
+        .situation .amount { font-size: 24px; }
+      }
+      @media (max-width: 1100px) {
+        .tape { grid-template-columns: 1fr; }
+        .lane + .lane { border-left: 0; border-top: 1px solid var(--aurora-panel-line); }
+        .rail { height: 84px; }
+      }
+      .os[data-bp="1024"] .tape { grid-template-columns: 1fr; }
+      .os[data-bp="1024"] .lane + .lane { border-left: 0; border-top: 1px solid var(--aurora-panel-line); }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#workspace">Skip to timeline</a>
+    <div class="os" id="os">
+      <aside class="sidebar" aria-label="Control OS">
+        <div class="brand">
+          <span class="brand-name">Evo<em>Pulse</em></span>
+          <button class="icon-btn" type="button" data-collapse aria-expanded="true" aria-label="Collapse sidebar">‹</button>
+        </div>
+        <button class="nav-item" type="button" data-open-ask>New command</button>
+        <button class="nav-item" type="button" data-open-ask>Search / command <span class="eyebrow">⌘K</span></button>
+
+        <div class="nav-label">PRIMARY</div>
+        <a class="nav-item" href="#pulse" aria-disabled="true">Pulse</a>
+        <a class="nav-item" href="#command" aria-disabled="true">Command</a>
+        <a class="nav-item" href="#workspace" aria-current="page">Timeline</a>
+
+        <div class="nav-label">WORKSPACE</div>
+        <a class="nav-item" href="#business" aria-disabled="true">Business</a>
+        <a class="nav-item" href="#goals" aria-disabled="true">Goals</a>
+
+        <div class="sidebar-foot">
+          <a class="nav-item" href="#policies" aria-disabled="true">Policies / Control</a>
+          <div class="live-clock">
+            <span class="live-dot pulse" aria-hidden="true"></span>
+            <span>LIVE · SUN 27 SEP · 08:18</span>
+          </div>
+          <div class="nav-item" aria-disabled="true">Operator</div>
+        </div>
+      </aside>
+
+      <button class="reopen" type="button" data-reopen-sidebar aria-label="Open sidebar">☰</button>
+
+      <div class="workspace" id="workspace">
+        <header class="page-header">
+          <div>
+            <h1>Timeline</h1>
+            <p class="lede" id="lede">How did we get here, and what happens next? <strong>320,000 DZD</strong> needs you.</p>
+          </div>
+          <div class="header-actions">
+            <span class="status status--need" id="header-status"><i></i> NEEDS YOU</span>
+            <button class="btn" type="button" id="jump-now">Jump to NOW</button>
+          </div>
+        </header>
+
+        <main class="workspace-body" id="body" data-view="live" data-phase="seeded">
+          <div class="placeholder placeholder-empty">
+            <p class="eyebrow">EMPTY</p>
+            <p>Nothing on the tape for this scope.</p>
+            <p class="ask-note">Composer: Show me what changed today.</p>
+          </div>
+          <div class="placeholder placeholder-loading">
+            <div class="ghost-lanes">
+              <div>PAST</div>
+              <div>NOW</div>
+              <div>EXPECTED FUTURE</div>
+            </div>
+          </div>
+          <div class="placeholder placeholder-error">
+            <p class="eyebrow">ERROR</p>
+            <p>Timeline could not be read.</p>
+            <button class="btn" type="button" data-go-pulse>Keep Pulse reachable</button>
+          </div>
+
+          <div class="live-only kind-legend" role="group" aria-label="Filter tape by kind">
+            <span class="eyebrow">KIND</span>
+            <button class="kind" data-kind="EXPECTED" aria-pressed="true" type="button"><i></i> EXPECTED</button>
+            <button class="kind" data-kind="OBSERVED" aria-pressed="true" type="button"><i></i> OBSERVED</button>
+            <button class="kind" data-kind="DETECTED" aria-pressed="true" type="button"><i></i> DETECTED</button>
+            <button class="kind" data-kind="PLANNED" aria-pressed="true" type="button"><i></i> PLANNED</button>
+            <button class="kind" data-kind="EXECUTED" aria-pressed="true" type="button"><i></i> EXECUTED</button>
+            <button class="kind" data-kind="VERIFIED" aria-pressed="true" type="button"><i></i> VERIFIED</button>
+          </div>
+
+          <section class="spine live-only" aria-label="Clock spine">
+            <div class="spine-head">
+              <span class="eyebrow">WED 23 SEP → FRI 2 OCT · AFRICA/TUNIS</span>
+              <span class="eyebrow">NOT A FEED · ONE SITUATION AT NOW</span>
+            </div>
+            <div class="rail" id="rail">
+              <div class="rail-line" aria-hidden="true"></div>
+              <div class="rail-now" style="left: 48%" aria-hidden="true"></div>
+              <button class="mark" type="button" style="left: 8%" data-id="msg" data-kind="OBSERVED" aria-pressed="false">
+                <time datetime="2026-09-23T16:42:00+01:00">WED 23</time>
+                <span class="dot"></span>
+                <span class="lab">Message</span>
+              </button>
+              <button class="mark" type="button" style="left: 22%" data-id="miss" data-kind="DETECTED" aria-pressed="false">
+                <time datetime="2026-09-24T18:00:00+01:00">THU 24</time>
+                <span class="dot"></span>
+                <span class="lab">Send missed</span>
+              </button>
+              <button class="mark" type="button" style="left: 34%" data-id="blocked" data-kind="DETECTED" aria-pressed="false">
+                <time datetime="2026-09-25T17:00:00+01:00">FRI 25</time>
+                <span class="dot"></span>
+                <span class="lab">Decision blocked</span>
+              </button>
+              <button class="mark now-mark" type="button" style="left: 48%" data-id="now" data-kind="NOW" aria-pressed="true">
+                <time datetime="2026-09-27T08:18:00+01:00">SUN 27</time>
+                <span class="dot"></span>
+                <span class="lab">NOW</span>
+              </button>
+              <button class="mark" type="button" style="left: 64%" data-id="ship" data-kind="EXPECTED" aria-pressed="false">
+                <time datetime="2026-09-28T09:00:00+01:00">MON 28</time>
+                <span class="dot"></span>
+                <span class="lab">SH-204</span>
+              </button>
+              <button class="mark" type="button" style="left: 78%" data-id="deliver" data-kind="EXPECTED" aria-pressed="false">
+                <time datetime="2026-09-29T10:00:00+01:00">TUE 29</time>
+                <span class="dot"></span>
+                <span class="lab">Order A</span>
+              </button>
+              <button class="mark" type="button" style="left: 94%" data-id="cash" data-kind="EXPECTED" aria-pressed="false">
+                <time datetime="2026-10-02T17:00:00+01:00">FRI 2</time>
+                <span class="dot"></span>
+                <span class="lab">540K cash</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="tape live-only" aria-label="Past, now, expected future">
+            <div class="lane" aria-labelledby="past-h">
+              <div class="lane-head">
+                <h2 id="past-h">Past</h2>
+                <span class="eyebrow">HOW WE GOT HERE</span>
+              </div>
+
+              <button class="spot" type="button" data-id="deal" data-kind="OBSERVED">
+                <time datetime="2026-09-04T11:00:00+01:00">FRI 4 SEP</time>
+                <div>
+                  <div class="title">Atlas Q4 warehouse fit-out opened</div>
+                  <div class="detail">Proposal value <span class="money">320,000 DZD</span> · Atlas Retail Group</div>
+                  <div class="meta"><span class="kind" data-kind="OBSERVED"><i></i> OBSERVED</span></div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="ship-seed" data-kind="EXPECTED">
+                <time datetime="2026-09-12T10:00:00+01:00">FRI 12 SEP</time>
+                <div>
+                  <div class="title">SH-204 planted as Monday arrival</div>
+                  <div class="detail">Atlas Supply · still ON TRACK in this seed</div>
+                  <div class="meta"><span class="kind" data-kind="EXPECTED"><i></i> EXPECTED</span></div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="msg" data-kind="OBSERVED">
+                <time datetime="2026-09-23T16:42:00+01:00">WED 23 16:42</time>
+                <div>
+                  <div class="title">Amine Khelifi wrote</div>
+                  <div class="detail">Two commitments extracted. Friday depends on Thursday.</div>
+                  <div class="meta">
+                    <span class="kind" data-kind="OBSERVED"><i></i> OBSERVED</span>
+                    <span class="kind" data-kind="DETECTED"><i></i> DETECTED 0.94</span>
+                  </div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="miss" data-kind="DETECTED">
+                <time datetime="2026-09-24T18:00:00+01:00">THU 24 18:00</time>
+                <div>
+                  <div class="title">Our send did not occur</div>
+                  <dl class="vs">
+                    <dt>EXPECTED</dt><dd>Revised proposal sent Thursday 18:00</dd>
+                    <dt>OBSERVED</dt><dd>No quote.sent event before Thursday 18:00</dd>
+                  </dl>
+                  <div class="meta"><span class="kind" data-kind="DETECTED"><i></i> DETECTED · MISSED</span></div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="blocked" data-kind="DETECTED">
+                <time datetime="2026-09-25T17:00:00+01:00">FRI 25 17:00</time>
+                <div>
+                  <div class="title">Their Friday decision could not happen</div>
+                  <div class="detail">Blocked — customer cannot decide without the revised proposal.</div>
+                  <div class="meta">
+                    <span class="kind" data-kind="DETECTED"><i></i> DETECTED</span>
+                    <span class="status status--blocked"><i></i> BLOCKED</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div class="lane lane-now" id="now-lane" aria-labelledby="now-h">
+              <div class="lane-head">
+                <h2 id="now-h">Now</h2>
+                <span class="eyebrow">ONE SITUATION</span>
+              </div>
+              <article class="situation">
+                <span class="status status--need" id="now-status"><i></i> NEEDS YOU</span>
+                <h3>Atlas missed the Thursday send</h3>
+                <p class="amount money" id="now-amount">320,000 DZD</p>
+                <p class="amount-note">Associated revenue · proposal value · not a loss claim</p>
+                <p class="detail" id="now-copy">
+                  Amine promised a Friday decision if we sent the revised proposal Thursday.
+                  Thursday passed. The decision is blocked. Recovery is planned. Nothing has been executed.
+                </p>
+                <div class="btn-row">
+                  <button class="btn btn-pri" type="button" id="primary-act">Review recovery</button>
+                  <button class="btn" type="button" data-id="now" data-inspect>Inspect evidence</button>
+                </div>
+              </article>
+
+              <div id="plan-block">
+                <p class="eyebrow" style="margin-top:16px">RECOVERY · PLANNED · NOT EXECUTED</p>
+                <div class="plan-row">
+                  <span>Prepare revised proposal</span>
+                  <span class="status status--handled"><i></i> POLICY AUTO</span>
+                </div>
+                <div class="plan-row">
+                  <span>Draft follow-up to Amine</span>
+                  <span class="status status--approval"><i></i> NEEDS APPROVAL</span>
+                </div>
+                <div class="plan-row">
+                  <span>Monday 28 Sep 10:00 checkpoint</span>
+                  <span class="status status--handled"><i></i> POLICY AUTO</span>
+                </div>
+                <p class="empty-kind" id="exec-note">EXECUTED: none. VERIFIED: none. Execution is not resolution.</p>
+                <p class="empty-kind" id="risk-note" hidden>
+                  Friday decision is now <span class="status status--risk"><i></i> AT RISK — NOT MISSED</span>
+                  — waiting on the Monday checkpoint. Not HANDLED until verification succeeds.
+                </p>
+              </div>
+            </div>
+
+            <div class="lane" aria-labelledby="future-h">
+              <div class="lane-head">
+                <h2 id="future-h">Expected future</h2>
+                <span class="eyebrow">WHAT SHOULD HAPPEN</span>
+              </div>
+
+              <button class="spot" type="button" data-id="ship" data-kind="EXPECTED">
+                <time datetime="2026-09-28T09:00:00+01:00">MON 28 09:00</time>
+                <div>
+                  <div class="title">SH-204 arrives Monday</div>
+                  <div class="detail">ON TRACK. Atlas Supply. Not delayed in this seed.</div>
+                  <div class="meta">
+                    <span class="kind" data-kind="EXPECTED"><i></i> EXPECTED</span>
+                    <span class="status status--handled"><i></i> ON TRACK</span>
+                  </div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="check" data-kind="PLANNED">
+                <time datetime="2026-09-28T10:00:00+01:00">MON 28 10:00</time>
+                <div>
+                  <div class="title">Confirm proposal received</div>
+                  <div class="detail">Checkpoint is planned. It is not planted until execute.</div>
+                  <div class="meta"><span class="kind" data-kind="PLANNED"><i></i> PLANNED</span></div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="deliver" data-kind="EXPECTED">
+                <time datetime="2026-09-29T10:00:00+01:00">TUE 29 10:00</time>
+                <div>
+                  <div class="title">Order A to Oran Fresh</div>
+                  <div class="detail">Depends on SH-204 Monday. <span class="money">320,000 DZD</span> associated.</div>
+                  <div class="meta"><span class="kind" data-kind="EXPECTED"><i></i> EXPECTED</span></div>
+                </div>
+              </button>
+
+              <button class="spot" type="button" data-id="cash" data-kind="EXPECTED">
+                <time datetime="2026-10-02T17:00:00+01:00">FRI 2 OCT 17:00</time>
+                <div>
+                  <div class="title">Expected cash timing</div>
+                  <div class="detail"><span class="money">540,000 DZD</span> · Invoice A 200,000 + B 180,000 + C 160,000</div>
+                  <div class="meta"><span class="kind" data-kind="EXPECTED"><i></i> EXPECTED</span></div>
+                </div>
+              </button>
+
+              <p class="empty-kind">
+                Orders A+B+C associated revenue is <span class="money">850,000 DZD</span> if SH-204 slips.
+                That is not the NOW situation while the supplier is stable.
+              </p>
+            </div>
+          </section>
+
+          <section class="sim live-only" id="sim" aria-label="Simulation">
+            <div class="sim-banner">SIMULATION · NOT LIVE · NOT A FORECAST · SOURCE: tests/simulation.test.ts ON SEEDED TWIN</div>
+            <p>What if SH-204 is another 3 days late? Baseline stays Monday. The clone moves arrival to Thursday 1 Oct 09:00.</p>
+            <div class="delta-grid">
+              <div class="delta-col">
+                <h3>LIVE BASELINE</h3>
+                <p>SH-204 Mon 28 Sep 09:00<br />Commitments missed: none<br />Cash week still <span class="money">540,000 DZD</span></p>
+              </div>
+              <div class="delta-col">
+                <h3>SIMULATION</h3>
+                <p>SH-204 Thu 1 Oct 09:00<br />+1 customer deadline: Oran Fresh Market<br />Cash moved to next period: <span class="money">0</span></p>
+              </div>
+              <div class="delta-col delta">
+                <h3>DELTA</h3>
+                <p>Arrival +3 days. Invoice C 160,000 DZD does <em>not</em> move on this seeded run. That 160K figure is the after-delay +3 test — not this tape.</p>
+              </div>
+            </div>
+          </section>
+
+          <div class="ask-bar live-only">
+            <label class="visually-hidden" for="ask">Ask EvoPulse about this</label>
+            <input id="ask" type="search" placeholder="Ask EvoPulse about this… What happens next for Atlas?" />
+            <button class="btn btn-pri" type="button" id="ask-go">Ask</button>
+          </div>
+          <p class="toast" id="toast" role="status"></p>
+        </main>
+
+        <footer class="states">
+          <span>Prototype states — not product chrome</span>
+          <label>View
+            <select id="view-state">
+              <option value="live">LIVE seeded</option>
+              <option value="recovered">After execute · MONITORING</option>
+              <option value="empty">Empty</option>
+              <option value="loading">Loading</option>
+              <option value="error">Error</option>
+            </select>
+          </label>
+          <button class="ghost" type="button" id="toggle-sim">Show SIMULATION</button>
+        </footer>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-label="Inspector">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <p class="eyebrow">INSPECTOR</p>
+          <button class="icon-btn" type="button" id="close-inspector" aria-label="Close inspector">×</button>
+        </div>
+        <h2 id="ins-title">Select a mark</h2>
+        <p class="detail" id="ins-kind"></p>
+        <blockquote class="quote" id="ins-quote" hidden></blockquote>
+        <dl class="kv" id="ins-kv"></dl>
+        <div class="btn-row">
+          <button class="btn" type="button" data-open-ask>Ask EvoPulse about this…</button>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      const FACTS = {
+        deal: {
+          title: "Atlas Q4 warehouse fit-out opened",
+          kind: "OBSERVED",
+          at: "Fri 4 Sep 2026, 11:00 Africa/Tunis",
+          object: "Opportunity · Atlas Retail Group",
+          expected: "—",
+          observed: "Deal created. Proposal value 320,000 DZD.",
+          source: "seed · deal.created",
+          confidence: "1.00",
+          attention: "None — historical origin"
+        },
+        "ship-seed": {
+          title: "SH-204 Monday arrival planted",
+          kind: "EXPECTED",
+          at: "Fri 12 Sep 2026, 10:00 Africa/Tunis",
+          object: "Shipment SH-204 · Atlas Supply",
+          expected: "Arrive Mon 28 Sep 09:00",
+          observed: "No delay event in this seed (supplier_phase=stable)",
+          source: "seed · shipment.expected",
+          confidence: "0.95",
+          attention: "ON TRACK"
+        },
+        msg: {
+          title: "Customer message received",
+          kind: "OBSERVED",
+          at: "Wed 23 Sep 2026, 16:42 Africa/Tunis",
+          object: "Amine Khelifi · Atlas Retail Group",
+          expected: "—",
+          observed: "Inbox message. Commitments extracted.",
+          source: "inbox · message.received",
+          confidence: "0.94 / 0.92",
+          attention: "Created OUR send + THEIR decision",
+          quote: "Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday."
+        },
+        miss: {
+          title: "Revised proposal never sent",
+          kind: "DETECTED",
+          at: "Thu 24 Sep 2026, 18:00 Africa/Tunis",
+          object: "Commitment · send revised proposal",
+          expected: "Revised proposal sent Thursday 24 Sep 18:00",
+          observed: "No proposal-sent event before Thursday 18:00",
+          source: "pulse-engine · commitment.missed",
+          confidence: "0.94",
+          attention: "NEEDS YOU"
+        },
+        blocked: {
+          title: "Friday decision blocked",
+          kind: "DETECTED",
+          at: "Fri 25 Sep 2026, 17:00 Africa/Tunis",
+          object: "Commitment · customer decision",
+          expected: "Customer gives a decision on Friday",
+          observed: "Blocked — customer cannot decide without the revised proposal",
+          source: "dependency · Friday depends on Thursday",
+          confidence: "0.92",
+          attention: "BLOCKED"
+        },
+        now: {
+          title: "320,000 DZD associated revenue needs you",
+          kind: "DETECTED",
+          at: "Sun 27 Sep 2026, 08:18 Africa/Tunis",
+          object: "Situation · missed commitment",
+          expected: "Thursday send, then Friday decision",
+          observed: "Send missed. Decision blocked. Recovery planned.",
+          source: "pulse-engine · exception.created",
+          confidence: "0.94",
+          attention: "NEEDS YOU",
+          quote: "Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday."
+        },
+        ship: {
+          title: "SH-204 expected Monday",
+          kind: "EXPECTED",
+          at: "Mon 28 Sep 2026, 09:00 Africa/Tunis",
+          object: "Shipment SH-204",
+          expected: "Arrive Monday",
+          observed: "Awaiting fulfilment",
+          source: "expectation · ON_TRACK",
+          confidence: "0.95",
+          attention: "ON TRACK — not delayed in this seed"
+        },
+        check: {
+          title: "Monday checkpoint",
+          kind: "PLANNED",
+          at: "Mon 28 Sep 2026, 10:00 Africa/Tunis",
+          object: "Action · create_checkpoint",
+          expected: "Confirm proposal received and decision still expected",
+          observed: "Not planted. Action status: proposed.",
+          source: "recovery-engine",
+          confidence: "planner-v1",
+          attention: "PLANNED · not EXECUTED"
+        },
+        deliver: {
+          title: "Order A delivered to Oran Fresh",
+          kind: "EXPECTED",
+          at: "Tue 29 Sep 2026, 10:00 Africa/Tunis",
+          object: "Order A · Oran Fresh Market · 320,000 DZD",
+          expected: "Deliver Tuesday if SH-204 is Monday",
+          observed: "Awaiting fulfilment · ON_TRACK",
+          source: "expectation",
+          confidence: "0.91",
+          attention: "Depends on SH-204"
+        },
+        cash: {
+          title: "Expected cash timing",
+          kind: "EXPECTED",
+          at: "Fri 2 Oct 2026, 17:00 Africa/Tunis",
+          object: "Invoices A 200,000 + B 180,000 + C 160,000 DZD",
+          expected: "540,000 DZD cash week",
+          observed: "No cash-timing exception while supplier is stable",
+          source: "seed graph · invoices",
+          confidence: "graph fact",
+          attention: "EXPECTED timing — not lost"
+        }
+      };
+
+      const os = document.getElementById("os");
+      const inspector = document.getElementById("inspector");
+      const body = document.getElementById("body");
+      const toast = document.getElementById("toast");
+
+      function syncBreak() {
+        const w = window.innerWidth;
+        const bp = w >= 1360 ? "1440" : w >= 1100 ? "1280" : "1024";
+        os.dataset.bp = bp;
+        if (bp === "1024") os.classList.add("sidebar-collapsed");
+        else os.classList.remove("sidebar-collapsed");
+      }
+      window.addEventListener("resize", syncBreak);
+      syncBreak();
+
+      function openInspector(id) {
+        const fact = FACTS[id];
+        if (!fact) return;
+        document.getElementById("ins-title").textContent = fact.title;
+        document.getElementById("ins-kind").textContent = fact.kind + " · " + fact.attention;
+        const q = document.getElementById("ins-quote");
+        if (fact.quote) {
+          q.hidden = false;
+          q.textContent = fact.quote;
+        } else {
+          q.hidden = true;
+        }
+        document.getElementById("ins-kv").innerHTML = [
+          ["KIND", fact.kind],
+          ["CLOCK", fact.at],
+          ["OBJECT", fact.object],
+          ["EXPECTED", fact.expected],
+          ["OBSERVED", fact.observed],
+          ["SOURCE", fact.source],
+          ["CONFIDENCE", fact.confidence],
+          ["ATTENTION", fact.attention]
+        ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+        os.classList.add("inspector-open");
+        document.querySelectorAll("[data-id]").forEach((el) => {
+          if (el.matches(".mark, .spot")) el.setAttribute("aria-pressed", el.dataset.id === id ? "true" : "false");
+        });
+        inspector.querySelector("h2").focus?.();
+      }
+
+      function closeInspector() {
+        os.classList.remove("inspector-open");
+      }
+
+      document.querySelectorAll(".mark, .spot, [data-inspect]").forEach((el) => {
+        el.addEventListener("click", () => openInspector(el.dataset.id));
+      });
+      document.getElementById("close-inspector").addEventListener("click", closeInspector);
+
+      document.querySelectorAll(".kind-legend .kind").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed") === "true" ? "false" : "true");
+          const on = new Set(
+            [...document.querySelectorAll(".kind-legend .kind")]
+              .filter((b) => b.getAttribute("aria-pressed") === "true")
+              .map((b) => b.dataset.kind)
+          );
+          document.querySelectorAll(".spot").forEach((spot) => {
+            const kinds = (spot.dataset.kind || "").split(" ");
+            spot.hidden = kinds.length > 0 && !kinds.some((k) => on.has(k));
+          });
+        });
+      });
+
+      document.getElementById("jump-now").addEventListener("click", () => {
+        document.getElementById("now-lane").scrollIntoView({ behavior: "smooth", block: "center" });
+        openInspector("now");
+      });
+
+      document.getElementById("primary-act").addEventListener("click", () => {
+        toast.textContent = "Primary action: open the Atlas 320K situation / recovery. Route today: /exceptions/exc_proposal_missed/plan. Prototype only — no backend bind.";
+        toast.classList.add("is-on");
+      });
+
+      function askAbout() {
+        const q = document.getElementById("ask");
+        toast.textContent = "Command (not a chat): “" + (q.value || "What happens next for Atlas?") + "” — would land on Command with this tape as context.";
+        toast.classList.add("is-on");
+        q.focus();
+      }
+      document.getElementById("ask-go").addEventListener("click", askAbout);
+      document.querySelectorAll("[data-open-ask]").forEach((el) => el.addEventListener("click", askAbout));
+      document.getElementById("ask").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); askAbout(); }
+      });
+
+      document.getElementById("toggle-sim").addEventListener("click", () => {
+        const sim = document.getElementById("sim");
+        sim.classList.toggle("is-open");
+        document.getElementById("toggle-sim").textContent = sim.classList.contains("is-open")
+          ? "Hide SIMULATION"
+          : "Show SIMULATION";
+        if (sim.classList.contains("is-open")) sim.scrollIntoView({ block: "nearest" });
+      });
+
+      function setPhase(phase) {
+        const seeded = phase !== "recovered";
+        document.getElementById("header-status").innerHTML = seeded
+          ? "<i></i> NEEDS YOU"
+          : "<i></i> MONITORING";
+        document.getElementById("header-status").className = seeded ? "status status--need" : "status status--monitor";
+        document.getElementById("now-status").innerHTML = seeded
+          ? "<i></i> NEEDS YOU"
+          : "<i></i> MONITORING · VERIFICATION PENDING";
+        document.getElementById("now-status").className = seeded ? "status status--need" : "status status--monitor";
+        document.getElementById("lede").innerHTML = seeded
+          ? "How did we get here, and what happens next? <strong>320,000 DZD</strong> needs you."
+          : "Recovery executed. Verification pending — <strong>MONITORING</strong>, not HANDLED.";
+        document.getElementById("now-copy").textContent = seeded
+          ? "Amine promised a Friday decision if we sent the revised proposal Thursday. Thursday passed. The decision is blocked. Recovery is planned. Nothing has been executed."
+          : "Proposal prepared. Follow-up drafted. Monday checkpoint planted. Customer response is not verified. Send is not solved.";
+        document.getElementById("exec-note").textContent = seeded
+          ? "EXECUTED: none. VERIFIED: none. Execution is not resolution."
+          : "EXECUTED: prepare, draft, checkpoint. VERIFIED: pending customer.response. HANDLED only after verification succeeds.";
+        document.getElementById("risk-note").hidden = seeded;
+        document.getElementById("primary-act").textContent = seeded ? "Review recovery" : "Open verification";
+      }
+
+      document.getElementById("view-state").addEventListener("change", (e) => {
+        const v = e.target.value;
+        if (v === "recovered") {
+          body.dataset.view = "live";
+          setPhase("recovered");
+        } else {
+          body.dataset.view = v;
+          setPhase("seeded");
+        }
+      });
+
+      document.querySelectorAll("[data-go-pulse]").forEach((b) => {
+        b.addEventListener("click", () => {
+          toast.textContent = "Pulse remains reachable at / — this prototype does not navigate production.";
+          toast.classList.add("is-on");
+        });
+      });
+
+      document.querySelectorAll("[data-collapse], [data-reopen-sidebar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          os.classList.toggle("sidebar-collapsed");
+          const collapsed = os.classList.contains("sidebar-collapsed");
+          document.querySelectorAll("[data-collapse]").forEach((b) => b.setAttribute("aria-expanded", collapsed ? "false" : "true"));
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+          e.preventDefault();
+          document.getElementById("ask").focus();
+        }
+        if (e.key === "Escape") closeInspector();
+      });
+
+      const spots = [...document.querySelectorAll(".spot")];
+      spots.forEach((spot, i) => {
+        spot.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); spots[Math.min(spots.length - 1, i + 1)]?.focus(); }
+          if (e.key === "ArrowUp") { e.preventDefault(); spots[Math.max(0, i - 1)]?.focus(); }
+        });
+      });
+
+      const params = new URLSearchParams(location.search);
+      const view = params.get("view");
+      if (view && document.getElementById("view-state").querySelector(`[value="${view}"]`)) {
+        document.getElementById("view-state").value = view;
+        document.getElementById("view-state").dispatchEvent(new Event("change"));
+      }
+      if (params.get("sim") === "1") {
+        const sim = document.getElementById("sim");
+        sim.classList.add("is-open");
+        document.getElementById("toggle-sim").textContent = "Hide SIMULATION";
+        sim.scrollIntoView({ block: "center" });
+      }
+      if (params.get("inspect")) openInspector(params.get("inspect"));
+    </script>
+  </body>
+</html>

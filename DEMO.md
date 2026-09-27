@@ -15,7 +15,7 @@ Record this cold. Do not type. Seed is already at the miss.
 | 0–8 | `/` Pulse, cold start | “320,000 DZD needs you. Atlas asked for a revised proposal Thursday. We never sent it.” | **Problem & User Value (20)** — forgotten commitment, not another CRM |
 | 8–20 | Click the exception | Quote on screen: *“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”* Point at Expected vs Actual, 94% confidence, source. | **Quality of AI Use (20)** + **Responsible AI (10)** — evidence, no hidden chain-of-thought |
 | 20–32 | Dependency chain | “Our promise and their promise. Their Friday decision **depends on** our Thursday send. One miss, two broken expectations.” | **Functional Execution (20)** — primitives from PLAN §3 |
-| 32–48 | `/exceptions/exc_proposal_missed/plan` | Three actions: prepare proposal, draft follow-up, Monday checkpoint. Badge **APPROVAL_REQUIRED** because `external_message_requires_approval=true`. Click **Approve & execute**. Pulse flips to HANDLED. | **Functional Execution (20)** + **UX & Demo (15)** — human gate, state actually changes |
+| 32–48 | `/exceptions/exc_proposal_missed/plan` | Three actions: prepare proposal, draft follow-up, Monday checkpoint. Badge **APPROVAL_REQUIRED** because `external_message_requires_approval=true`. Click **Approve & execute**. Autopilot moves to MONITORING — execution is not HANDLED until verification succeeds. | **Functional Execution (20)** + **UX & Demo (15)** — human gate, state actually changes |
 | 48–70 | Demo bar → **Later message: 10%** | Customer: *“I'll sign today if you give me 10%.”* AI proposes 10%. Policy `discount_max=5%` → **BLOCKED**. Alternatives: 5% (304,000 DZD) or Net-14 + pulled slot. | **Quality of AI Use (20)** + **Responsible AI (10)** — AI proposes, software refuses |
 | 70–82 | `/timeline` | Past (message + missed Thursday), Now (320K overdue), Future (checkpoint). “This is the Business Time Machine.” | **UX & Demo (15)** — signature interface |
 | 82–90 | `/command` click canned “What is putting revenue at risk?” | Grounded answer cites the live exception and the blocked 10%. End on tagline: **Nothing falls through.** | **Testing & Reliability (15)** — offline fallback, seeded path, no typing |
@@ -24,7 +24,7 @@ If time dies at 70s, skip Timeline and land on Command.
 
 ## Second scenario (after the 90s loop)
 
-Reset → **Trigger Supplier Delay**. EvoPulse records `shipment.delayed`, moves SH-204 Monday → Wednesday (+2), walks the persisted graph, and calculates 3 orders / 3 customers / 850K associated revenue / 540K expected cash timing. Pulse and Twin update. `/impact/exc_shipment_delay` shows why Order B is affected. No API key.
+Reset → **Trigger Supplier Delay**. EvoPulse records `shipment.delayed`, moves SH-204 Monday → Wednesday (+2), walks the persisted graph, and calculates 3 orders / 3 customers / 850K **associated revenue** / 540K expected cash timing — not lost revenue. Early Warning marks Order A delivery AT RISK, not missed. Autopilot classifies the cascade as NEEDS YOU. `/impact/exc_shipment_delay` and `/command` (“Why is 850K at risk?” / “What if it is another 3 days late?”) stay on the same graph. Simulation does not write reality. No API key.
 
 ## Rubric map (100 pts)
 
