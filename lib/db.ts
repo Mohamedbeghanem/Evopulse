@@ -200,6 +200,7 @@ function migrate(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_node_id);
     CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_node_id);
   `);
+  migrateAutonomy(db);
   migrateEventsTable(db);
   migrateExpectationsTable(db);
   migrateExceptionsTable(db);
@@ -207,6 +208,12 @@ function migrate(db: DatabaseSync) {
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
   migrateGoalTables(db);
+}
+
+/** Adaptive Autonomy tables (lib/autonomy). Additive only. */
+function migrateAutonomy(db: DatabaseSync) {
+  const { migrateAutonomyTables } = require("./autonomy/schema") as typeof import("./autonomy/schema");
+  migrateAutonomyTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {

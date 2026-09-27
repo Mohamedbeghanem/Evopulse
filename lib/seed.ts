@@ -6,6 +6,7 @@ import {
   MESSAGE_ONE_ISO,
   PROPOSAL_DUE_ISO,
 } from "./clock";
+import { reseedAutonomy, seedAutonomy } from "./autonomy/seed";
 import { EVENT_TYPES, eventsFor } from "./events";
 import { IDS } from "./ids";
 import { SEED_MESSAGE_ONE } from "./engine/extract";
@@ -28,6 +29,7 @@ export function seedIfEmpty(db: DatabaseSync) {
   if (existing && existing.c > 0) return;
   seedWorld(db);
   seedSyntheticLearningData(db);
+  seedAutonomy(db);
 }
 
 export function seedWorld(db: DatabaseSync) {
@@ -381,4 +383,5 @@ export function wipeAndSeed(db: DatabaseSync) {
   }
   seedWorld(db);
   seedSyntheticLearningData(db);
+  reseedAutonomy(db);
 }
