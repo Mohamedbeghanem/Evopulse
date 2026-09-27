@@ -34,14 +34,14 @@ export function DemoBar() {
         <span className="ml-auto flex flex-wrap gap-2">
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/autopilot/handle-safe", "safe", "/")}
+            onClick={() => post("/api/autopilot/handle-safe", "safe", "/demo")}
             className="rounded-full border border-ok/40 px-3 py-1 text-ok hover:bg-ok hover:text-ink-950 disabled:opacity-50"
           >
             {busy === "safe" ? "Handling…" : "Handle safe actions"}
           </button>
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/reset", "reset", "/")}
+            onClick={() => post("/api/demo/reset", "reset", "/demo")}
             className="rounded-full border border-white/15 px-3 py-1 text-sand hover:border-paper hover:text-paper disabled:opacity-50"
           >
             {busy === "reset" ? "Resetting…" : "Reset demo"}

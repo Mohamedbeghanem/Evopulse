@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { getDb, getMeta } from "@/lib/db";
+import { withWorkspace } from "@/lib/auth";
+import { getMeta } from "@/lib/db";
 import { businessTwin } from "@/lib/engine/twin";
 import { pulseSummary } from "@/lib/engine/pulse";
 
-export async function GET() {
-  const db = getDb();
+export const GET = withWorkspace(async (ctx) => {
   return NextResponse.json({
-    now: getMeta(db, "demo_now"),
-    phase: getMeta(db, "demo_phase"),
-    supplierPhase: getMeta(db, "supplier_phase", "stable"),
-    twin: businessTwin(db),
-    pulse: pulseSummary(db, getMeta(db, "demo_now")),
+    now: getMeta(ctx.db, "demo_now"),
+    phase: getMeta(ctx.db, "demo_phase"),
+    supplierPhase: getMeta(ctx.db, "supplier_phase", "stable"),
+    twin: businessTwin(ctx.db),
+    pulse: pulseSummary(ctx.db, getMeta(ctx.db, "demo_now")),
   });
-}
+});

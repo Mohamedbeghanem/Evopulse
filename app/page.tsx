@@ -1,11 +1,5 @@
-import { PulseBoard } from "@/components/pulse/PulseBoard";
-import { getDb, getMeta } from "@/lib/db";
-import { pulseSummary } from "@/lib/engine/pulse";
+import { LandingPage } from "@/components/public/LandingPage";
 
-export const dynamic = "force-dynamic";
-
-export default function PulsePage() {
-  const db = getDb();
-  const pulse = pulseSummary(db, getMeta(db, "demo_now"));
-  return <PulseBoard pulse={pulse} />;
+export default function HomePage() {
+  return <LandingPage />;
 }

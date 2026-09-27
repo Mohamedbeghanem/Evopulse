@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Badge } from "@/components/Badge";
 import { Workspace } from "@/components/shell/Workspace";
 import { EmptyState, PageHeader } from "@/components/ui/chrome";
-import { getDb } from "@/lib/db";
+import { withPageContext } from "@/lib/auth/page";
 import { listGoalSummaries } from "@/lib/goals";
 
 export const dynamic = "force-dynamic";
 
-export default function GoalsIndexPage() {
-  const goals = listGoalSummaries(getDb()).filter((goal) => goal.goal_type);
+export default async function GoalsIndexPage() {
+  const goals = (await withPageContext((ctx) => listGoalSummaries(ctx.db))).filter((goal) => goal.goal_type);
   return (
     <Workspace>
       <PageHeader kicker="Goals · Outcomes" title="What are we protecting?">

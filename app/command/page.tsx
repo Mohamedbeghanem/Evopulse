@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { Inspector } from "@/components/shell/Inspector";
 import { Workspace } from "@/components/shell/Workspace";
+import { PulseAvatar } from "@/components/pulse-avatar/PulseAvatar";
 import { CommandComposer } from "@/components/ui/CommandComposer";
+import { avatarStateFromRuntime } from "@/lib/pulse-avatar/states";
 import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { ActionBar, PageHeader } from "@/components/ui/chrome";
 import { Button } from "@/components/ui/primitives";
-import { COMMAND_PROMPTS } from "@/lib/ui/commands";
+import { COMMAND_PROMPTS, USER_COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {
   id: string;
@@ -131,15 +133,26 @@ export default function CommandPage() {
         <p>AI investigates. EvoPulse determines truth. Policy determines permission.</p>
       </PageHeader>
 
-      <div className="mt-8">
-        <CommandComposer
-          value={message}
-          onChange={setMessage}
-          onSubmit={(value) => void ask(value)}
-          busy={busy}
-          suggestions={COMMAND_PROMPTS}
-          onSuggestion={(value) => void ask(value)}
+      <div className="mt-8 flex items-end gap-3">
+        <PulseAvatar
+          size={48}
+          state={
+            busy
+              ? avatarStateFromRuntime(latest?.result.agent?.phase || "INTERPRETING")
+              : avatarStateFromRuntime(latest?.result.agent?.phase)
+          }
         />
+        <div className="min-w-0 flex-1">
+          <CommandComposer
+            value={message}
+            onChange={setMessage}
+            onSubmit={(value) => void ask(value)}
+            busy={busy}
+            placeholder="Ask Pulse anything about your business..."
+            suggestions={[...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]}
+            onSuggestion={(value) => void ask(value)}
+          />
+        </div>
       </div>
 
       <div className="mt-8 space-y-6">

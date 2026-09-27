@@ -8,7 +8,8 @@ import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/primitives";
 import { attentionById, projectAttention } from "@/lib/attention";
 import { formatMoney } from "@/lib/clock";
-import { getDb, getMeta } from "@/lib/db";
+import { withPageContext } from "@/lib/auth/page";
+import { getMeta } from "@/lib/db";
 import { buildCausalExplorer } from "@/lib/engine/causal";
 import { calculateGraphImpact } from "@/lib/engine/impact";
 import { IDS } from "@/lib/ids";
@@ -18,15 +19,21 @@ export const dynamic = "force-dynamic";
 
 export default async function SituationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
-  const now = getMeta(db, "demo_now");
-  const detail = exceptionDetail(db, id);
-  const attention = attentionById(projectAttention(db, now).items, id);
+  const page = await withPageContext((ctx) => {
+    const now = getMeta(ctx.db, "demo_now");
+    const detail = exceptionDetail(ctx.db, id);
+    const attention = attentionById(projectAttention(ctx.db, now).items, id);
+    const cascade = id === IDS.excDelay || attention?.sourceExceptionId === IDS.excDelay;
+    return {
+      detail,
+      attention,
+      cascade,
+      impact: cascade ? calculateGraphImpact(ctx.db, IDS.shipment) : null,
+      causal: cascade ? buildCausalExplorer(ctx.db) : null,
+    };
+  });
+  const { detail, attention, cascade, impact, causal } = page;
   if (!detail && !attention) notFound();
-
-  const cascade = id === IDS.excDelay || attention?.sourceExceptionId === IDS.excDelay;
-  const impact = cascade ? calculateGraphImpact(db, IDS.shipment) : null;
-  const causal = cascade ? buildCausalExplorer(db) : null;
   const exception = detail?.exception;
   const title = attention?.title || exception?.title || "Situation";
   const status = attention?.classification || exception?.attention || "NEEDS_YOU";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { withWorkspace } from "@/lib/auth";
 import { buildTimeline } from "@/lib/engine/timeline";
 
-export async function GET() {
-  return NextResponse.json(buildTimeline(getDb()));
-}
+export const GET = withWorkspace(async (ctx) => {
+  return NextResponse.json(buildTimeline(ctx.db));
+});

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { withWorkspace } from "@/lib/auth";
 import { exceptionDetail } from "@/lib/read";
 
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
-  const detail = exceptionDetail(getDb(), id);
+export const GET = withWorkspace(async (ctx, _req, extra) => {
+  const { id } = await ((extra as { params: Promise<{ id: string }> } | undefined)?.params ?? Promise.resolve({ id: "" }));
+  const detail = exceptionDetail(ctx.db, id);
   if (!detail) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json(detail);
-}
+});

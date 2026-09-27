@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
-import { AppShell } from "@/components/AppShell";
+import { ProductChrome } from "@/components/session/ProductChrome";
+import { resolveRequestContext } from "@/lib/auth";
 import "./globals.css";
 
 const serif = Instrument_Serif({
@@ -23,14 +24,17 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "EvoPulse — Nothing falls through",
-  description: "AI-native Business Control System. Expected vs actual, with evidence.",
+  description: "Your business is running. EvoPulse makes sure nothing falls through.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const ctx = await resolveRequestContext();
   return (
     <html lang="en">
       <body className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
-        <AppShell>{children}</AppShell>
+        <ProductChrome mode={ctx.user ? ctx.mode : "anon"} user={ctx.user} workspace={ctx.workspace}>
+          {children}
+        </ProductChrome>
       </body>
     </html>
   );

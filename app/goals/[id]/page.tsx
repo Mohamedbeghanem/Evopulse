@@ -4,7 +4,7 @@ import { ApproveActionButton } from "@/components/ApproveActionButton";
 import { Badge } from "@/components/Badge";
 import { ExecuteSafeButton } from "@/components/ExecuteSafeButton";
 import { formatMoney } from "@/lib/clock";
-import { getDb } from "@/lib/db";
+import { withPageContext } from "@/lib/auth/page";
 import { getGoalBundle } from "@/lib/goals";
 import type { ClassifiedAction, RankedRisk } from "@/lib/goals/types";
 
@@ -19,7 +19,7 @@ const DOMAIN_LABEL: Record<string, string> = {
 
 export default async function GoalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const bundle = getGoalBundle(getDb(), id);
+  const bundle = await withPageContext((ctx) => getGoalBundle(ctx.db, id));
   if (!bundle) notFound();
   const { goal, context, plan } = bundle;
   const actions = plan?.actions || [];

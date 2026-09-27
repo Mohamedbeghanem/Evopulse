@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const PRIMARY = [
-  { href: "/", label: "Pulse", match: (path: string) => path === "/" || path.startsWith("/situations") },
+  { href: "/demo", label: "Pulse", match: (path: string) => path === "/demo" || path === "/" || path.startsWith("/situations") },
   { href: "/command", label: "Command", match: (path: string) => path.startsWith("/command") },
   { href: "/timeline", label: "Timeline", match: (path: string) => path.startsWith("/timeline") },
 ];
@@ -26,7 +26,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       aria-label="Control OS"
     >
       <div className="flex h-14 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2" onClick={onClose}>
+        <Link href="/demo" className="flex items-center gap-2" onClick={onClose}>
           <span className="h-2 w-2 rounded-full bg-need" aria-hidden />
           <span className="text-sm font-medium tracking-tight text-paper">EvoPulse</span>
         </Link>

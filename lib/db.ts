@@ -1,9 +1,16 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { id } from "./ids";
 
 const globalForDb = globalThis as unknown as { evopulseDb?: DatabaseSync };
+const dbContext = new AsyncLocalStorage<DatabaseSync>();
+
+/** Run engine code against a specific business database without rewriting getDb() callers. */
+export function runWithDb<T>(db: DatabaseSync, fn: () => T): T {
+  return dbContext.run(db, fn);
+}
 
 function dbPath(): string {
   return process.env.DB_PATH || join(process.cwd(), "data", "evopulse.db");
@@ -293,7 +300,23 @@ function migrateExceptionsTable(db: DatabaseSync) {
 }
 
 export function peekDb(): DatabaseSync | undefined {
-  return globalForDb.evopulseDb;
+  return dbContext.getStore() ?? globalForDb.evopulseDb;
+}
+
+/** Open a business-schema database. Atlas seed is opt-in so real workspaces stay empty. */
+export function openBusinessDatabase(path: string, options: { seedAtlas?: boolean } = {}): DatabaseSync {
+  mkdirSync(dirname(path), { recursive: true });
+  const db = new DatabaseSync(path);
+  migrate(db);
+  wireEngineHooks(db);
+  if (options.seedAtlas) {
+    const { seedIfEmpty } = require("./seed") as typeof import("./seed");
+    seedIfEmpty(db);
+  } else {
+    const { seedWorkspaceDefaults } = require("./workspace/defaults") as typeof import("./workspace/defaults");
+    seedWorkspaceDefaults(db);
+  }
+  return db;
 }
 
 function wireEngineHooks(db: DatabaseSync) {
@@ -306,6 +329,12 @@ function wireEngineHooks(db: DatabaseSync) {
 }
 
 export function getDb(): DatabaseSync {
+  const contextual = dbContext.getStore();
+  if (contextual) {
+    migrate(contextual);
+    wireEngineHooks(contextual);
+    return contextual;
+  }
   if (globalForDb.evopulseDb) {
     migrate(globalForDb.evopulseDb);
     wireEngineHooks(globalForDb.evopulseDb);
