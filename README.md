@@ -6,13 +6,13 @@ Tagline: **Nothing falls through.**
 
 Hackathon MVP for **GOMYCODE Come Build with AI — Algeria — 27 Sep 2026**. One closed loop, not the full OS. Product authority: [PLAN.md](./PLAN.md).
 
-**Team size:** 2–5. **Final Team Confirmation:** already done. Fill names on [PROJECT_CARD.md](./PROJECT_CARD.md) — do not invent teammates.
+**Team size:** 2–5. **Final Team Confirmation:** already done. Confirmed names only — remaining slots stay placeholders on [PROJECT_CARD.md](./PROJECT_CARD.md).
 
-- `[TEAMMATE_1_NAME]` · `[TEAMMATE_1_ROLE]` · `[TEAMMATE_1_CAMPUS]`
+- Mohamed Beghanem · Lead · `[TEAMMATE_1_CAMPUS]`
 - `[TEAMMATE_2_NAME]` · `[TEAMMATE_2_ROLE]` · `[TEAMMATE_2_CAMPUS]`
-- `[TEAMMATE_3_NAME]` · `[TEAMMATE_3_ROLE]` · `[TEAMMATE_3_CAMPUS]` *(optional if team is 2)*
-- `[TEAMMATE_4_NAME]` · `[TEAMMATE_4_ROLE]` · `[TEAMMATE_4_CAMPUS]` *(optional)*
-- `[TEAMMATE_5_NAME]` · `[TEAMMATE_5_ROLE]` · `[TEAMMATE_5_CAMPUS]` *(optional)*
+- `[TEAMMATE_3_NAME]` · `[TEAMMATE_3_ROLE]` · `[TEAMMATE_3_CAMPUS]` *(blank if team is 2)*
+- `[TEAMMATE_4_NAME]` · `[TEAMMATE_4_ROLE]` · `[TEAMMATE_4_CAMPUS]` *(blank if unused)*
+- `[TEAMMATE_5_NAME]` · `[TEAMMATE_5_ROLE]` · `[TEAMMATE_5_CAMPUS]` *(blank if unused)*
 
 ## One-sentence pitch
 
@@ -95,7 +95,7 @@ Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/h
 **Project:** EvoPulse — Business Control System  
 **Event / country:** GOMYCODE Come Build with AI · 27 Sep 2026 · Algeria  
 **Team size:** 2–5 · **Final Team Confirmation:** done  
-**Team / builders:** `[TEAMMATE_1_NAME]`, `[TEAMMATE_2_NAME]`, `[TEAMMATE_3_NAME]`, `[TEAMMATE_4_NAME]`, `[TEAMMATE_5_NAME]` (delete unused slots)  
+**Team / builders:** Mohamed Beghanem, `[TEAMMATE_2_NAME]`, `[TEAMMATE_3_NAME]`, `[TEAMMATE_4_NAME]`, `[TEAMMATE_5_NAME]` (delete unused slots)  
 **AI / tools used:** Cursor Grok 4.6 (implementation), optional OpenAI / Groq / Gemini for live extraction  
 **NVIDIA Brev:** Not used (window closed / optional)  
 **What AI did:** Natural-language commitment extraction, recovery copy, Command answers over state  

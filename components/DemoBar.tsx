@@ -28,7 +28,9 @@ export function DemoBar() {
     <div className="border-t border-white/5 bg-ink-800/70">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-2 text-xs">
         <span className="font-mono text-need">DEMO</span>
-        <span className="text-mute">Sun 27 Sep 2026 · Tunis clock · Atlas 320K seeded</span>
+        <span className="text-mute">
+          Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded
+        </span>
         <span className="ml-auto flex flex-wrap gap-2">
           <button
             disabled={Boolean(busy)}
