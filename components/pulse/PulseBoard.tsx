@@ -11,7 +11,10 @@ import { Button } from "@/components/ui/primitives";
 import { SituationRow } from "@/components/ui/rows";
 import { formatMoney } from "@/lib/clock";
 import type { AttentionItem } from "@/lib/attention";
-import { COMMAND_PROMPTS } from "@/lib/ui/commands";
+import { SUGGESTED_PROMPTS } from "@/lib/ui/commands";
+import { pulseCounts } from "@/lib/ui/pulse-counts";
+import { AgentList } from "@/components/agents/AgentList";
+import type { AgentCard } from "@/lib/business/agents";
 import { situationHref, situationRowFromAttention } from "@/lib/ui/situation";
 
 type PulseView = {
@@ -31,7 +34,15 @@ type PulseView = {
   };
 };
 
-export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }: { pulse: PulseView; companyName?: string }) {
+export function PulseBoard({
+  pulse,
+  companyName,
+  agents = [],
+}: {
+  pulse: PulseView;
+  companyName: string;
+  agents?: AgentCard[];
+}) {
   const avatar = useAgentAvatar();
   const items = useMemo(
     () => [...pulse.attention.needsMe, ...pulse.attention.watching, ...pulse.attention.handled],
@@ -42,8 +53,9 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [switching, setSwitching] = useState(false);
   const summary = pulse.attention.summary;
-  const needsYou = summary.needsYou + summary.needsApproval;
-  const handledAutomatically = summary.handled + summary.autoHandled;
+  const counts = pulseCounts(summary);
+  const needsYou = counts.needsYou;
+  const handledAutomatically = counts.handled;
 
   async function newCompany() {
     setSwitching(true);
@@ -61,9 +73,10 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
       }
     >
       <div className="flex flex-wrap items-start justify-between gap-6">
-        <PageHeader kicker={`${companyName} · Pulse`} title="Your business is running.">
+        <PageHeader kicker="Pulse" title="Your business is running.">
+          <p className="text-paper" data-testid="pulse-company">{companyName}</p>
           <p>
-            {needsYou} needs you · {summary.monitoring} monitoring · {handledAutomatically} handled automatically
+            {needsYou} needs you · {counts.monitoring} monitoring · {handledAutomatically} handled automatically
           </p>
         </PageHeader>
         <div className="flex flex-col items-end gap-3">
@@ -76,12 +89,12 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
 
       <div className="mt-8 grid grid-cols-3 gap-3 max-w-xl">
         <Census label="Needs you" value={needsYou} />
-        <Census label="Monitoring" value={summary.monitoring} />
+        <Census label="Monitoring" value={counts.monitoring} />
         <Census label="Handled automatically" value={handledAutomatically} />
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {COMMAND_PROMPTS.slice(0, 5).map((prompt) => (
+        {SUGGESTED_PROMPTS.map((prompt) => (
           <Link
             key={prompt}
             href={`/command?q=${encodeURIComponent(prompt)}`}
@@ -91,6 +104,16 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
           </Link>
         ))}
       </div>
+
+      {agents.length ? (
+        <section className="mt-10 space-y-3">
+          <SectionHeader title="Agents" count={agents.length} />
+          <AgentList agents={agents} compact />
+          <Link href="/agents" className="text-sm text-need">
+            All agent activity
+          </Link>
+        </section>
+      ) : null}
 
       <section className="mt-10 space-y-3">
         <SectionHeader title="Needs you" count={pulse.attention.needsMe.length} />
@@ -107,7 +130,7 @@ export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }
             />
           ))
         ) : (
-          <EmptyState title="Nothing needs you." body="EvoPulse is monitoring the rest of the operating week." />
+          <EmptyState title="Nothing needs you." body="Pulse is monitoring the rest of the operating week." />
         )}
       </section>
 
