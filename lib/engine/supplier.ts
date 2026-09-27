@@ -11,6 +11,7 @@ import { EVENT_TYPES, eventsFor } from "../events";
 import { graphFor } from "../graph";
 import { id, IDS } from "../ids";
 import type { ExceptionRow, ExpectationRow } from "../types";
+import { EarlyWarningEngine, ensureWarningHooks } from "../warnings";
 import { calculateGraphImpact } from "./impact";
 import { SEED_MESSAGE_SUPPLIER } from "./seed-graph";
 
@@ -235,6 +236,8 @@ export function triggerSupplierDelay(db: DatabaseSync) {
 
   setMeta(db, "supplier_phase", "delayed");
   setMeta(db, "demo_now", SUPPLIER_CASCADE_ISO);
+  ensureWarningHooks(db);
+  EarlyWarningEngine.for(db).evaluateEntity(IDS.shipment, SUPPLIER_CASCADE_ISO, IDS.evtShipDelayed);
   return summarizeDelay(db);
 }
 

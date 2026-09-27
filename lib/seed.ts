@@ -12,6 +12,7 @@ import { SEED_MESSAGE_ONE } from "./engine/extract";
 import { buildRecoveryPlan } from "./engine/recovery";
 import { seedSupplierGraph } from "./engine/seed-graph";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
+import { wipeWarningTables } from "./warnings";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -344,6 +345,7 @@ export function seedWorld(db: DatabaseSync) {
 
 export function wipeAndSeed(db: DatabaseSync) {
   wipeLearningTables(db);
+  wipeWarningTables(db);
   const tables = [
     "audit_logs",
     "approvals",

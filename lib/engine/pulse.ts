@@ -5,6 +5,7 @@ import { id, IDS } from "../ids";
 import { calculateImpact } from "./impact";
 import { businessTwin } from "./twin";
 import { refreshExpectations } from "./expectations";
+import { EarlyWarningEngine } from "../warnings";
 import type {
   Attention,
   CommitmentRow,
@@ -50,9 +51,11 @@ export function detectExceptions(db: DatabaseSync, now: string) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         exp.id === IDS.expectOurs ? IDS.excMissed : id("exc"),
-        isOurs
+        exp.id === IDS.expectOurs
           ? "Our commitment missed — revised proposal never sent"
-          : "Customer decision blocked by our missed proposal",
+          : isOurs
+            ? `Commitment missed — ${commitment?.description || exp.description}`
+            : "Customer decision blocked by our missed proposal",
         "commitment_missed",
         exp.id,
         IDS.opportunity,
@@ -88,6 +91,14 @@ export function detectExceptions(db: DatabaseSync, now: string) {
 
 export function pulseSummary(db: DatabaseSync, now: string) {
   detectExceptions(db, now);
+  const warningEngine = EarlyWarningEngine.for(db);
+  for (const warning of warningEngine.getActiveWarnings()) {
+    if (!warning.expectation_id) continue;
+    const due = one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ?", [warning.expectation_id]);
+    if (due && new Date(due.due_at).getTime() < new Date(now).getTime()) {
+      warningEngine.escalateToException(warning.expectation_id, now);
+    }
+  }
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions ORDER BY created_at DESC");
   const counts = {
     NEEDS_YOU: exceptions.filter((e) => e.attention === "NEEDS_YOU").length,
@@ -123,6 +134,7 @@ export function pulseSummary(db: DatabaseSync, now: string) {
     company,
     twin: businessTwin(db),
     supplierPhase: one<{ value: string }>(db, "SELECT value FROM meta WHERE key = ?", ["supplier_phase"])?.value || "stable",
+    comingNext: warningEngine.getActiveWarnings().map((row) => warningEngine.summarize(row)),
   };
 }
 

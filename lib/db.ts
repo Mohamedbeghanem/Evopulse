@@ -193,6 +193,8 @@ function migrate(db: DatabaseSync) {
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
   migrateGoalTables(db);
+  const { migrateWarningTables } = require("./warnings/schema") as typeof import("./warnings/schema");
+  migrateWarningTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
@@ -227,6 +229,8 @@ export function getDb(): DatabaseSync {
   // Lazy import avoids a db ↔ seed cycle.
   const { seedIfEmpty } = require("./seed") as typeof import("./seed");
   seedIfEmpty(db);
+  const { ensureWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+  ensureWarningHooks(db);
   globalForDb.evopulseDb = db;
   return db;
 }
