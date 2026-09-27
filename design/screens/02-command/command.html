@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EvoPulse — Command</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --aurora-canvas: #07090c;
+        --aurora-nav: #090c10;
+        --aurora-surface: #0e1217;
+        --aurora-surface-raised: #141a22;
+        --aurora-surface-active: #1a212b;
+        --aurora-ink: #e8ecf1;
+        --aurora-secondary: #a3adba;
+        --aurora-muted: #7c8796;
+        --aurora-quiet: #8f9aa8;
+        --aurora-hairline: #1c232c;
+        --aurora-hairline-strong: #232b35;
+        --aurora-panel-line: #1f2630;
+        --aurora-attention: #ff5a1f;
+        --aurora-attention-hot: #ff7a45;
+        --aurora-on-attention: #0a0c0f;
+        --aurora-watch: #f0b44c;
+        --aurora-auto: #7fb2e0;
+        --aurora-focus: #ff7a45;
+        --aurora-needs-you: var(--aurora-attention);
+        --aurora-needs-approval: var(--aurora-attention-hot);
+        --aurora-monitoring: var(--aurora-watch);
+        --aurora-blocked: var(--aurora-quiet);
+        --aurora-handled: var(--aurora-auto);
+        --aurora-simulation: var(--aurora-auto);
+        --aurora-overlay: rgba(7, 9, 12, 0.72);
+        --aurora-need-wash: rgba(255, 90, 31, 0.08);
+        --aurora-need-line: rgba(255, 90, 31, 0.45);
+        --aurora-watch-wash: rgba(240, 180, 76, 0.12);
+        --aurora-auto-wash: rgba(127, 178, 224, 0.12);
+        --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+        --text-micro: 11px;
+        --text-caption: 12px;
+        --text-body: 14px;
+        --text-title: 22px;
+        --leading-tight: 1.2;
+        --leading-body: 1.45;
+        --tracking-label: 0.12em;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --space-6: 32px;
+        --radius-chip: 4px;
+        --radius-control: 6px;
+        --radius-panel: 10px;
+        --radius-overlay: 12px;
+        --os-sidebar-width: 240px;
+        --os-inspector-width: 360px;
+        --os-header-height: 56px;
+        --os-composer-min-height: 56px;
+        --os-nav-item-height: 34px;
+        --os-gutter-sidebar: 16px;
+        --os-gutter-workspace: 28px;
+        --workspace-focused: 840px;
+        --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+        --motion-duration: 180ms;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --motion-duration: 0ms;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--aurora-canvas);
+        color: var(--aurora-ink);
+        font-family: var(--font-sans);
+        font-size: var(--text-body);
+        line-height: var(--leading-body);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      button {
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+
+      :focus {
+        outline: none;
+      }
+
+      :focus-visible {
+        box-shadow: var(--focus-ring);
+        border-radius: var(--radius-control);
+      }
+
+      .skip {
+        position: absolute;
+        left: 12px;
+        top: -40px;
+        z-index: 80;
+        padding: 8px 12px;
+        background: var(--aurora-surface-raised);
+        border: 1px solid var(--aurora-hairline);
+        border-radius: var(--radius-control);
+      }
+
+      .skip:focus {
+        top: 12px;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .os {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        width: var(--os-sidebar-width);
+        min-width: var(--os-sidebar-width);
+        height: 100vh;
+        padding: 0 var(--os-gutter-sidebar) var(--space-5);
+        border-right: 1px solid var(--aurora-hairline);
+        background: var(--aurora-nav);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        height: var(--os-header-height);
+        gap: 10px;
+        padding: 0 6px;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border: 1px solid var(--aurora-hairline-strong);
+        border-radius: 6px;
+        color: var(--aurora-ink);
+      }
+
+      .brand-name {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .brand-name em {
+        font-style: italic;
+        font-weight: 500;
+        color: var(--aurora-secondary);
+      }
+
+      .sidebar-launch {
+        display: grid;
+        gap: 6px;
+        margin: 4px 0 var(--space-5);
+      }
+
+      .control,
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        height: var(--os-nav-item-height);
+        padding: 0 10px;
+        border-radius: var(--radius-control);
+        text-align: left;
+        color: var(--aurora-secondary);
+      }
+
+      .control:hover,
+      .nav-item:hover {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+      }
+
+      .control-primary {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+      }
+
+      .control kbd,
+      .nav-item .hint {
+        margin-left: auto;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+
+      .nav-block + .nav-block {
+        margin-top: var(--space-4);
+      }
+
+      .nav-label {
+        padding: 0 10px 6px;
+        color: var(--aurora-muted);
+        font-size: var(--text-micro);
+        font-weight: 600;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .nav-item[aria-current="page"] {
+        background: var(--aurora-surface-active);
+        color: var(--aurora-ink);
+      }
+
+      .nav-item[aria-disabled="true"] {
+        cursor: default;
+        opacity: 0.72;
+      }
+
+      .nav-item svg,
+      .control svg,
+      .brand-mark svg,
+      .icon-btn svg,
+      .send svg,
+      .reopen svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sidebar-foot {
+        margin-top: auto;
+        display: grid;
+        gap: 4px;
+      }
+
+      .tagline {
+        padding: 12px 10px 0;
+        color: var(--aurora-muted);
+        font-size: var(--text-caption);
+      }
+
+      .workspace {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 100vh;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-5);
+        min-height: var(--os-header-height);
+        padding: 12px var(--os-gutter-workspace) 10px;
+        border-bottom: 1px solid var(--aurora-hairline);
+      }
+
+      .kicker {
+        margin: 0 0 4px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .page-header h1 {
+        margin: 0;
+        font-size: var(--text-title);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: var(--leading-tight);
+      }
+
+      .lede {
+        margin: 4px 0 0;
+        color: var(--aurora-secondary);
+        font-size: var(--text-caption);
+      }
+
+      .clock {
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-caption);
+        white-space: nowrap;
+      }
+
+      .menu-btn {
+        display: none;
+        height: 32px;
+        margin-right: 8px;
+        padding: 0 10px;
+        border: 1px solid var(--aurora-hairline);
+        border-radius: var(--radius-control);
+        color: var(--aurora-ink);
+      }
+
+      .workspace-body {
+        flex: 1;
+        padding: var(--space-5) var(--os-gutter-workspace) 140px;
+      }
+
+      .focused {
+        width: min(var(--workspace-focused), 100%);
+        margin: 0 auto;
+      }
+
+      .composer-dock {
+        position: sticky;
+        bottom: 0;
+        padding: 0 var(--os-gutter-workspace) 24px;
+        background: linear-gradient(180deg, transparent, var(--aurora-canvas) 28%);
+      }
+
+      .composer {
+        width: min(840px, 100%);
+        margin: 0 auto;
+        min-height: var(--os-composer-min-height);
+        padding: 8px 8px 8px 16px;
+        border: 1px solid var(--aurora-hairline);
+        border-radius: var(--radius-overlay);
+        background: var(--aurora-surface-raised);
+      }
+
+      .composer-input {
+        width: 100%;
+        height: 32px;
+        border: 0;
+        background: transparent;
+        color: var(--aurora-ink);
+      }
+
+      .composer-input::placeholder {
+        color: var(--aurora-muted);
+      }
+
+      .composer-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: 4px;
+      }
+
+      .mode-hint {
+        margin-right: auto;
+        color: var(--aurora-muted);
+        font-size: var(--text-micro);
+        letter-spacing: 0.04em;
+      }
+
+      .icon-btn,
+      .send {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-secondary);
+      }
+
+      .send {
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+
+      .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 var(--space-5);
+      }
+
+      .chip {
+        min-height: 32px;
+        padding: 6px 10px;
+        border: 1px solid var(--aurora-hairline);
+        border-radius: var(--radius-chip);
+        background: transparent;
+        color: var(--aurora-secondary);
+        font-size: var(--text-caption);
+        text-align: left;
+      }
+
+      .chip:hover,
+      .chip[aria-pressed="true"] {
+        border-color: var(--aurora-hairline-strong);
+        color: var(--aurora-ink);
+        background: var(--aurora-surface-raised);
+      }
+
+      .chip-act[aria-pressed="true"] {
+        border-color: var(--aurora-need-line);
+        background: var(--aurora-need-wash);
+        color: var(--aurora-ink);
+      }
+
+      .idle-note {
+        color: var(--aurora-muted);
+        font-size: var(--text-body);
+        max-width: 42rem;
+      }
+
+      .run {
+        display: none;
+      }
+
+      .os--running .run,
+      .os--done .run {
+        display: block;
+      }
+
+      .os--running .idle-note,
+      .os--done .idle-note {
+        display: none;
+      }
+
+      .issued {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0 0 var(--space-5);
+      }
+
+      .issued span {
+        max-width: 36rem;
+        color: var(--aurora-secondary);
+        font-size: var(--text-caption);
+        text-align: right;
+      }
+
+      .situation {
+        padding: 16px 0 20px;
+        border-bottom: 1px solid var(--aurora-hairline);
+        margin-bottom: var(--space-5);
+      }
+
+      .situation-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-4);
+      }
+
+      .situation h2 {
+        margin: 6px 0 0;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .situation-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px 20px;
+        margin-top: 16px;
+      }
+
+      .fact dt {
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .fact dd {
+        margin: 4px 0 0;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .fact .note {
+        display: block;
+        margin-top: 2px;
+        color: var(--aurora-muted);
+        font-size: var(--text-caption);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 24px;
+        color: var(--aurora-secondary);
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .status i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .status--need {
+        color: var(--aurora-needs-you);
+      }
+
+      .status--approve {
+        color: var(--aurora-needs-approval);
+      }
+
+      .status--monitor {
+        color: var(--aurora-monitoring);
+      }
+
+      .status--blocked {
+        color: var(--aurora-blocked);
+      }
+
+      .status--handled {
+        color: var(--aurora-handled);
+      }
+
+      .trace {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .step {
+        position: relative;
+        padding: 0 0 20px 22px;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity var(--motion-duration) ease, transform var(--motion-duration) ease;
+      }
+
+      .step.visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      .step::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 8px;
+        bottom: -2px;
+        width: 1px;
+        background: var(--aurora-hairline);
+      }
+
+      .step:last-child::before {
+        display: none;
+      }
+
+      .step::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        width: 6px;
+        height: 6px;
+        background: var(--aurora-muted);
+      }
+
+      .step--current::after {
+        background: var(--aurora-attention);
+      }
+
+      .step--done::after {
+        background: var(--aurora-ink);
+      }
+
+      .step--sim::after {
+        background: var(--aurora-auto);
+      }
+
+      .step--wait::after {
+        background: var(--aurora-attention);
+      }
+
+      .step--block::after {
+        background: var(--aurora-quiet);
+      }
+
+      .step button.reveal {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border-radius: var(--radius-control);
+      }
+
+      .step .op {
+        margin: 0;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-micro);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .step--sim .op {
+        color: var(--aurora-auto);
+      }
+
+      .step--wait .op,
+      .step--current .op {
+        color: var(--aurora-attention-hot);
+      }
+
+      .step .body {
+        margin: 4px 0 0;
+        color: var(--aurora-ink);
+      }
+
+      .evidence {
+        display: none;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-left: 1px solid var(--aurora-hairline-strong);
+        color: var(--aurora-secondary);
+        font-size: var(--text-caption);
+      }
+
+      .step.open .evidence {
+        display: block;
+      }
+
+      .evidence strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .inspector {
+        display: none;
+        width: var(--os-inspector-width);
+        min-width: var(--os-inspector-width);
+        height: 100vh;
+        padding: 16px 20px 28px;
+        border-left: 1px solid var(--aurora-hairline);
+        background: var(--aurora-surface);
+        overflow: auto;
+      }
+
+      .os--done .inspector {
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+      }
+
+      .inspector-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 40px;
+        margin-bottom: 16px;
+      }
+
+      .inspector h2 {
+        margin: 4px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--aurora-muted);
+      }
+
+      .close-inspector {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-control);
+        color: var(--aurora-secondary);
+      }
+
+      .want {
+        margin: 0 0 16px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .field {
+        margin: 0 0 14px;
+      }
+
+      .field span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .field p {
+        margin: 0;
+        color: var(--aurora-secondary);
+        font-size: var(--text-caption);
+      }
+
+      .act-stack {
+        display: grid;
+        gap: 8px;
+        margin: 16px 0 8px;
+      }
+
+      .btn {
+        min-height: 36px;
+        padding: 8px 12px;
+        border-radius: var(--radius-control);
+        border: 1px solid transparent;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .btn-safe {
+        background: var(--aurora-auto);
+        color: var(--aurora-on-attention);
+      }
+
+      .btn-approve {
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+
+      .btn-ghost {
+        border-color: var(--aurora-hairline);
+        color: var(--aurora-ink);
+        background: transparent;
+      }
+
+      .caption {
+        margin: 8px 0 0;
+        color: var(--aurora-muted);
+        font-size: var(--text-caption);
+      }
+
+      .result {
+        min-height: 20px;
+        margin: 8px 0 0;
+        color: var(--aurora-auto);
+        font-size: var(--text-caption);
+      }
+
+      .policy {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--aurora-hairline);
+      }
+
+      .policy h3 {
+        margin: 0 0 12px;
+        color: var(--aurora-quiet);
+        font-size: var(--text-micro);
+        font-weight: 600;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+      }
+
+      .policy dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px 16px;
+        font-size: var(--text-caption);
+      }
+
+      .policy dt {
+        color: var(--aurora-muted);
+      }
+
+      .policy dd {
+        margin: 0;
+        font-family: var(--font-mono);
+        text-align: right;
+      }
+
+      .reopen {
+        display: none;
+        position: fixed;
+        left: 8px;
+        top: 10px;
+        z-index: 20;
+        width: 40px;
+        height: 36px;
+        border-radius: var(--radius-control);
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+      }
+
+      @media (max-width: 1280px) {
+        :root {
+          --os-sidebar-width: 220px;
+          --os-inspector-width: 320px;
+          --os-gutter-workspace: 24px;
+          --workspace-focused: 740px;
+        }
+
+        .situation-facts {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        :root {
+          --os-gutter-workspace: 20px;
+        }
+
+        .menu-btn {
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .sidebar {
+          position: fixed;
+          z-index: 30;
+          transform: translateX(-100%);
+          transition: transform var(--motion-duration) ease;
+        }
+
+        .os.nav-open .sidebar {
+          transform: none;
+        }
+
+        .reopen {
+          display: grid;
+          place-items: center;
+        }
+
+        .os.nav-open .reopen {
+          display: none;
+        }
+
+        .os--done .inspector {
+          position: fixed;
+          right: 0;
+          top: 0;
+          z-index: 25;
+          box-shadow: var(--elevate-overlay, 0 24px 64px rgba(0, 0, 0, 0.55));
+        }
+
+        .os--done.inspector-closed .inspector {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#command-input">Skip to command</a>
+    <div class="os" id="os" data-frame="1440">
+      <aside class="sidebar" id="sidebar" aria-label="Control OS">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" /><path d="M8 3.5v9" /></svg>
+          </span>
+          <span class="brand-name">Evo<em>Pulse</em></span>
+        </div>
+        <div class="sidebar-launch">
+          <button class="control control-primary" type="button" data-focus-command>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg>
+            New command
+          </button>
+          <button class="control" type="button" data-focus-command>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" /><path d="m13 13-3-3" /></svg>
+            Search / command
+            <kbd>⌘K</kbd>
+          </button>
+        </div>
+        <nav class="nav-block" aria-label="Primary">
+          <div class="nav-label">Primary</div>
+          <span class="nav-item" aria-disabled="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9.5 8 3.5l5 6" /><path d="M5 8.5V13h6V8.5" /></svg>
+            Pulse
+          </span>
+          <a class="nav-item" href="command.html" aria-current="page">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 12.5 6.2 8 3 3.5h3L8 6.2 10 3.5h3L9.8 8 13 12.5h-3L8 9.8 6 12.5H3z" /></svg>
+            Command
+          </a>
+          <span class="nav-item" aria-disabled="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><path d="M8 5.2V8l2 1.4" /></svg>
+            Timeline
+          </span>
+        </nav>
+        <nav class="nav-block" aria-label="Workspace">
+          <div class="nav-label">Workspace</div>
+          <span class="nav-item" aria-disabled="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="0.8" /><rect x="9" y="3" width="4" height="4" rx="0.8" /><rect x="3" y="9" width="4" height="4" rx="0.8" /><rect x="9" y="9" width="4" height="4" rx="0.8" /></svg>
+            Business
+          </span>
+          <span class="nav-item" aria-disabled="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><circle cx="8" cy="8" r="2" /></svg>
+            Goals
+          </span>
+        </nav>
+        <div class="sidebar-foot">
+          <span class="nav-item" aria-disabled="true">Policies / Control</span>
+          <span class="nav-item" aria-disabled="true">Settings</span>
+          <p class="tagline">Nothing falls through.</p>
+        </div>
+      </aside>
+
+      <button class="reopen" type="button" data-menu aria-label="Open sidebar">
+        <svg viewBox="0 0 16 16"><path d="M5 3h8M5 8h8M5 13h8M3 3v10" /></svg>
+      </button>
+
+      <div class="workspace">
+        <header class="page-header">
+          <div>
+            <button class="menu-btn" type="button" data-menu>Menu</button>
+            <p class="kicker" id="run-state">Command · Operate</p>
+            <h1>Command</h1>
+            <p class="lede" id="header-lede">Tell EvoPulse what to understand or do.</p>
+          </div>
+          <p class="clock">Sun 27 Sep 2026 · 08:18 Africa/Tunis</p>
+        </header>
+
+        <main class="workspace-body">
+          <div class="focused">
+            <div class="suggestions" aria-label="Suggested outcomes">
+              <button class="chip chip-act" type="button" data-protect aria-pressed="false">
+                Protect everything at risk this week.
+              </button>
+              <button class="chip" type="button" data-fill="Protect this month's cash.">Protect this month's cash.</button>
+              <button class="chip" type="button" data-fill="Recover stalled opportunities.">Recover stalled opportunities.</button>
+              <button class="chip" type="button" data-fill="What requires my attention?">What requires my attention?</button>
+              <button class="chip" type="button" data-fill="What promises did we make customers?">What promises did we make customers?</button>
+              <button class="chip" type="button" data-fill="What is putting revenue at risk?">What is putting revenue at risk?</button>
+              <button class="chip" type="button" data-fill="What if Atlas is another 3 days late?">What if Atlas is another 3 days late?</button>
+            </div>
+
+            <p class="idle-note">
+              Issue an outcome. EvoPulse inspects the live twin, traces dependencies, and returns a governed plan —
+              not a chat reply. The demonstration is
+              <strong>Protect everything at risk this week.</strong>
+            </p>
+
+            <div class="run" id="run">
+              <p class="issued" id="issued"><span></span></p>
+
+              <section class="situation" aria-labelledby="situation-title">
+                <div class="situation-top">
+                  <div>
+                    <p class="kicker">One situation</p>
+                    <h2 id="situation-title">Protect this week's business</h2>
+                  </div>
+                  <p class="status status--need" id="situation-status"><i></i> Needs you</p>
+                </div>
+                <dl class="situation-facts">
+                  <div class="fact">
+                    <dt>Associated revenue</dt>
+                    <dd>850,000 DZD<span class="note">SH-204 · 3 orders · not lost</span></dd>
+                  </div>
+                  <div class="fact">
+                    <dt>Needs approval</dt>
+                    <dd>320,000 DZD<span class="note">Atlas proposal send</span></dd>
+                  </div>
+                  <div class="fact">
+                    <dt>Blocked</dt>
+                    <dd>10% discount<span class="note">Policy discount_max=5%</span></dd>
+                  </div>
+                </dl>
+              </section>
+
+              <ol class="trace" id="trace" aria-live="polite" aria-label="Business operation trace"></ol>
+            </div>
+          </div>
+        </main>
+
+        <div class="composer-dock">
+          <form class="composer" id="ask-form">
+            <label class="visually-hidden" for="command-input">Ask EvoPulse to understand or do something</label>
+            <input
+              class="composer-input"
+              id="command-input"
+              name="q"
+              autocomplete="off"
+              placeholder="Ask EvoPulse anything about your business"
+              value="Protect everything at risk this week."
+            />
+            <div class="composer-bar">
+              <button class="icon-btn" type="button" aria-label="Add context later">
+                <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" /></svg>
+              </button>
+              <span class="mode-hint">Ask · Search · Navigate · Simulate · Act</span>
+              <button class="send" type="submit" aria-label="Issue command">
+                <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-labelledby="want-title">
+        <div class="inspector-head">
+          <div>
+            <p class="kicker">Act preview</p>
+            <h2>What EvoPulse wants to do</h2>
+          </div>
+          <button class="close-inspector" type="button" data-close-inspector aria-label="Close inspector">
+            <svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </button>
+        </div>
+        <p class="want" id="want-title">Send the revised 320,000 DZD proposal to Atlas Retail.</p>
+        <div class="field">
+          <span>Why</span>
+          <p>The opportunity is still open. Friday’s decision depends on the revised proposal. Outbound messages are not autonomous.</p>
+        </div>
+        <div class="field">
+          <span>Impact</span>
+          <p>320,000 DZD recovery path. This is not the 850,000 DZD cascade figure.</p>
+        </div>
+        <div class="field">
+          <span>Policy</span>
+          <p>external_message_requires_approval = true</p>
+        </div>
+        <div class="field">
+          <span>Evidence</span>
+          <p>
+            Observed: “Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”
+            Source: Atlas conversation · Wed 23 Sep. Calculated: Autopilot NEEDS APPROVAL. Assumption: a human is
+            accountable for outbound copy.
+          </p>
+        </div>
+        <div class="act-stack">
+          <button class="btn btn-safe" type="button" data-execute>Execute safe actions</button>
+          <button class="btn btn-approve" type="button" data-decision="Approved">Approve 320K send</button>
+          <button class="btn btn-ghost" type="button" data-decision="Editing">Review 5% · 304,000 DZD</button>
+          <button class="btn btn-ghost" type="button" data-decision="Rejected">Hold 10%</button>
+        </div>
+        <p class="caption">EvoPulse cannot approve itself. Execution is not resolution.</p>
+        <p class="result" id="decision-result" role="status"></p>
+        <div class="policy">
+          <h3>Action blocked by policy</h3>
+          <dl>
+            <dt>Requested</dt>
+            <dd>10%</dd>
+            <dt>Allowed without exception</dt>
+            <dd>5%</dd>
+            <dt>Alternative</dt>
+            <dd>5% + Net-14</dd>
+          </dl>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      const STEPS = [
+        {
+          state: "INSPECTING",
+          cls: "step--current",
+          op: "Inspecting business",
+          body: "2 situations require attention. Sales and operations share one weekly goal.",
+          evidence:
+            "Observed twin. Sales: 320,000 DZD commitment miss. Operations: SH-204 delayed +2. Cash: 540,000 DZD timing MONITORING. Sources: Pulse · Business Twin.",
+        },
+        {
+          state: "INSPECTING",
+          cls: "step--done",
+          op: "Tracing dependencies",
+          body: "Atlas Supply → SH-204 → RK-7 → Orders A / B / C → Oran Fresh · Constantine Clinic · Sétif Depot.",
+          evidence:
+            "Graph path from shipment node. Order A has the earliest customer deadline (Tue 29 Sep 10:00). Source: Business Graph.",
+        },
+        {
+          state: "INSPECTING",
+          cls: "step--done",
+          op: "Assessing impact",
+          body: "850,000 DZD associated revenue · 540,000 DZD cash timing · 3 orders · 3 customers.",
+          evidence:
+            "Associated, not lost. 320 + 280 + 250 from stored order amounts. Cash 200 + 180 + 160 from invoices. AT RISK — NOT MISSED.",
+        },
+        {
+          state: "SIMULATING",
+          cls: "step--sim",
+          op: "Simulating",
+          body: "SIMULATION · NOT LIVE BUSINESS STATE. +3 day delay scenario prepared. Isolation hash unchanged.",
+          evidence:
+            "Detached snapshot. Reality was not written. Invoice C timing may move next period (160,000 DZD). Source: Business Simulator.",
+        },
+        {
+          state: "PLANNING",
+          cls: "step--done",
+          op: "Building plan",
+          body: "Protect the SH-204 cascade. Recover the 320,000 DZD proposal. Catalog actions only.",
+          evidence:
+            "Goal protect_business / this_week. Planner emits prepare_proposal, draft_message, prioritize_order, apply_discount candidates. AI copy is labeled. Facts stay facts.",
+        },
+        {
+          state: "CHECKING POLICY",
+          cls: "step--block",
+          op: "Checking policy",
+          body: "Safe actions AUTO · customer send NEEDS APPROVAL · 10% BLOCKED by discount_max=5%.",
+          evidence:
+            "Policy engine — not the model. external_message_requires_approval=true. 5% (304,000 DZD) and Net-14 remain approval-gated alternatives.",
+        },
+        {
+          state: "EXECUTING",
+          cls: "step--done",
+          op: "Executing safe actions",
+          body: "AUTO only: prepare proposal, review orders, prioritize Order A, update cash expectation. No outbound send.",
+          evidence:
+            "executeSafeActions rechecks policy. Approval-required and blocked rows stay put. Plan status safe_executed. Goal stays ACTIVE.",
+        },
+        {
+          state: "VERIFYING",
+          cls: "step--done",
+          op: "Verifying",
+          body: "Safe step verified. Customer-response expectation opened for 24h. Situation is not HANDLED.",
+          evidence:
+            "Verification: customer.response by Mon 28 Sep 08:18. Send alone does not resolve. EXECUTION ≠ RESOLUTION.",
+        },
+        {
+          state: "WAITING FOR APPROVAL",
+          cls: "step--wait",
+          op: "Waiting for approval",
+          body: "320,000 DZD send, 5% concession, and customer delay notice still need you.",
+          evidence:
+            "Humans govern outbound copy and commercial concessions. EvoPulse cannot approve itself.",
+        },
+      ];
+
+      const os = document.getElementById("os");
+      const input = document.getElementById("command-input");
+      const form = document.getElementById("ask-form");
+      const trace = document.getElementById("trace");
+      const issued = document.querySelector("#issued span");
+      const runState = document.getElementById("run-state");
+      const headerLede = document.getElementById("header-lede");
+      const protectChip = document.querySelector("[data-protect]");
+      const situationStatus = document.getElementById("situation-status");
+      const decision = document.getElementById("decision-result");
+      let timer = 0;
+
+      function reduced() {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      }
+
+      function setStatus(kind, label) {
+        situationStatus.className = "status status--" + kind;
+        situationStatus.innerHTML = "<i></i> " + label;
+      }
+
+      function appendStep(step) {
+        const li = document.createElement("li");
+        li.className = "step visible " + step.cls;
+        li.innerHTML =
+          '<button class="reveal" type="button" aria-expanded="false">' +
+          '<p class="op">' +
+          step.op +
+          "</p><p class=\"body\">" +
+          step.body +
+          "</p></button>" +
+          '<div class="evidence"><strong>Sources</strong>' +
+          step.evidence +
+          "</div>";
+        li.querySelector(".reveal").addEventListener("click", () => {
+          const open = li.classList.toggle("open");
+          li.querySelector(".reveal").setAttribute("aria-expanded", String(open));
+        });
+        trace.appendChild(li);
+      }
+
+      function runProtect(instant) {
+        clearTimeout(timer);
+        const command = "Protect everything at risk this week.";
+        input.value = command;
+        protectChip.setAttribute("aria-pressed", "true");
+        issued.textContent = command;
+        os.classList.add("os--running");
+        os.classList.remove("os--done", "inspector-closed");
+        trace.innerHTML = "";
+        decision.textContent = "";
+        setStatus("need", "Needs you");
+        runState.textContent = "Interpreting";
+        headerLede.textContent = "Protect this week's business.";
+
+        const finish = () => {
+          os.classList.add("os--done");
+          runState.textContent = "Waiting for approval";
+          headerLede.textContent = "Safe work is ready. Humans still own the send.";
+        };
+
+        if (instant || reduced()) {
+          STEPS.forEach(appendStep);
+          finish();
+          return;
+        }
+
+        STEPS.forEach((step, i) => {
+          timer = window.setTimeout(() => {
+            appendStep(step);
+            runState.textContent = step.state.replaceAll("_", " ");
+            if (i === STEPS.length - 1) finish();
+          }, 420 * (i + 1));
+        });
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+        if (/protect everything at risk/i.test(value)) runProtect();
+        else if (value) {
+          os.classList.add("os--running");
+          os.classList.remove("os--done");
+          issued.textContent = value;
+          trace.innerHTML =
+            '<li class="step visible step--done"><p class="op">Ready</p><p class="body">This prototype stages the Protect command. Issue “Protect everything at risk this week.”</p></li>';
+        }
+      });
+
+      document.querySelectorAll("[data-fill]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          input.value = btn.getAttribute("data-fill") || "";
+          input.focus();
+        });
+      });
+      protectChip.addEventListener("click", () => runProtect());
+
+      document.querySelector("[data-execute]").addEventListener("click", () => {
+        setStatus("approve", "Needs approval");
+        decision.textContent =
+          "Safe actions executed. Proposal prepared. Orders reviewed. Cash checkpoint set. No message left the building. Verification pending — not HANDLED.";
+        runState.textContent = "Verifying";
+        headerLede.textContent = "Execution is not resolution.";
+      });
+
+      document.querySelectorAll("[data-decision]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const next = btn.getAttribute("data-decision");
+          if (next === "Approved") {
+            setStatus("approve", "Needs approval");
+            decision.textContent =
+              "Recorded as approved by you. EvoPulse did not self-approve. Waiting on customer.response before HANDLED.";
+          } else if (next === "Editing") {
+            decision.textContent = "5% (304,000 DZD) stays NEEDS APPROVAL. Policy ceiling is unchanged.";
+          } else {
+            decision.textContent = "10% remains BLOCKED by discount_max=5%. No override.";
+          }
+        });
+      });
+
+      function focusCommand() {
+        os.classList.remove("nav-open");
+        input.focus();
+        input.select();
+      }
+
+      document.querySelectorAll("[data-focus-command]").forEach((btn) => {
+        btn.addEventListener("click", focusCommand);
+      });
+      document.querySelectorAll("[data-menu]").forEach((btn) => {
+        btn.addEventListener("click", () => os.classList.toggle("nav-open"));
+      });
+      document.querySelector("[data-close-inspector]").addEventListener("click", () => {
+        os.classList.add("inspector-closed");
+      });
+      document.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          focusCommand();
+        }
+        if (event.key === "Escape") {
+          os.classList.remove("nav-open");
+          os.classList.add("inspector-closed");
+        }
+      });
+
+      if (location.hash === "#approve" || /run=protect/.test(location.search)) runProtect(true);
+    </script>
+  </body>
+</html>
