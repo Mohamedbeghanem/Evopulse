@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { PulseAvatar } from "@/components/pulse/PulseAvatar";
+import { useAgentAvatar } from "@/components/pulse/useAgentAvatar";
 import { Inspector } from "@/components/shell/Inspector";
 import { Workspace } from "@/components/shell/Workspace";
 import { ActionBar, EmptyState, ImpactMetric, PageHeader, SectionHeader } from "@/components/ui/chrome";
@@ -9,6 +12,7 @@ import { Button } from "@/components/ui/primitives";
 import { SituationRow } from "@/components/ui/rows";
 import { formatMoney } from "@/lib/clock";
 import type { AttentionItem } from "@/lib/attention";
+import { COMMAND_PROMPTS } from "@/lib/ui/commands";
 import { situationHref, situationRowFromAttention } from "@/lib/ui/situation";
 
 type PulseView = {
@@ -28,7 +32,9 @@ type PulseView = {
   };
 };
 
-export function PulseBoard({ pulse }: { pulse: PulseView }) {
+export function PulseBoard({ pulse, companyName = "Atlas Medical Distribution" }: { pulse: PulseView; companyName?: string }) {
+  const router = useRouter();
+  const avatar = useAgentAvatar();
   const items = useMemo(
     () => [...pulse.attention.needsMe, ...pulse.attention.watching, ...pulse.attention.handled],
     [pulse],
@@ -36,7 +42,16 @@ export function PulseBoard({ pulse }: { pulse: PulseView }) {
   const [selectedId, setSelectedId] = useState(items[0]?.id ?? null);
   const selected = items.find((item) => item.id === selectedId) ?? items[0] ?? null;
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [switching, setSwitching] = useState(false);
   const summary = pulse.attention.summary;
+  const needsYou = summary.needsYou + summary.needsApproval;
+  const handledAutomatically = summary.handled + summary.autoHandled;
+
+  async function newCompany() {
+    setSwitching(true);
+    await fetch("/api/company/new", { method: "POST" });
+    router.refresh();
+  }
 
   return (
     <Workspace
@@ -47,17 +62,36 @@ export function PulseBoard({ pulse }: { pulse: PulseView }) {
         </Inspector>
       }
     >
-      <PageHeader kicker="Pulse · Attention" title="Your business is running.">
-        <p>
-          {summary.eventsProcessed} events understood · {summary.needsYou + summary.needsApproval} need you ·{" "}
-          {summary.monitoring} monitoring · {summary.handled + summary.autoHandled} handled.
-        </p>
-      </PageHeader>
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <PageHeader kicker={`${companyName} · Pulse`} title="Your business is running.">
+          <p>
+            {needsYou} needs you · {summary.monitoring} monitoring · {handledAutomatically} handled automatically
+          </p>
+        </PageHeader>
+        <div className="flex flex-col items-end gap-3">
+          <PulseAvatar state={avatar} size="sm" />
+          <Button type="button" variant="quiet" disabled={switching} onClick={() => void newCompany()}>
+            {switching ? "Opening…" : "+ New company"}
+          </Button>
+        </div>
+      </div>
 
       <div className="mt-8 grid grid-cols-3 gap-3 max-w-xl">
-        <Census label="Needs you" value={summary.needsYou + summary.needsApproval} />
+        <Census label="Needs you" value={needsYou} />
         <Census label="Monitoring" value={summary.monitoring} />
-        <Census label="Handled" value={summary.handled + summary.autoHandled} />
+        <Census label="Handled automatically" value={handledAutomatically} />
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        {COMMAND_PROMPTS.slice(0, 5).map((prompt) => (
+          <Link
+            key={prompt}
+            href={`/command?q=${encodeURIComponent(prompt)}`}
+            className="rounded-md border border-hairline px-3 py-1.5 text-sm text-sand hover:border-need hover:text-paper"
+          >
+            {prompt}
+          </Link>
+        ))}
       </div>
 
       <section className="mt-10 space-y-3">

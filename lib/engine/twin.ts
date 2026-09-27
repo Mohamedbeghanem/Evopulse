@@ -91,7 +91,7 @@ export function businessTwin(db: DatabaseSync) {
     headline: delayed
       ? `${impact?.affected_customers.length ?? 0} customers affected`
       : salesOpen.length
-        ? "Atlas Retail waiting on the revised proposal"
+        ? "Atlas Medical waiting on the revised proposal"
         : "No customer wait-state",
     exceptions: (delay ? 1 : 0) + salesOpen.length,
     commitments: delayed ? 1 : 0,

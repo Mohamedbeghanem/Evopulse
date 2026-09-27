@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
+import { workspaceMode } from "@/lib/company";
+import { getDb } from "@/lib/db";
 import "./globals.css";
 
 const serif = Instrument_Serif({
@@ -30,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
-        <AppShell>{children}</AppShell>
+        <AppShell workspaceMode={workspaceMode(getDb())}>{children}</AppShell>
       </body>
     </html>
   );

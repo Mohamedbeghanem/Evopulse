@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { DemoBar } from "./DemoBar";
 import { Sidebar } from "./shell/Sidebar";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, workspaceMode = "entry" }: { children: React.ReactNode; workspaceMode?: "entry" | "running" }) {
   const path = usePathname();
   const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">Sunday 27 Sep 2026 · Africa/Tunis</p>
           <p className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-ok sm:block">LIVE</p>
         </header>
-        <DemoBar />
+        {workspaceMode === "running" ? <DemoBar /> : null}
         <div id="workspace" className="flex min-h-0 flex-1 flex-col">
           {children}
         </div>
