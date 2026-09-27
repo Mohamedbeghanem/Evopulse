@@ -260,8 +260,25 @@ export function verificationTargetFor(db: DatabaseSync, action: ActionRow): Veri
     );
     if (matches.length === 1) entityId = matches[0].id;
   }
-  if (!entityId && !name) return null;
+  if (!entityId && !name) return opportunityContactTarget(db, action);
   return { entityId, name };
+}
+
+/**
+ * Actions without an explicit recipient (proposal, alternative terms) are aimed at the exception's
+ * opportunity contact. Scoping them keeps an unrelated reply (e.g. a supplier) from verifying them.
+ */
+function opportunityContactTarget(db: DatabaseSync, action: ActionRow): VerificationTarget | null {
+  if (!action.exception_id) return null;
+  const exception = one<{ opportunity_id: string | null }>(db, "SELECT opportunity_id FROM exceptions WHERE id = ?", [
+    action.exception_id,
+  ]);
+  if (!exception?.opportunity_id) return null;
+  const opportunity = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [exception.opportunity_id]);
+  const contactId = opportunity ? safeJson(opportunity.payload).contactId : null;
+  if (typeof contactId !== "string" || !contactId) return null;
+  const contact = one<{ id: string; name: string }>(db, "SELECT id, name FROM entities WHERE id = ?", [contactId]);
+  return contact ? { entityId: contact.id, name: contact.name } : null;
 }
 
 /** True when a reply event comes from the verification's target. Unscoped verifications accept any reply. */

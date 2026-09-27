@@ -5,6 +5,8 @@ import { getDb, getMeta } from "@/lib/db";
 import { pulseSummary } from "@/lib/engine/pulse";
 import { agentRoster, businessOverview } from "@/lib/business";
 import { pulseCounts } from "@/lib/ui/pulse-counts";
+import { demoPath } from "@/lib/demo-loop/demo-path";
+import { pulseOutcome } from "@/lib/demo-loop/outcomes";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,8 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       pulse={JSON.parse(JSON.stringify(board))}
       companyName={overview.company.name || getMeta(db, "company_name")}
       agents={JSON.parse(JSON.stringify(agents))}
+      outcome={JSON.parse(JSON.stringify(pulseOutcome(db)))}
+      demoPath={JSON.parse(JSON.stringify(demoPath(db)))}
     />
   );
 }

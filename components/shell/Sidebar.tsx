@@ -7,6 +7,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   History,
+  Inbox,
   Plug,
   Plus,
   Settings,
@@ -26,6 +27,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; match: (path: st
 const PRIMARY: NavItem[] = [
   { href: "/", label: "Pulse", icon: Activity, match: (path: string) => path === "/demo" || path === "/" || path.startsWith("/situations") },
   { href: "/command", label: "Command", icon: Terminal, match: (path: string) => path.startsWith("/command") },
+  { href: "/inbox", label: "Inbox", icon: Inbox, match: (path: string) => path.startsWith("/inbox") },
   { href: "/timeline", label: "Timeline", icon: History, match: (path: string) => path.startsWith("/timeline") },
 ];
 
