@@ -22,10 +22,12 @@ import {
   DECISION_MATRIX,
   DecisionLog,
   ESCALATION_THRESHOLD,
+  REVERSIBLE_ACTION_TYPES,
   ROUTINE_EVENT_COUNT,
   autopilotSummary,
   classify,
   gatherFacts,
+  isInboundEvent,
   receiveCustomerReply,
   resetAutopilotAdapters,
   runAutopilot,
@@ -41,7 +43,15 @@ import { pulseSummary } from "../lib/engine/pulse";
 import { triggerSupplierDelay } from "../lib/engine/supplier";
 import { EVENT_TYPES, eventsFor } from "../lib/events";
 import { IDS } from "../lib/ids";
-import { VerificationService } from "../lib/learning";
+import {
+  SEED_FOLLOWUP_SIGNATURE,
+  StrategyMemory,
+  VerificationService,
+  addHours,
+  expireAndRecord,
+} from "../lib/learning";
+import { evaluatePolicy, loadPolicies } from "../lib/engine/policy";
+import { GET as getAutopilotRoute } from "../app/api/autopilot/route";
 import { wipeAndSeed } from "../lib/seed";
 import type { ActionRow, ExceptionRow } from "../lib/types";
 
@@ -60,6 +70,7 @@ const BASE: ClassificationInput = {
   executedBy: null,
   verification: "none",
   resolved: false,
+  resolvedBy: null,
 };
 
 function counts() {
@@ -106,7 +117,9 @@ describe("decision matrix (pure)", () => {
     ["verified", { risk: "high", execution: "executed", verification: "SUCCESS" }, "HANDLED", "R04_VERIFIED"],
     ["verification failed", { risk: "high", execution: "executed", verification: "FAILED" }, "NEEDS_YOU", "R03_VERIFICATION_FAILED"],
     ["autopilot executed, nothing to verify", { risk: "low", policy: "AUTO", hasActions: true, execution: "executed", executedBy: "autopilot" }, "AUTO_HANDLED", "R06_AUTO_EXECUTED"],
-    ["human executed, nothing to verify", { risk: "high", hasActions: true, execution: "executed", executedBy: "human" }, "HANDLED", "R07_EXECUTED_NO_VERIFICATION"],
+    ["human executed, nothing to verify yet", { risk: "high", hasActions: true, execution: "executed", executedBy: "human" }, "MONITORING", "R07_EXECUTED_AWAITING_EVIDENCE"],
+    ["matcher observed the expected event", { risk: "high", hasActions: true, resolved: true, resolvedBy: "shipment.arrived" }, "HANDLED", "R08_VERIFIED_BY_EVENT"],
+    ["resolved without evidence is not HANDLED", { risk: "high", resolved: true }, "NEEDS_YOU", "R10_HIGH_IMPACT"],
     ["execution failed", { risk: "low", policy: "AUTO", hasActions: true, execution: "failed" }, "NEEDS_YOU", "R01_EXECUTION_FAILED"],
   ];
   for (const [name, input, expectedState, expectedRule] of cases) {
@@ -192,10 +205,11 @@ describe("autopilot on the seeded business", { concurrency: 1 }, () => {
     const inbound = db
       .prepare(
         `SELECT COUNT(*) AS c FROM events WHERE source NOT IN
-          ('pulse-engine','action-engine','verification-engine','outcome-ledger','policy-engine','impact-engine','recovery-engine','feedback-engine','autopilot')`,
+          ('pulse-engine','action-engine','verification-engine','outcome-ledger','policy-engine','impact-engine','recovery-engine','feedback-engine','autopilot','autonomy-engine')`,
       )
       .get() as { c: number };
     assert.equal(summary.totals.eventsUnderstood, inbound.c);
+    assert.equal(isInboundEvent({ source: "autonomy-engine" }), false, "adaptive-autonomy system events are not inbound");
     const normal = db
       .prepare(
         `SELECT COUNT(*) AS c FROM autopilot_decisions d
@@ -472,5 +486,292 @@ describe("card history without a Pulse render in between", { concurrency: 1 }, (
       DecisionLog.for(db).history("exception", IDS.excMissed).map((d) => d.state),
       ["NEEDS_YOU", "MONITORING", "HANDLED"],
     );
+  });
+});
+
+
+function insertTestException(id: string, kind: string, entityId: string, value = 5_000) {
+  const db = getDb();
+  db.prepare(
+    "INSERT OR IGNORE INTO entities (id, type, name, payload, created_at) VALUES (?, 'order', ?, '{}', ?)",
+  ).run(entityId, `Local order ${entityId}`, getMeta(db, "demo_now"));
+  db.prepare(
+    `INSERT INTO exceptions (id, title, kind, expectation_id, opportunity_id, attention, severity, urgency, impact_json, evidence_json, confidence, status, created_at)
+     VALUES (?, ?, ?, NULL, ?, 'NEEDS_YOU', 'low', 'low', ?, '{}', 1, 'open', ?)`,
+  ).run(
+    id,
+    `Test ${kind}`,
+    kind,
+    entityId,
+    JSON.stringify({ revenueAssociated: value, currency: "DZD" }),
+    getMeta(db, "demo_now"),
+  );
+}
+
+describe("REVIEW #1 — a reply only verifies the party it came from", { concurrency: 1 }, () => {
+  before(() => {
+    resetAutopilotAdapters();
+    wipeAndSeed(getDb());
+  });
+
+  it("Amine's reply resolves the 320K card but leaves the supplier card MONITORING with no outcome", () => {
+    const db = getDb();
+    const now = getMeta(db, "demo_now");
+    triggerSupplierDelay(db);
+    runAutopilot(db);
+    executePlan(db, `pln_ap_${IDS.excDelay}`, now);
+    executePlan(db, IDS.planRecovery, now);
+    runAutopilot(db);
+    assert.equal(state(IDS.excDelay), "MONITORING");
+    assert.equal(state(IDS.excMissed), "MONITORING");
+
+    assert.equal(receiveCustomerReply(db).ok, true);
+    assert.equal(state(IDS.excMissed), "HANDLED");
+    assert.equal(state(IDS.excDelay), "MONITORING");
+    assert.equal(DecisionLog.for(db).latest("exception", IDS.excDelay)?.rule, "R05_AWAITING_VERIFICATION");
+    const supplierVerifications = db
+      .prepare("SELECT status FROM verifications WHERE exception_id = ?")
+      .all(IDS.excDelay) as { status: string }[];
+    assert.deepEqual(supplierVerifications.map((v) => v.status), ["PENDING"]);
+    const supplierOutcomes = db.prepare("SELECT COUNT(*) AS c FROM outcomes WHERE exception_id = ?").get(IDS.excDelay) as { c: number };
+    assert.equal(supplierOutcomes.c, 0);
+
+    // Oran Fresh — the party the supplier-delay heads-up went to — does verify it.
+    eventsFor(db).append({
+      type: EVENT_TYPES.CUSTOMER_REPLIED,
+      source: "inbox",
+      source_id: "test_oran_reply",
+      actor_id: IDS.customerA,
+      entity_type: "customer",
+      entity_id: IDS.customerA,
+      payload: { from: "Oran Fresh Market", text: "Thursday works." },
+      occurred_at: now,
+      received_at: now,
+      idempotent: true,
+    });
+    runAutopilot(db);
+    assert.equal(state(IDS.excDelay), "HANDLED");
+  });
+});
+
+describe("REVIEW #2 — auto-executed actions only touch their own exception", { concurrency: 1 }, () => {
+  before(() => wipeAndSeed(getDb()));
+  after(() => resetAutopilotAdapters());
+
+  it("every auto-allowed type runs locally: no quote.sent, no 320K rows changed, no events on other entities", () => {
+    const db = getDb();
+    const policies = loadPolicies(db);
+    const autoTypes = [...REVERSIBLE_ACTION_TYPES].filter(
+      (type) => evaluatePolicy({ type, payload: {} }, policies).outcome === "AUTO",
+    );
+    assert.ok(autoTypes.includes("create_task"));
+    assert.ok(autoTypes.includes("create_checkpoint"));
+    assert.ok(!REVERSIBLE_ACTION_TYPES.has("prepare_proposal"), "customer-facing proposal is not auto-executable");
+
+    setAutopilotAdapters({
+      planner: {
+        name: "local-test",
+        planFor: (_d, e) =>
+          e.kind === "local_test"
+            ? {
+                title: "local",
+                summary: "local",
+                actions: [{ type: e.id.replace("exc_local_", ""), title: `Local ${e.id}`, description: "", payload: { internal: true } }],
+              }
+            : null,
+      },
+    });
+    runAutopilot(db);
+    const snapshot = (sql: string, id: string) => JSON.stringify(db.prepare(sql).get(id));
+    const watched = [
+      ["SELECT * FROM commitments WHERE id = ?", IDS.commitOurs],
+      ["SELECT * FROM commitments WHERE id = ?", IDS.commitTheirs],
+      ["SELECT * FROM entities WHERE id = ?", IDS.opportunity],
+      ["SELECT * FROM entities WHERE id = ?", IDS.document],
+      ["SELECT * FROM expectations WHERE id = ?", IDS.expectOurs],
+      ["SELECT * FROM expectations WHERE id = ?", IDS.expectTheirs],
+    ] as const;
+    const before = watched.map(([sql, id]) => snapshot(sql, id));
+    const quotes = eventsFor(db).listByType(EVENT_TYPES.QUOTE_SENT).length;
+    const maxRow = (db.prepare("SELECT MAX(rowid) AS r FROM events").get() as { r: number }).r;
+
+    const allowed = new Set<string>();
+    for (const type of autoTypes) {
+      insertTestException(`exc_local_${type}`, "local_test", `ent_local_${type}`);
+      allowed.add(`exc_local_${type}`);
+      allowed.add(`ent_local_${type}`);
+    }
+    runAutopilot(db);
+
+    for (const type of autoTypes) {
+      const id = `exc_local_${type}`;
+      assert.equal(state(id), "AUTO_HANDLED", type);
+      for (const action of actionsOf(id)) {
+        assert.equal(action.status, "executed");
+        allowed.add(action.id);
+      }
+    }
+    assert.deepEqual(watched.map(([sql, id]) => snapshot(sql, id)), before);
+    assert.equal(eventsFor(db).listByType(EVENT_TYPES.QUOTE_SENT).length, quotes);
+    const fresh = db.prepare("SELECT type, entity_id FROM events WHERE rowid > ?").all(maxRow) as { type: string; entity_id: string }[];
+    assert.ok(fresh.length > 0);
+    for (const event of fresh) assert.ok(allowed.has(event.entity_id), `${event.type} touched ${event.entity_id}`);
+    // create_checkpoint (L4 in adaptive autonomy): every effect is on its own action / exception entity.
+    const [checkpointAction] = actionsOf("exc_local_create_checkpoint");
+    const own = new Set([checkpointAction.id, "ent_local_create_checkpoint", "exc_local_create_checkpoint"]);
+    const checkpointEvents = db
+      .prepare("SELECT type, entity_type, entity_id FROM events WHERE rowid > ? AND source_id = ?")
+      .all(maxRow, checkpointAction.id) as { type: string; entity_type: string; entity_id: string }[];
+    assert.deepEqual(checkpointEvents.map((e) => e.type).sort(), [EVENT_TYPES.ACTION_EXECUTED, EVENT_TYPES.TASK_COMPLETED].sort());
+    for (const event of checkpointEvents) assert.ok(own.has(event.entity_id), `checkpoint touched ${event.entity_id}`);
+    assert.deepEqual(
+      { ...checkpointEvents.find((e) => e.type === EVENT_TYPES.TASK_COMPLETED) },
+      { type: EVENT_TYPES.TASK_COMPLETED, entity_type: "order", entity_id: "ent_local_create_checkpoint" },
+    );
+  });
+
+  it("a low-risk plan with prepare_proposal is prepared for approval, not executed", () => {
+    const db = getDb();
+    insertTestException("exc_local_prepare_proposal", "local_test", "ent_local_prepare_proposal");
+    const quotes = eventsFor(db).listByType(EVENT_TYPES.QUOTE_SENT).length;
+    runAutopilot(db);
+    assert.equal(state("exc_local_prepare_proposal"), "NEEDS_APPROVAL");
+    assert.equal(actionsOf("exc_local_prepare_proposal")[0].status, "proposed");
+    assert.equal(eventsFor(db).listByType(EVENT_TYPES.QUOTE_SENT).length, quotes);
+  });
+
+  it("a mixed plan with BLOCKED + AUTO actions is never auto-executed", () => {
+    const db = getDb();
+    setAutopilotAdapters({
+      planner: {
+        name: "mixed-test",
+        planFor: (_d, e) =>
+          e.kind === "mixed_test"
+            ? {
+                title: "mixed",
+                summary: "mixed",
+                actions: [
+                  { type: "apply_discount", title: "10% off", description: "", payload: { percent: 10 } },
+                  { type: "create_task", title: "Internal note", description: "", payload: { internal: true } },
+                ],
+              }
+            : null,
+      },
+    });
+    insertTestException("exc_mixed", "mixed_test", "ent_mixed");
+    runAutopilot(db);
+    assert.equal(state("exc_mixed"), "BLOCKED");
+    const actions = actionsOf("exc_mixed");
+    assert.equal(actions.find((a) => a.type === "create_task")?.status, "proposed");
+    assert.equal(actions.find((a) => a.type === "apply_discount")?.status, "blocked");
+  });
+});
+
+describe("REVIEW #3 — verification decides resolution", { concurrency: 1 }, () => {
+  before(() => {
+    resetAutopilotAdapters();
+    wipeAndSeed(getDb());
+  });
+
+  it("a human executing only non-verifiable actions leaves the card MONITORING, not HANDLED", () => {
+    const db = getDb();
+    const event = eventsFor(db).append({
+      id: "evt_test_big_stock_2",
+      type: "inventory.low",
+      source: "wms",
+      source_id: "test_big_stock_2",
+      entity_type: "product",
+      entity_id: "ent_test_big_sku_2",
+      payload: { sku: "RK-7 racking kits", onHand: 1, reorderPoint: 12, reorderValue: 600_000 },
+      occurred_at: getMeta(db, "demo_now"),
+      idempotent: true,
+    });
+    runAutopilot(db);
+    const id = signalExceptionId(event.id);
+    assert.equal(state(id), "NEEDS_YOU");
+    executeAction(db, actionsOf(id)[0].id, getMeta(db, "demo_now"), "operator");
+    runAutopilot(db);
+    assert.equal(state(id), "MONITORING");
+    assert.equal(DecisionLog.for(db).latest("exception", id)?.rule, "R07_EXECUTED_AWAITING_EVIDENCE");
+  });
+
+  it("the matcher observing the expected event (shipment.arrived) is verification by reality → HANDLED", () => {
+    const db = getDb();
+    triggerSupplierDelay(db);
+    runAutopilot(db);
+    assert.equal(state(IDS.excDelay), "NEEDS_YOU");
+    eventsFor(db).append({
+      type: "shipment.arrived",
+      source: "logistics",
+      source_id: "test_sh204_arrived",
+      entity_type: "shipment",
+      entity_id: IDS.shipment,
+      payload: { ref: "SH-204" },
+      occurred_at: getMeta(db, "demo_now"),
+      idempotent: true,
+    });
+    runAutopilot(db);
+    const decision = DecisionLog.for(db).latest("exception", IDS.excDelay)!;
+    assert.equal(decision.state, "HANDLED");
+    assert.equal(decision.rule, "R08_VERIFIED_BY_EVENT");
+    assert.match(decision.reason, /Verified by expected event shipment\.arrived/);
+  });
+
+  it("verification FAILED → NEEDS_YOU end to end, with a failed outcome", () => {
+    const db = getDb();
+    const now = getMeta(db, "demo_now");
+    executePlan(db, IDS.planRecovery, now);
+    runAutopilot(db);
+    assert.equal(state(IDS.excMissed), "MONITORING");
+    const failed = expireAndRecord(db, addHours(now, 48));
+    assert.ok(failed.some((v) => v.exception_id === IDS.excMissed));
+    runAutopilot(db);
+    const decision = DecisionLog.for(db).latest("exception", IDS.excMissed)!;
+    assert.equal(decision.state, "NEEDS_YOU");
+    assert.equal(decision.rule, "R03_VERIFICATION_FAILED");
+    const outcome = db.prepare("SELECT success FROM outcomes WHERE exception_id = ?").get(IDS.excMissed) as { success: number };
+    assert.equal(outcome.success, 0);
+  });
+});
+
+describe("REVIEW #6 — memory and API", { concurrency: 1 }, () => {
+  before(() => {
+    resetAutopilotAdapters();
+    wipeAndSeed(getDb());
+  });
+
+  it("strategy memory counts the verified 320K outcome", () => {
+    const db = getDb();
+    const stats = () =>
+      StrategyMemory.for(db)
+        .getStrategyEvidence(SEED_FOLLOWUP_SIGNATURE)
+        .strategies.find((s) => s.strategy === "personalized_followup")!;
+    const before = stats();
+    executePlan(db, IDS.planRecovery, getMeta(db, "demo_now"));
+    assert.equal(receiveCustomerReply(db).ok, true);
+    const outcome = db.prepare("SELECT * FROM outcomes WHERE exception_id = ?").get(IDS.excMissed) as {
+      context_signature: string;
+      strategy: string;
+      success: number;
+    };
+    assert.equal(outcome.success, 1);
+    assert.equal(outcome.context_signature, SEED_FOLLOWUP_SIGNATURE);
+    const after = stats();
+    assert.equal(after.observations, before.observations + 1);
+    assert.equal(after.successes, before.successes + 1);
+  });
+
+  it("GET /api/autopilot is idempotent across 3 calls", async () => {
+    const bodies: { totals: unknown; items: unknown }[] = [];
+    await getAutopilotRoute();
+    const settled = counts();
+    for (let i = 0; i < 3; i += 1) {
+      const res = await getAutopilotRoute();
+      assert.equal(res.status, 200);
+      bodies.push((await res.json()) as { totals: unknown; items: unknown });
+    }
+    assert.deepEqual(counts(), settled);
+    assert.deepEqual(bodies[1].totals, bodies[0].totals);
+    assert.deepEqual(bodies[2].items, bodies[0].items);
   });
 });

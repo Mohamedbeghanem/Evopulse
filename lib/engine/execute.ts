@@ -94,6 +94,11 @@ export function executePlan(db: DatabaseSync, planId: string, now: string, actor
 
 function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
   if (action.type === "prepare_proposal") {
+    const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [action.plan_id]);
+    // The proposal effects below are the 320K Atlas scenario. They only fire for that exception
+    // (goal plans keep their document-only behaviour); any other prepare_proposal has no global effect.
+    const atlas = action.exception_id === IDS.excMissed;
+    if (!atlas && !plan?.goal_id) return;
     run(
       db,
       `INSERT INTO entities (id, type, name, payload, created_at)
@@ -107,7 +112,6 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
         now,
       ],
     );
-    const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [action.plan_id]);
     if (plan?.goal_id) return;
 
     eventsFor(db).append({
@@ -153,14 +157,17 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
   }
 
   if (action.type === "create_checkpoint") {
+    // Scoped to the action's own exception subject — never a hard-coded opportunity.
+    const subject = checkpointSubject(db, action);
+    const payload = JSON.parse(action.payload || "{}") as { dueAt?: string };
     eventsFor(db).append({
       type: EVENT_TYPES.TASK_COMPLETED,
       source: "action-engine",
       source_id: action.id,
       actor_id: IDS.company,
-      entity_type: "opportunity",
-      entity_id: IDS.opportunity,
-      payload: { dueAt: CHECKPOINT_ISO, actionType: action.type },
+      entity_type: subject.type,
+      entity_id: subject.id,
+      payload: { dueAt: payload.dueAt ?? CHECKPOINT_ISO, actionType: action.type },
       occurred_at: now,
       received_at: now,
       confidence: 1,
@@ -182,6 +189,20 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
   }
 
   applyCatalogSideEffects(db, action, now);
+}
+
+function checkpointSubject(db: DatabaseSync, action: ActionRow): { type: string; id: string } {
+  const exception = one<{ id: string; opportunity_id: string | null }>(
+    db,
+    "SELECT id, opportunity_id FROM exceptions WHERE id = ?",
+    [action.exception_id],
+  );
+  if (exception?.opportunity_id) {
+    const entity = one<{ type: string }>(db, "SELECT type FROM entities WHERE id = ?", [exception.opportunity_id]);
+    return { type: entity?.type || "entity", id: exception.opportunity_id };
+  }
+  if (exception) return { type: "exception", id: exception.id };
+  return { type: "action", id: action.id };
 }
 
 function applyCatalogSideEffects(db: DatabaseSync, action: ActionRow, now: string) {

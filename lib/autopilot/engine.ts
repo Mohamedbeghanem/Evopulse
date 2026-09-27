@@ -31,6 +31,7 @@ const NORMAL_EVENT_INPUT: ClassificationInput = {
   executedBy: null,
   verification: "none",
   resolved: false,
+  resolvedBy: null,
 };
 
 export type AutopilotRun = {
@@ -307,7 +308,21 @@ export function gatherFacts(db: DatabaseSync, exception: ExceptionRow): Classifi
         : null,
     verification: verification ? verification.status : "none",
     resolved: exception.status === "resolved",
+    resolvedBy: exception.status === "resolved" ? matchedExpectedEvent(db, exception) : null,
   };
+}
+
+/** The matcher records "Matched <type> (<eventId>)" on the expectation it fulfils. That is verification by reality. */
+function matchedExpectedEvent(db: DatabaseSync, exception: ExceptionRow): string | null {
+  if (!exception.expectation_id) return null;
+  const expectation = one<{ status: string; actual: string }>(
+    db,
+    "SELECT status, actual FROM expectations WHERE id = ?",
+    [exception.expectation_id],
+  );
+  if (expectation?.status !== "FULFILLED") return null;
+  const match = /^Matched (\S+) \(/.exec(expectation.actual || "");
+  return match ? match[1] : null;
 }
 
 /** Executes only AUTO actions, through the existing action engine, as the autopilot actor. */

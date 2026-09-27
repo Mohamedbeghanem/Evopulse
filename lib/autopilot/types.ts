@@ -36,6 +36,8 @@ export type ClassificationInput = {
   executedBy: "autopilot" | "human" | null;
   verification: VerificationInput;
   resolved: boolean;
+  /** Expected event type that the expectation matcher observed and that resolved this exception. */
+  resolvedBy: string | null;
 };
 
 export type Decision = {

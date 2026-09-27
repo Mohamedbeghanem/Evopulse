@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { all, one } from "../db";
 import { detectExceptions } from "../engine/pulse";
 import { getDownstream } from "../graph";
+import { IDS } from "../ids";
 import type { CommitmentRow, ExceptionRow, ExpectationRow } from "../types";
 import type { ActionTemplate } from "./types";
 
@@ -107,6 +108,7 @@ export const templatePlanner: ResponsePlanner = {
           description: "Your Tuesday delivery may move to Thursday; we are working on a partial shipment.",
           payload: {
             to: "Oran Fresh Market",
+            targetEntityId: IDS.customerA,
             audience: "customer",
             body: "Heads-up: our supplier moved a shipment by two days. Your Tuesday delivery may move to Thursday — we are pushing for a partial shipment and will confirm Monday.",
           },

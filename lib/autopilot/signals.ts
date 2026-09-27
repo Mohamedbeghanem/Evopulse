@@ -15,6 +15,7 @@ export const SYSTEM_EVENT_SOURCES = new Set([
   "recovery-engine",
   "feedback-engine",
   "autopilot",
+  "autonomy-engine",
 ]);
 
 export function isInboundEvent(event: Pick<BusinessEvent, "source">): boolean {
@@ -121,7 +122,12 @@ export const SIGNAL_RULES: Record<string, SignalRule> = {
           type: "draft_message",
           title: `Draft reply to ${customer}`,
           description: str(e.payload.proposedReply, "Confirm the change."),
-          payload: { to: customer, audience: "customer", body: str(e.payload.proposedReply) },
+          payload: {
+            to: customer,
+            targetEntityId: e.entity_id,
+            audience: "customer",
+            body: str(e.payload.proposedReply),
+          },
         },
       ],
     };

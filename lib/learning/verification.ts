@@ -233,9 +233,41 @@ export class VerificationService {
       exception_id: action.exception_id,
       now,
       strategy,
-      metadata: { actionType: action.type, planId: action.plan_id },
+      metadata: { actionType: action.type, planId: action.plan_id, target: verificationTargetFor(this.db, action) },
     });
   }
+}
+
+/** Who the verified reply must come from. null = unscoped (legacy rows, direct test calls). */
+export type VerificationTarget = { entityId: string | null; name: string | null };
+
+/**
+ * Target party of an executed action: explicit payload.targetEntityId / payload.to,
+ * else the contact on the exception's opportunity.
+ */
+export function verificationTargetFor(db: DatabaseSync, action: ActionRow): VerificationTarget | null {
+  const payload = safeJson(action.payload);
+  const entityId = typeof payload.targetEntityId === "string" ? payload.targetEntityId : null;
+  const name = typeof payload.to === "string" ? payload.to : null;
+  if (entityId || name) return { entityId, name };
+  const exception = one<ExceptionRow>(db, "SELECT * FROM exceptions WHERE id = ?", [action.exception_id]);
+  if (!exception?.opportunity_id) return null;
+  const opportunity = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [exception.opportunity_id]);
+  const contactId = safeJson(opportunity?.payload || "{}").contactId;
+  if (typeof contactId !== "string") return null;
+  const contact = one<{ name: string }>(db, "SELECT name FROM entities WHERE id = ?", [contactId]);
+  return { entityId: contactId, name: contact?.name ?? null };
+}
+
+/** A reply only verifies an action aimed at the party that replied. Unscoped verifications accept any reply. */
+export function replyMatchesTarget(
+  verification: Pick<VerificationRow, "metadata">,
+  event: { actor_id?: string | null; entity_id?: string | null; payload?: Record<string, unknown> },
+): boolean {
+  const target = safeJson(verification.metadata).target as VerificationTarget | null | undefined;
+  if (!target || (!target.entityId && !target.name)) return true;
+  if (target.entityId && (event.actor_id === target.entityId || event.entity_id === target.entityId)) return true;
+  return Boolean(target.name && event.payload?.from === target.name);
 }
 
 export function inferStrategyFromAction(action: ActionRow): string {

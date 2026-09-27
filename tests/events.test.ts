@@ -118,3 +118,29 @@ describe("seed event stream", () => {
     }
   });
 });
+
+describe("list() limit keeps the newest events", () => {
+  it("returns the newest N in ascending order when more than 500 match", () => {
+    const service = eventsFor(getDb());
+    const base = Date.parse("2026-10-01T00:00:00Z");
+    for (let i = 0; i < 520; i += 1) {
+      service.append({
+        type: "test.bulk",
+        source: "test",
+        source_id: `bulk_${i}`,
+        occurred_at: new Date(base + i * 60_000).toISOString(),
+        payload: { i },
+        idempotent: true,
+      });
+    }
+    const listed = service.list({ type: "test.bulk" });
+    assert.equal(listed.length, 500);
+    assert.equal(listed[0].payload.i, 20);
+    assert.equal(listed[listed.length - 1].payload.i, 519);
+    for (let k = 1; k < listed.length; k += 1) assert.ok(listed[k - 1].occurred_at <= listed[k].occurred_at);
+    const all = service.list();
+    assert.equal(all[all.length - 1].payload.i, 519, "default list includes the newest event");
+    const small = service.list({ type: "test.bulk", limit: 3 });
+    assert.deepEqual(small.map((e) => e.payload.i), [517, 518, 519]);
+  });
+});

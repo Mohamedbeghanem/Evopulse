@@ -7,13 +7,12 @@ import type { ActionGate, ClassificationInput, Decision, Risk } from "./types";
  */
 export const ESCALATION_THRESHOLD = 100_000;
 
-/** Internal, undoable work. External sends, money and commercial terms are never on this list. */
-export const REVERSIBLE_ACTION_TYPES = new Set([
-  "create_task",
-  "create_checkpoint",
-  "prepare_proposal",
-  "draft_message",
-]);
+/**
+ * Internal, undoable work whose side effects stay on the action's own exception.
+ * External sends, money, commercial terms and customer-facing documents (prepare_proposal)
+ * are never on this list. draft_message is reversible (a draft) but policy still gates it.
+ */
+export const REVERSIBLE_ACTION_TYPES = new Set(["create_task", "create_checkpoint", "draft_message"]);
 
 export function isReversible(actionType: string): boolean {
   return REVERSIBLE_ACTION_TYPES.has(actionType);
@@ -78,16 +77,17 @@ export const DECISION_MATRIX: readonly Rule[] = [
     reason: () => "Low-risk, reversible, internal fix executed automatically inside policy.",
   },
   {
-    id: "R07_EXECUTED_NO_VERIFICATION",
-    when: (i) => i.execution === "executed" && i.verification === "none",
+    id: "R08_VERIFIED_BY_EVENT",
+    when: (i) => Boolean(i.resolvedBy),
     state: "HANDLED",
-    reason: () => "Executed by a human; nothing external to verify.",
+    reason: (i) => `Verified by expected event ${i.resolvedBy}.`,
   },
   {
-    id: "R08_RESOLVED",
-    when: (i) => i.resolved,
-    state: "HANDLED",
-    reason: () => "Marked resolved.",
+    id: "R07_EXECUTED_AWAITING_EVIDENCE",
+    when: (i) => i.execution === "executed",
+    state: "MONITORING",
+    reason: () =>
+      "Executed by a human. Verification decides resolution — watching for the expected event before calling it handled.",
   },
   {
     id: "R09_NO_SIGNAL",

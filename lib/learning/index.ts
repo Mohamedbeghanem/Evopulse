@@ -59,4 +59,7 @@ export {
   inferStrategyFromAction,
   isVerifiableAction,
   markExceptionAwaitingVerification,
+  replyMatchesTarget,
+  verificationTargetFor,
+  type VerificationTarget,
 } from "./verification";
