@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>EvoPulse · Business Twin</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07090C;color:#E8ECF1;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#FF7A45}a:hover{color:#FFA07A}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.rail{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7C8796;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em}
+.rail:hover{background:#141A22;color:#E8ECF1}
+.rail.on{background:#1A212B;color:#FF6A2B}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.row{text-decoration:none;color:#E8ECF1}
+.row:hover{background:#121821;color:#E8ECF1}
+.btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;height:32px;padding:0 14px;border-radius:6px;border:1px solid #2A333F;background:#141A22;color:#E8ECF1;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{background:#1C2430;color:#fff}
+.btn.pri{background:#FF5A1F;border-color:#FF5A1F;color:#0A0C0F}
+.btn.pri:hover{background:#FF7A45;color:#0A0C0F}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,31,.6)}70%{box-shadow:0 0 0 8px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
+.pulse{animation:pulse 1.8s infinite}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 900px; display: flex; background: #07090C; overflow: hidden">
+<nav aria-label="Primary" style="width: 64px; height: 900px; box-sizing: border-box; background: #090C10; border-right: 1px solid #1C232C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; flex-shrink: 0">
+<div style="width: 36px; height: 36px; border-radius: 8px; background: #FF5A1F; display: flex; align-items: center; justify-content: center; margin-bottom: 14px">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0C0F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-7 4 14 3-7h6"></path></svg>
+</div>
+<a href="Main.dc.html" aria-label="Business Twin" class="rail on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>TWIN</a>
+<a href="Causal.dc.html" aria-label="Causal Explorer" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4" r="2"></circle><circle cx="5" cy="20" r="2"></circle><circle cx="12" cy="20" r="2"></circle><circle cx="19" cy="20" r="2"></circle><path d="M12 6v12M12 11c0 3-7 3-7 7M12 11c0 3 7 3 7 7"></path></svg>CAUSE</a>
+<a href="Time.dc.html" aria-label="Time Machine" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>TIME</a>
+<a href="Actions.dc.html" aria-label="Actions" class="rail"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h6"></path><path d="m14 17 2.5 2.5L21 15"></path></svg>ACT</a>
+</nav>
+<div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+<header style="height: 56px; box-sizing: border-box; border-bottom: 1px solid #1C232C; display: flex; align-items: center; gap: 16px; padding: 0 24px; background: #090C10; flex-shrink: 0">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-weight: 700; font-size: 16px; letter-spacing: -0.01em">EvoPulse</span>
+<span class="mono" style="font-size: 12px; color: #7C8796">/ Atlas Steel Distribution / <span style="color: #C9D1DB">Business Twin</span></span>
+</div>
+<div style="flex-grow: 1"></div>
+<label for="ask" class="sr">Ask your business</label>
+<input id="ask" placeholder="Ask your business… e.g. why is Friday's cash at risk?" style="width: 380px; height: 34px; box-sizing: border-box; background: #0E1217; border: 1px solid #232B35; border-radius: 6px; color: #E8ECF1; padding: 0 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px">
+<div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border: 1px solid #2A333F; border-radius: 14px">
+<span class="pulse" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>
+<span class="mono" style="font-size: 11px; font-weight: 600; letter-spacing: .1em">LIVE</span>
+</div>
+<span class="mono" style="font-size: 12px; color: #A3ADBA">SUN 27 SEP · 14:32:08 CET</span>
+<button aria-label="Account" style="width: 32px; height: 32px; border-radius: 16px; background: #1A212B; border: 1px solid #2A333F; color: #E8ECF1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; cursor: pointer">MO</button>
+</header>
+
+<main style="flex-grow: 1; box-sizing: border-box; padding: 22px 28px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 0">
+<div style="display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="mono" style="font-size: 11px; letter-spacing: .14em; color: #7C8796">BUSINESS TWIN · LIVE STATE</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.015em">Good afternoon. <span style="color: #FF7A45">2 decisions</span> need you today.</h1>
+</div>
+<div class="mono" style="display: flex; gap: 20px; font-size: 12px; color: #A3ADBA">
+<span>TWIN SYNC <span style="color: #E8ECF1">0.4s</span> AGO</span>
+<span>SOURCES <span style="color: #E8ECF1">38</span> CONNECTED</span>
+<span>MODEL <span style="color: #E8ECF1">v4.2</span></span>
+</div>
+</div>
+
+<section aria-label="Event summary" style="height: 112px; flex-shrink: 0; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; overflow: hidden">
+<div style="width: 210px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">EVENTS · 24H</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1">184</span>
+</div>
+<div style="width: 210px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">NORMAL</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: #A3ADBA">171</span>
+</div>
+<div style="width: 250px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">HANDLED AUTOMATICALLY</span>
+<span class="mono" style="font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: #7FB2E0">9</span>
+</div>
+<a href="Actions.dc.html" class="row" style="width: 230px; box-sizing: border-box; padding: 16px 20px; border-right: 1px solid #1F2630; display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,90,31,0.08)">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #FF7A45">NEED YOU →</span>
+<span class="mono" style="font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #FF6A2B">2</span>
+</a>
+<div style="flex-grow: 1; box-sizing: border-box; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">EVENT RATE · LAST 60 MIN</span>
+<span class="mono" style="font-size: 11px; color: #A3ADBA">3.1 / min</span>
+</div>
+<div style="flex-grow: 1; display: flex; align-items: flex-end; gap: 3px">
+
+<div style="flex-grow: 1; height: 14px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 12px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 13px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 26px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 23px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 28px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 25px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 15px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 27px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 19px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 17px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 23px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 16px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 25px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 21px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 18px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 44px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 52px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 38px; background: #FF5A1F; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 30px; background: #7FB2E0; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 26px; background: #7FB2E0; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 22px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 20px; background: #2E3844; border-radius: 1px"></div>
+
+<div style="flex-grow: 1; height: 24px; background: #2E3844; border-radius: 1px"></div>
+
+</div>
+</div>
+</section>
+
+<div style="flex-grow: 1; display: flex; gap: 18px; min-height: 0">
+<section aria-label="Domains" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7C8796">DOMAINS · 5</span>
+<div class="mono" style="display: flex; gap: 16px; font-size: 11px; color: #A3ADBA">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #5E6B7A"></span>NORMAL</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #F0B44C"></span>WATCH</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: #FF5A1F"></span>AT RISK</span>
+</div>
+</div>
+
+<a href="Causal.dc.html" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span class="pulse" style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A1F"></span><span style="font-size: 16px; font-weight: 600">Sales</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">3 commitments at risk</span><span style="font-size: 12.5px; color: #8F9AA8">2 likely to miss deadline after supplier delay, 1 on watch</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500; color: #FF7A45">300K DZD</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">EXPOSED</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,22 12,20 24,21 36,18 48,19 60,17 72,18 84,22 96,26 110,29" stroke="#FF6A2B" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(255,90,31,0.14); color: #FF7A45; border: 1px solid rgba(255,90,31,0.4)">AT RISK</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="Time.dc.html" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F0B44C"></span><span style="font-size: 16px; font-weight: 600">Cash</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">540K expected this week</span><span style="font-size: 12.5px; color: #8F9AA8">300K of it depends on orders at risk · payment due Fri 2 Oct</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">540K DZD</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">INFLOW · 7D</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,24 12,22 24,23 36,20 48,21 60,19 72,20 84,18 96,12 110,8" stroke="#F0B44C" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(240,180,76,0.12); color: #F0B44C; border: 1px solid rgba(240,180,76,0.35)">WATCH</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="Causal.dc.html" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F0B44C"></span><span style="font-size: 16px; font-weight: 600">Operations</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">Shipment SHP-2291 delayed +2 days</span><span style="font-size: 12.5px; color: #8F9AA8">14t stock reserved at Rouiba depot, handled automatically</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">94.2%</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">ON-TIME · 30D</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,10 12,9 24,11 36,10 48,8 60,9 72,10 84,9 96,14 110,17" stroke="#F0B44C" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(240,180,76,0.12); color: #F0B44C; border: 1px solid rgba(240,180,76,0.35)">WATCH</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="Time.dc.html" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; border-bottom: 1px solid #1A2029; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #5E6B7A"></span><span style="font-size: 16px; font-weight: 600">Customers</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">42 active accounts, no escalations</span><span style="font-size: 12.5px; color: #8F9AA8">BatiCo and Oran Structures notified of revised ETAs (auto)</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500">0</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">OPEN COMPLAINTS</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,16 12,15 24,17 36,16 48,15 60,16 72,14 84,15 96,16 110,15" stroke="#5E6B7A" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: #161C24; color: #A3ADBA; border: 1px solid #2A333F">NORMAL</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+
+<a href="Causal.dc.html" class="row" style="flex-grow: 1; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 14px">
+<div style="width: 124px; flex-shrink: 0; display: flex; align-items: center; gap: 10px"><span class="pulse" style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A1F"></span><span style="font-size: 16px; font-weight: 600">Suppliers</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 500">Sider Métal delay +2 days on HR coils</span><span style="font-size: 12.5px; color: #8F9AA8">Root cause of today's cascade · port congestion at Annaba</span></div>
+<div style="width: 130px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span class="mono" style="font-size: 18px; font-weight: 500; color: #FF7A45">+2.0d</span><span class="mono" style="font-size: 10px; letter-spacing: .08em; color: #7C8796">LEAD-TIME DRIFT</span></div>
+<svg width="90" height="32" preserveAspectRatio="none" viewBox="0 0 110 32" fill="none" style="flex-shrink: 0"><polyline points="0,26 12,25 24,26 36,24 48,25 60,23 72,24 84,18 96,10 110,5" stroke="#FF6A2B" stroke-width="1.6"></polyline></svg>
+<span class="mono" style="width: 84px; flex-shrink: 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 5px 0; border-radius: 4px; background: rgba(255,90,31,0.14); color: #FF7A45; border: 1px solid rgba(255,90,31,0.4)">AT RISK</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C8796" stroke-width="2"><path d="m9 6 6 6-6 6"></path></svg>
+</a>
+</section>
+
+<aside style="width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px">
+<section aria-label="Needs you" style="box-sizing: border-box; background: #0E1217; border: 1px solid rgba(255,90,31,0.45); border-radius: 10px; display: flex; flex-direction: column">
+<div style="height: 44px; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #FF7A45">NEEDS YOU · 2</span>
+<span class="mono" style="font-size: 11px; color: #7C8796">300K DZD ON THE LINE</span>
+</div>
+<div style="padding: 16px 18px; border-bottom: 1px solid #1A2029; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Expedite SHP-2291 customs clearance</span><span class="mono" style="font-size: 12px; color: #FF7A45">+180K</span></div>
+<span class="mono" style="font-size: 12px; color: #8F9AA8">Broker fee 38,000 DZD · needs approval (FIN-02)</span>
+<div style="display: flex; gap: 8px"><a href="Actions.dc.html" class="btn pri">Review</a><a href="Causal.dc.html" class="btn">Why?</a></div>
+</div>
+<div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 600">Ship 80% of Order C on Thursday</span><span class="mono" style="font-size: 12px; color: #FF7A45">+96K</span></div>
+<span class="mono" style="font-size: 12px; color: #8F9AA8">Changes confirmed order terms · needs sign-off (OPS-05)</span>
+<div style="display: flex; gap: 8px"><a href="Actions.dc.html" class="btn pri">Review</a><a href="Causal.dc.html" class="btn">Why?</a></div>
+</div>
+</section>
+
+<section aria-label="Handled automatically" style="flex-grow: 1; box-sizing: border-box; background: #0E1217; border: 1px solid #1F2630; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 44px; flex-shrink: 0; box-sizing: border-box; padding: 0 18px; border-bottom: 1px solid #1F2630; display: flex; align-items: center; justify-content: space-between">
+<span class="mono" style="font-size: 11px; letter-spacing: .12em; color: #7FB2E0">HANDLED AUTOMATICALLY · 9</span>
+<a href="Actions.dc.html" class="mono" style="font-size: 11px">VIEW ALL</a>
+</div>
+<div class="mono" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 12px">
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">14:21</span><span style="color: #C9D1DB">Re-forecast weekly cash · 3 scenarios</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">09:17</span><span style="color: #C9D1DB">Delay notice sent to BatiCo, Oran Str.</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">09:16</span><span style="color: #C9D1DB">Reserved 14t HR coil at Rouiba depot</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">08:40</span><span style="color: #C9D1DB">Matched 6 bank receipts to invoices</span></div>
+<div style="display: flex; gap: 12px"><span style="color: #7C8796">07:55</span><span style="color: #8F9AA8">+5 more routine actions</span></div>
+</div>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</body>
+</html>
