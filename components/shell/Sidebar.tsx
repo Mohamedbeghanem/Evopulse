@@ -1,5 +1,6 @@
 "use client";
 
+import { BotsNav } from "@/components/agent/BotsNav";
 import { Icon, type IconName } from "@/components/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -63,8 +64,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3" aria-label="Primary">
-        <p className="px-2.5 pb-1.5 pt-2 text-[10px] font-medium uppercase tracking-[0.12em] text-side-label">Primary</p>
+        <p className="px-2.5 pb-1.5 pt-2 text-[10px] font-medium uppercase tracking-[0.12em] text-side-label">Main</p>
         <NavList items={PRIMARY} path={path} onNavigate={onClose} />
+        <BotsNav onNavigate={onClose} />
       </nav>
 
       <nav className="mt-auto border-t border-side-line px-3 py-3" aria-label="Control and settings">

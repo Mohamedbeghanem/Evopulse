@@ -24,6 +24,7 @@ const CRUMBS: [string, string][] = [
   ["/autonomy", "Autonomy"],
   ["/learning", "Learning"],
   ["/situations", "Situation"],
+  ["/agents", "Agent"],
   ["/exceptions", "Exception"],
   ["/evidence", "Evidence"],
   ["/verification", "Verification"],

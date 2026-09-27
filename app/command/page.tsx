@@ -117,6 +117,11 @@ export default function CommandPage() {
   }, [approvalPending]);
 
   useEffect(() => {
+    const ask = new URLSearchParams(window.location.search).get("ask");
+    if (ask) setMessage(ask);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     fetch("/api/pulse")
       .then((res) => {

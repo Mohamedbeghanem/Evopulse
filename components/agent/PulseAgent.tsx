@@ -1,6 +1,6 @@
 "use client";
 
-import { BloubMark, type BloubMood } from "@/components/agent/BloubMark";
+import { AgentAvatar, type AgentAvatarState } from "@/components/agent/AgentAvatar";
 
 export type PulseAgentState =
   | "IDLE"
@@ -60,12 +60,6 @@ export function phaseToPulseState(phase?: string, status?: string): PulseAgentSt
   return "IDLE";
 }
 
-function moodFor(state: PulseAgentState): BloubMood {
-  if (state === "THINKING" || state === "INVESTIGATING" || state === "VERIFYING") return "thinking";
-  if (state === "EXECUTING") return "speaking";
-  return "idle";
-}
-
 export function PulseAgent({
   state,
   size,
@@ -76,13 +70,15 @@ export function PulseAgent({
   showLabel?: boolean;
 }) {
   const label = LABEL[state];
+  const avatarSize = size != null && size <= 20 ? "xs" : size != null && size <= 28 ? "sm" : "md";
+  const avatarState: AgentAvatarState = state;
 
   return (
     <span
       role="status"
       className={`inline-flex items-center gap-2 transition-[color,opacity] duration-[220ms] ease-out motion-reduce:transition-none ${TONE[state]}`}
     >
-      <BloubMark size={size} mood={moodFor(state)} title="Pulse" />
+      <AgentAvatar agent={{ name: "Pulse", tone: "slate" }} state={avatarState} size={avatarSize} />
       {showLabel === false ? (
         <span className="sr-only">{label}</span>
       ) : (
