@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EvoPulse Control OS — Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --aurora-canvas: #07090c;
+        --aurora-nav: #090c10;
+        --aurora-surface: #0e1217;
+        --aurora-surface-raised: #141a22;
+        --aurora-surface-active: #1a212b;
+        --aurora-recessed: #0a0d11;
+        --aurora-ink: #e8ecf1;
+        --aurora-secondary: #a3adba;
+        --aurora-muted: #7c8796;
+        --aurora-quiet: #8f9aa8;
+        --aurora-hairline: #1c232c;
+        --aurora-hairline-strong: #232b35;
+        --aurora-panel-line: #1f2630;
+        --aurora-attention: #ff5a1f;
+        --aurora-attention-hot: #ff7a45;
+        --aurora-on-attention: #0a0c0f;
+        --aurora-watch: #f0b44c;
+        --aurora-auto: #7fb2e0;
+        --aurora-focus: #ff7a45;
+        --aurora-simulation: var(--aurora-auto);
+        --aurora-overlay: rgba(7, 9, 12, 0.72);
+        --aurora-need-wash: rgba(255, 90, 31, 0.08);
+        --aurora-auto-wash: rgba(127, 178, 224, 0.08);
+        --aurora-watch-wash: rgba(240, 180, 76, 0.1);
+        --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+        --os-sidebar-width: 240px;
+        --os-inspector-width: 360px;
+        --os-header-height: 56px;
+        --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--aurora-canvas);
+        color: var(--aurora-ink);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      button, input { font: inherit; color: inherit; }
+      button { background: none; border: 0; padding: 0; cursor: pointer; }
+      a { color: var(--aurora-attention-hot); text-decoration: none; }
+      :focus { outline: none; }
+      :focus-visible { box-shadow: var(--focus-ring); border-radius: 8px; }
+
+      .skip {
+        position: absolute;
+        left: 12px;
+        top: -40px;
+        z-index: 80;
+        padding: 8px 12px;
+        background: var(--aurora-surface-raised);
+        border: 1px solid var(--aurora-hairline);
+        border-radius: 8px;
+      }
+      .skip:focus { top: 12px; }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .os {
+        display: flex;
+        min-height: 100vh;
+        background: var(--aurora-canvas);
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        width: var(--os-sidebar-width);
+        min-width: var(--os-sidebar-width);
+        height: 100vh;
+        padding: 0 16px 24px;
+        border-right: 1px solid var(--aurora-hairline);
+        background: var(--aurora-nav);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        height: var(--os-header-height);
+        gap: 10px;
+      }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+      .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+      .nav-label {
+        padding: 16px 10px 6px;
+        color: var(--aurora-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .nav-item, .control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        color: var(--aurora-secondary);
+        text-align: left;
+      }
+      .nav-item:hover, .control:hover { background: var(--aurora-surface-raised); color: var(--aurora-ink); }
+      .nav-item[aria-current="page"] {
+        background: var(--aurora-surface-active);
+        color: var(--aurora-ink);
+        box-shadow: inset 2px 0 0 var(--aurora-attention);
+      }
+      .nav-item[aria-disabled="true"] { pointer-events: none; }
+      .control-primary {
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+        box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong);
+        margin: 4px 0 6px;
+      }
+      .nav-item svg, .control svg, .icon-btn svg, .brand-mark svg, .send svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .sidebar-foot { margin-top: auto; display: grid; gap: 2px; }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 10px 0;
+        color: var(--aurora-secondary);
+        font-size: 13px;
+      }
+      .user-row small { display: block; color: var(--aurora-muted); font-size: 11px; }
+      .avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: var(--aurora-surface-raised);
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
+
+      .workspace {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(900px 480px at 100% 0%, rgba(127, 178, 224, 0.07), transparent 55%),
+          var(--aurora-canvas);
+      }
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: var(--os-header-height);
+        padding: 10px 24px;
+        border-bottom: 1px solid var(--aurora-hairline);
+      }
+      .kicker {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--aurora-simulation);
+      }
+      h1 {
+        margin: 2px 0 0;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+      }
+      .lede { margin: 4px 0 0; color: var(--aurora-muted); font-size: 13px; }
+      .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+      .clock {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--aurora-muted);
+      }
+      .live-pill, .mode-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+      }
+      .live-pill {
+        border: 1px solid var(--aurora-hairline-strong);
+        color: var(--aurora-secondary);
+        background: var(--aurora-recessed);
+      }
+      .live-pill i, .mode-pill i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .mode-pill {
+        border: 1px dashed var(--aurora-simulation);
+        color: var(--aurora-simulation);
+        background: var(--aurora-auto-wash);
+      }
+      .icon-btn, .chip, .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid var(--aurora-hairline-strong);
+        background: var(--aurora-surface-raised);
+        color: var(--aurora-ink);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .icon-btn { width: 32px; padding: 0; }
+      .btn-pri {
+        background: var(--aurora-attention);
+        border-color: var(--aurora-attention);
+        color: var(--aurora-on-attention);
+      }
+      .btn-pri:hover { background: var(--aurora-attention-hot); }
+      .btn-ice {
+        border-color: rgba(127, 178, 224, 0.45);
+        color: var(--aurora-simulation);
+        background: transparent;
+      }
+      .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .reopen {
+        display: none;
+        position: fixed;
+        left: 8px;
+        top: 12px;
+        z-index: 30;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: 1px solid var(--aurora-hairline);
+        background: var(--aurora-nav);
+        color: var(--aurora-ink);
+      }
+
+      .workspace-body {
+        flex: 1;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 16px;
+        padding: 10px 14px;
+        border: 1px dashed rgba(127, 178, 224, 0.45);
+        border-radius: 8px;
+        background: var(--aurora-auto-wash);
+      }
+      .banner strong {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--aurora-simulation);
+      }
+      .banner span { color: var(--aurora-secondary); font-size: 13px; }
+
+      .composer {
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: 12px;
+        background: var(--aurora-surface);
+        padding: 12px 14px;
+        max-width: 840px;
+      }
+      .composer-row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .composer-input {
+        flex: 1;
+        min-width: 220px;
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid var(--aurora-hairline-strong);
+        background: var(--aurora-recessed);
+      }
+      .composer-input::placeholder { color: var(--aurora-muted); }
+      .hint { margin: 8px 0 0; color: var(--aurora-muted); font-size: 12px; }
+      .suggest {
+        margin-top: 8px;
+        display: inline-flex;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: 4px;
+        border: 1px solid var(--aurora-hairline-strong);
+        color: var(--aurora-secondary);
+        font-size: 12px;
+      }
+      .suggest:hover { color: var(--aurora-ink); border-color: var(--aurora-simulation); }
+
+      .status-line {
+        min-height: 20px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--aurora-simulation);
+      }
+      .status-line[data-tone="watch"] { color: var(--aurora-watch); }
+      .status-line[data-tone="ok"] { color: var(--aurora-secondary); }
+
+      .compare {
+        display: none;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .os[data-state="compared"] .compare,
+      .os[data-state="discarded"] .discarded { display: flex; }
+      .os[data-state="discarded"] .compare { display: none; }
+      .discarded {
+        display: none;
+        padding: 14px 16px;
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: 12px;
+        background: var(--aurora-recessed);
+        color: var(--aurora-secondary);
+      }
+
+      .worlds {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        min-width: 0;
+      }
+      .world {
+        min-width: 0;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .world h2 {
+        margin: 6px 0 12px;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .world-kicker {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .world--live {
+        background: var(--aurora-recessed);
+        border: 1px solid var(--aurora-hairline);
+      }
+      .world--live .world-kicker { color: var(--aurora-secondary); }
+      .world--sim {
+        background: var(--aurora-auto-wash);
+        border: 1px dashed rgba(127, 178, 224, 0.55);
+      }
+      .world--sim .world-kicker,
+      .world--sim h2 { color: var(--aurora-simulation); }
+      .world--delta {
+        background: var(--aurora-watch-wash);
+        border: 1px solid rgba(240, 180, 76, 0.4);
+      }
+      .world--delta .world-kicker,
+      .world--delta h2 { color: var(--aurora-watch); }
+      .fact {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-top: 1px solid var(--aurora-hairline);
+        font-size: 13px;
+      }
+      .fact dt { color: var(--aurora-muted); }
+      .fact dd { margin: 0; text-align: right; font-family: var(--font-mono); font-size: 12px; }
+      .note { margin: 10px 0 0; color: var(--aurora-secondary); font-size: 12px; }
+
+      .strip {
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: 12px;
+        background: var(--aurora-surface);
+        overflow: hidden;
+      }
+      .strip-head, .row-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--aurora-hairline);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--aurora-muted);
+      }
+      .ticks {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0;
+      }
+      .tick {
+        padding: 14px 16px;
+        min-height: 88px;
+      }
+      .tick + .tick { border-left: 1px solid var(--aurora-hairline); }
+      .tick .when {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tick p { margin: 6px 0 0; font-size: 14px; }
+      .tick--past .when, .tick--past p {
+        color: var(--aurora-muted);
+        text-decoration: line-through;
+      }
+      .tick--live .when { color: var(--aurora-secondary); }
+      .tick--sim {
+        background: var(--aurora-auto-wash);
+      }
+      .tick--sim .when { color: var(--aurora-simulation); }
+
+      .changes {
+        border: 1px solid var(--aurora-panel-line);
+        border-radius: 12px;
+        background: var(--aurora-surface);
+        overflow: hidden;
+      }
+      .change {
+        padding: 12px 16px;
+        border-top: 1px solid var(--aurora-hairline);
+      }
+      .change-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+      .etype {
+        width: 92px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--aurora-muted);
+      }
+      .change b { font-weight: 600; }
+      .change .consequence { flex: 1; min-width: 200px; color: var(--aurora-secondary); font-size: 13px; }
+      .why-panel {
+        display: none;
+        margin-top: 10px;
+        padding: 10px 0 0 12px;
+        border-left: 1px dashed rgba(127, 178, 224, 0.45);
+      }
+      .change.is-open .why-panel { display: block; }
+      .why-panel li { margin: 0 0 6px; color: var(--aurora-secondary); font-size: 13px; }
+      .why-panel .rel {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--aurora-simulation);
+      }
+
+      .inspector {
+        display: flex;
+        flex-direction: column;
+        width: var(--os-inspector-width);
+        min-width: var(--os-inspector-width);
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        padding: 0 20px 24px;
+        background: var(--aurora-nav);
+        box-shadow: 0 0 0 1px var(--aurora-hairline), 0 8px 28px rgba(0, 0, 0, 0.28);
+      }
+      .inspector-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-height: var(--os-header-height);
+        padding-top: 14px;
+      }
+      .inspector-kicker {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--aurora-simulation);
+      }
+      .inspector h2 { margin: 4px 0 0; font-size: 18px; }
+      .inspector-section { margin-top: 18px; }
+      .inspector-section h3 {
+        margin: 0 0 8px;
+        font-size: 11px;
+        font-family: var(--font-mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--aurora-muted);
+        font-weight: 600;
+      }
+      .ifact {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 0;
+        border-top: 1px solid var(--aurora-hairline);
+        font-size: 13px;
+      }
+      .ifact span { color: var(--aurora-secondary); font-family: var(--font-mono); font-size: 11px; text-align: right; }
+      .iso {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--aurora-recessed);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--aurora-secondary);
+        word-break: break-all;
+      }
+      .inspector-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        margin-top: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--aurora-hairline-strong);
+        color: var(--aurora-ink);
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .menu-toggle { display: none; }
+
+      @media (max-width: 1360px) {
+        :root {
+          --os-sidebar-width: 220px;
+          --os-inspector-width: 320px;
+        }
+        .workspace-body { padding: 20px; }
+        .world h2 { font-size: 18px; }
+        .fact, .change .consequence { font-size: 12px; }
+      }
+
+      @media (max-width: 1100px) {
+        .sidebar { display: none; }
+        .os.is-nav .sidebar {
+          display: flex;
+          position: fixed;
+          z-index: 40;
+          left: 0;
+          top: 0;
+        }
+        .reopen, .menu-toggle { display: inline-flex; }
+        .inspector {
+          position: fixed;
+          right: 0;
+          top: 0;
+          z-index: 35;
+          max-width: min(320px, 92vw);
+        }
+        .os:not(.is-inspect) .inspector { display: none; }
+        .os.is-inspect::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          background: var(--aurora-overlay);
+          z-index: 34;
+        }
+        .worlds, .ticks { grid-template-columns: 1fr; }
+        .tick + .tick { border-left: 0; border-top: 1px solid var(--aurora-hairline); }
+        .workspace-body { padding: 16px; }
+        .page-header { padding: 10px 16px 10px 56px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#workspace">Skip to workspace</a>
+    <div class="os is-inspect" data-state="idle" data-frame="1440">
+      <aside class="sidebar" aria-label="Control OS">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" /><path d="M8 3.5v9" /></svg>
+          </span>
+          <span class="brand-name">EvoPulse</span>
+        </div>
+        <button class="control control-primary" type="button" id="new-command">New command</button>
+        <div class="nav-label">Primary</div>
+        <a class="nav-item" href="#pulse" aria-disabled="true">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9.5 8 3.5l5 6" /><path d="M5 8.5V13h6V8.5" /></svg>
+          Pulse
+        </a>
+        <a class="nav-item" href="#command" aria-disabled="true">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 12.5 6.2 8 3 3.5h3L8 6.2 10 3.5h3L9.8 8 13 12.5h-3L8 9.8 6 12.5H3z" /></svg>
+          Command
+        </a>
+        <a class="nav-item" href="#timeline" aria-disabled="true">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><path d="M8 5.2V8l2 1.4" /></svg>
+          Timeline
+        </a>
+        <div class="nav-label">Workspace</div>
+        <a class="nav-item" href="#business" aria-disabled="true">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="0.8" /><rect x="9" y="3" width="4" height="4" rx="0.8" /><rect x="3" y="9" width="4" height="4" rx="0.8" /><rect x="9" y="9" width="4" height="4" rx="0.8" /></svg>
+          Business
+        </a>
+        <a class="nav-item" href="#goals" aria-disabled="true">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" /><circle cx="8" cy="8" r="2" /></svg>
+          Goals
+        </a>
+        <div class="sidebar-foot">
+          <a class="nav-item" href="#policies" aria-disabled="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3.5h8v9.2L8 11.2l-4 1.5V3.5z" /></svg>
+            Policies / Control
+          </a>
+          <div class="user-row">
+            <span class="avatar" aria-hidden="true">AK</span>
+            <span>Amine Khelifi<small>Operator</small></span>
+          </div>
+        </div>
+      </aside>
+
+      <button class="reopen" type="button" id="open-nav" aria-label="Open sidebar">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h8M5 8h8M5 13h8M3 3v10" /></svg>
+      </button>
+
+      <div class="workspace" id="workspace">
+        <header class="page-header">
+          <div>
+            <p class="kicker">Simulation · not a live module</p>
+            <h1>What if Atlas is another 3 days late?</h1>
+            <p class="lede">Clone the SH-204 slice. Compare. Write nothing.</p>
+          </div>
+          <div class="header-actions">
+            <button class="icon-btn menu-toggle" type="button" id="open-inspect" aria-label="Open inspector">
+              <svg viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6" /></svg>
+            </button>
+            <span class="live-pill" title="Live twin clock — not the simulated Saturday"><i></i>LIVE</span>
+            <span class="mode-pill"><i></i>SIMULATION</span>
+            <span class="clock">Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
+          </div>
+        </header>
+
+        <main class="workspace-body">
+          <div class="banner" role="status">
+            <strong>Simulation · not live business state</strong>
+            <span>Reality stays on Wednesday. Saturday exists only in this chamber.</span>
+          </div>
+
+          <form class="composer" id="scenario-form">
+            <label class="sr" for="command">Ask a what-if</label>
+            <div class="composer-row">
+              <input
+                class="composer-input"
+                id="command"
+                name="q"
+                value="What if Atlas is another 3 days late?"
+                autocomplete="off"
+              />
+              <button class="btn btn-pri" type="submit" id="run">Run simulation</button>
+              <button class="btn btn-ice" type="button" id="exit" hidden>Exit simulation</button>
+            </div>
+            <p class="hint">Mode /simulate · supplier_delay · SH-204 · +3 days. Isolation hash is taken before and after.</p>
+            <button class="suggest" type="button" id="suggest">What if Atlas is another 3 days late?</button>
+          </form>
+
+          <p class="status-line" id="live-status" aria-live="polite">Idle. Twin not cloned.</p>
+
+          <section class="compare" id="compare" aria-label="Live versus simulation versus delta">
+            <div class="strip" aria-label="Arrival times">
+              <div class="strip-head">
+                <span>Time machine, evolved · arrival only</span>
+                <span>Not a cash chart</span>
+              </div>
+              <div class="ticks">
+                <div class="tick tick--past">
+                  <div class="when">Original · discarded</div>
+                  <p>Mon 28 Sep 09:00 — SH-204 before the delay</p>
+                </div>
+                <div class="tick tick--live">
+                  <div class="when">Live · reality</div>
+                  <p>Wed 30 Sep 09:00 — Atlas already late by two days</p>
+                </div>
+                <div class="tick tick--sim">
+                  <div class="when">Simulation · not real</div>
+                  <p>Sat 03 Oct 09:00 — another +3 days on the clone</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="worlds">
+              <section class="world world--live" aria-labelledby="live-title">
+                <p class="world-kicker">Live · reality</p>
+                <h2 id="live-title">Wednesday twin</h2>
+                <dl>
+                  <div class="fact"><dt>SH-204 arrives</dt><dd>Wed 30 Sep 09:00</dd></div>
+                  <div class="fact"><dt>Commitments missed</dt><dd>1</dd></div>
+                  <div class="fact"><dt>Orders late</dt><dd>Order A</dd></div>
+                  <div class="fact"><dt>Customer deadlines</dt><dd>Oran Fresh Market</dd></div>
+                  <div class="fact"><dt>Revenue on late orders</dt><dd>320,000 DZD</dd></div>
+                  <div class="fact"><dt>Cash this period</dt><dd>540,000 DZD</dd></div>
+                  <div class="fact"><dt>Associated revenue</dt><dd>850,000 DZD</dd></div>
+                  <div class="fact"><dt>Live attention</dt><dd>NEEDS_YOU</dd></div>
+                </dl>
+                <p class="note">Invoice C still lands inside the week ending Sun 04 Oct 23:59. 850,000 DZD is associated — not lost.</p>
+              </section>
+
+              <section class="world world--sim" aria-labelledby="sim-title">
+                <p class="world-kicker">Simulation · not real</p>
+                <h2 id="sim-title">Saturday clone</h2>
+                <dl>
+                  <div class="fact"><dt>SH-204 arrives</dt><dd>Sat 03 Oct 09:00</dd></div>
+                  <div class="fact"><dt>Commitments missed</dt><dd>3</dd></div>
+                  <div class="fact"><dt>Orders late</dt><dd>Order A · Order B</dd></div>
+                  <div class="fact"><dt>Customer deadlines</dt><dd>Oran Fresh · Constantine Clinic</dd></div>
+                  <div class="fact"><dt>Revenue on late orders</dt><dd>600,000 DZD</dd></div>
+                  <div class="fact"><dt>Cash this period</dt><dd>380,000 DZD</dd></div>
+                  <div class="fact"><dt>Associated revenue</dt><dd>850,000 DZD</dd></div>
+                  <div class="fact"><dt>Simulated attention</dt><dd>does not write</dd></div>
+                </dl>
+                <p class="note">Order C — Sétif Depot moves three days and still meets Mon 06 Oct. Slack absorbs that delivery.</p>
+              </section>
+
+              <section class="world world--delta" aria-labelledby="delta-title">
+                <p class="world-kicker">Delta · if this runs</p>
+                <h2 id="delta-title">What would change</h2>
+                <dl>
+                  <div class="fact"><dt>Shipment shift</dt><dd>+3 days</dd></div>
+                  <div class="fact"><dt>Commitments missed</dt><dd>+2</dd></div>
+                  <div class="fact"><dt>Customer deadlines</dt><dd>+1 Constantine Clinic</dd></div>
+                  <div class="fact"><dt>Revenue on late orders</dt><dd>+280,000 DZD</dd></div>
+                  <div class="fact"><dt>Cash timing</dt><dd>160,000 DZD next period</dd></div>
+                  <div class="fact"><dt>Invoice that moves</dt><dd>Invoice C</dd></div>
+                  <div class="fact"><dt>Associated revenue</dt><dd>unchanged</dd></div>
+                  <div class="fact"><dt>Isolation</dt><dd>verified</dd></div>
+                </dl>
+                <p class="note">160,000 DZD is Invoice C timing — not lost revenue. Never “lost 850K.” Never “540K moves.”</p>
+              </section>
+            </div>
+
+            <section class="changes" aria-label="Entity changes">
+              <div class="row-head">
+                <span>What changes · graph edges only</span>
+                <span>WHY is evidence, not a score</span>
+              </div>
+
+              <article class="change" data-why="ship">
+                <div class="change-top">
+                  <span class="etype">shipment</span>
+                  <b>Shipment SH-204</b>
+                  <span class="consequence">Arrival moves Wed 30 Sep 09:00 → Sat 03 Oct 09:00 (simulation only)</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204 (Wed 30 Sep 09:00 → Sat 03 Oct 09:00)</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="cmt-ship">
+                <div class="change-top">
+                  <span class="etype">commitment</span>
+                  <b>Receive shipment SH-204 Monday</b>
+                  <span class="consequence">Newly MISSED — completes Sat 03 Oct, deadline Wed 30 Sep</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204 (Wed 30 Sep 09:00 → Sat 03 Oct 09:00)</li>
+                  <li><span class="rel">—related_to→</span> Receive shipment SH-204 Monday</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="order-a">
+                <div class="change-top">
+                  <span class="etype">order</span>
+                  <b>Order A — Oran Fresh</b>
+                  <span class="consequence">Delivery already late in LIVE · slips further in the clone</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204</li>
+                  <li><span class="rel">—contains→</span> Pallet racking kit RK-7</li>
+                  <li><span class="rel">—required_by→</span> Order A — Oran Fresh</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="order-b">
+                <div class="change-top">
+                  <span class="etype">order</span>
+                  <b>Order B — Constantine Clinic</b>
+                  <span class="consequence">Delivery Sat+1 → Sun 04 Oct — now breaches Fri 02 Oct 17:00</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204</li>
+                  <li><span class="rel">—contains→</span> Pallet racking kit RK-7</li>
+                  <li><span class="rel">—required_by→</span> Order B — Constantine Clinic</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="order-c">
+                <div class="change-top">
+                  <span class="etype">order</span>
+                  <b>Order C — Sétif Depot</b>
+                  <span class="consequence">Delivery moves three days — still inside Mon 06 Oct 17:00</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204</li>
+                  <li><span class="rel">—contains→</span> Pallet racking kit RK-7</li>
+                  <li><span class="rel">—required_by→</span> Order C — Sétif Depot · ON_TRACK</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="clinic">
+                <div class="change-top">
+                  <span class="etype">customer</span>
+                  <b>Constantine Clinic</b>
+                  <span class="consequence">Delivery deadline newly breached</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply → SH-204 → RK-7 → Order B → Constantine Clinic</li>
+                </ol>
+              </article>
+
+              <article class="change" data-why="inv-c">
+                <div class="change-top">
+                  <span class="etype">invoice</span>
+                  <b>Invoice C · 160,000 DZD</b>
+                  <span class="consequence">Cash expected Fri 02 Oct 17:00 → Mon 05 Oct 09:00 — moves out of Expected cash — week of 28 Sep</span>
+                  <button class="chip" type="button" data-toggle-why>Why</button>
+                </div>
+                <ol class="why-panel">
+                  <li>Atlas Supply</li>
+                  <li><span class="rel">—supplies→</span> Shipment SH-204</li>
+                  <li><span class="rel">—contains→</span> Pallet racking kit RK-7</li>
+                  <li><span class="rel">—required_by→</span> Order C — Sétif Depot</li>
+                  <li><span class="rel">—produces→</span> Invoice C (Fri 02 Oct 17:00 → Mon 05 Oct 09:00)</li>
+                </ol>
+              </article>
+            </section>
+          </section>
+
+          <section class="discarded" id="discarded">
+            <p><strong>Simulation discarded · reality unchanged.</strong></p>
+            <p>SH-204 is still expected Wed 30 Sep 09:00. Fingerprint matches the pre-simulation snapshot. Invoice C has not moved.</p>
+          </section>
+        </main>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-label="Inspector">
+        <div class="inspector-head">
+          <div>
+            <p class="inspector-kicker">Scenario · clone</p>
+            <h2>SH-204 +3 days</h2>
+          </div>
+          <button class="icon-btn" type="button" id="close-inspect" aria-label="Close inspector">
+            <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </button>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Lever</h3>
+          <div class="ifact"><b>Type</b><span>supplier_delay</span></div>
+          <div class="ifact"><b>Target</b><span>Shipment SH-204</span></div>
+          <div class="ifact"><b>Additional delay</b><span>+3 days</span></div>
+          <div class="ifact"><b>Source</b><span>business_graph</span></div>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Delta objects</h3>
+          <div class="ifact"><b>Order B</b><span>newly late · 280,000 DZD</span></div>
+          <div class="ifact"><b>Constantine Clinic</b><span>deadline newly affected</span></div>
+          <div class="ifact"><b>Invoice C</b><span>160,000 DZD timing</span></div>
+          <div class="ifact"><b>Order C</b><span>moves · still ON_TRACK</span></div>
+          <div class="ifact"><b>Associated revenue</b><span>850,000 DZD unchanged</span></div>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Isolation</h3>
+          <p class="iso" id="iso-text">Not yet run. Live twin fingerprint will be hashed on Run and checked on Exit.</p>
+        </div>
+
+        <button class="inspector-cta" type="button" id="protect">Protect affected orders</button>
+        <button class="inspector-cta btn-pri" type="button" id="inspect-why">Open Invoice C why</button>
+      </aside>
+    </div>
+
+    <script>
+      (function () {
+        var os = document.querySelector(".os");
+        var form = document.getElementById("scenario-form");
+        var input = document.getElementById("command");
+        var runBtn = document.getElementById("run");
+        var exitBtn = document.getElementById("exit");
+        var status = document.getElementById("live-status");
+        var iso = document.getElementById("iso-text");
+        var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var FINGERPRINT = "sim-isolation-atlas-sh204-plus3";
+
+        function setState(name) {
+          os.setAttribute("data-state", name);
+        }
+
+        function knownCommand(value) {
+          var q = value.trim().toLowerCase();
+          return (
+            q === "what if atlas is another 3 days late?" ||
+            q === "what happens if atlas is another 3 days late?" ||
+            q === "simulate another 3 day delay"
+          );
+        }
+
+        function runScenario(event) {
+          if (event) event.preventDefault();
+          if (!knownCommand(input.value)) {
+            setState("failed");
+            status.dataset.tone = "watch";
+            status.textContent = "Simulation did not run. The twin was not changed.";
+            exitBtn.hidden = true;
+            iso.textContent = "No clone. Isolation unnecessary — nothing was applied.";
+            return;
+          }
+          setState("running");
+          status.dataset.tone = "";
+          status.textContent = "Simulating recovery · cloning SH-204 slice…";
+          runBtn.disabled = true;
+          var delay = reduced ? 0 : 420;
+          window.setTimeout(function () {
+            setState("compared");
+            status.textContent =
+              "+2 commitments missed · +1 customer deadline affected · 160,000 DZD cash moves into next period";
+            iso.textContent =
+              "Isolation verified · fingerprint " +
+              FINGERPRINT +
+              " unchanged · tables checked · SH-204 still Wed 30 Sep 09:00 in the twin.";
+            exitBtn.hidden = false;
+            runBtn.disabled = false;
+          }, delay);
+        }
+
+        function exitScenario() {
+          setState("discarded");
+          status.dataset.tone = "ok";
+          status.textContent = "Simulation discarded · reality unchanged.";
+          iso.textContent =
+            "Exit check: SH-204 expected Wed 30 Sep 09:00. Fingerprint " + FINGERPRINT + " matches pre-run snapshot.";
+          exitBtn.hidden = true;
+          document.querySelectorAll(".change.is-open").forEach(function (row) {
+            row.classList.remove("is-open");
+            var btn = row.querySelector("[data-toggle-why]");
+            if (btn) btn.textContent = "Why";
+          });
+        }
+
+        form.addEventListener("submit", runScenario);
+        document.getElementById("suggest").addEventListener("click", function () {
+          input.value = "What if Atlas is another 3 days late?";
+          input.focus();
+          runScenario();
+        });
+        exitBtn.addEventListener("click", exitScenario);
+        document.getElementById("new-command").addEventListener("click", function () {
+          input.focus();
+        });
+
+        document.querySelectorAll("[data-toggle-why]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var row = btn.closest(".change");
+            var open = row.classList.toggle("is-open");
+            btn.textContent = open ? "Hide" : "Why";
+          });
+        });
+
+        document.getElementById("inspect-why").addEventListener("click", function () {
+          var row = document.querySelector('[data-why="inv-c"]');
+          if (!row) return;
+          row.classList.add("is-open");
+          row.querySelector("[data-toggle-why]").textContent = "Hide";
+          row.scrollIntoView({ block: "nearest" });
+        });
+
+        document.getElementById("protect").addEventListener("click", function () {
+          status.dataset.tone = "ok";
+          status.textContent = "Protect affected orders is a Goals handoff. Simulation still writes nothing.";
+        });
+
+        document.getElementById("open-nav").addEventListener("click", function () {
+          os.classList.toggle("is-nav");
+        });
+        document.getElementById("open-inspect").addEventListener("click", function () {
+          os.classList.add("is-inspect");
+        });
+        document.getElementById("close-inspect").addEventListener("click", function () {
+          os.classList.remove("is-inspect");
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+            if (os.getAttribute("data-state") === "compared") exitScenario();
+            os.classList.remove("is-nav");
+            if (window.matchMedia("(max-width: 1100px)").matches) os.classList.remove("is-inspect");
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
