@@ -33,3 +33,17 @@ a {
   background: linear-gradient(90deg, transparent, rgba(239, 231, 214, 0.18), transparent);
   height: 1px;
 }
+
+/* ---- Business OS design (evopulse-app.html) ---- */
+
+/* Dot grid behind the causal cascade canvas. */
+.os-dotgrid {
+  background-image: radial-gradient(#18202a 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Keyboard focus is always visible; mouse clicks stay clean. */
+:focus-visible {
+  outline: 2px solid #ff7a45;
+  outline-offset: 2px;
+}
