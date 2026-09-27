@@ -1,96 +1,33 @@
-import Link from "next/link";
-import { Badge } from "@/components/Badge";
-import { formatDay } from "@/lib/clock";
+import type { Metadata } from "next";
+import { TimeMachine } from "@/components/timeline/TimeMachine";
 import { getDb } from "@/lib/db";
-import { eventsFor } from "@/lib/events";
-import { buildTimeline } from "@/lib/engine/timeline";
-import { IDS } from "@/lib/ids";
+import { buildTimeMachine } from "./model";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Time Machine — EvoPulse",
+  description:
+    "What happened, what is true now, and what is still only expected — expected against observed, on one line of time.",
+};
+
 export default function TimelinePage() {
-  const db = getDb();
-  const timeline = buildTimeline(db);
-  const stream = eventsFor(db).list({ limit: 80 });
+  const model = buildTimeMachine(getDb());
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Business Time Machine</p>
-        <h1 className="mt-2 font-serif text-5xl">Past · Now · Future</h1>
-        <p className="mt-3 max-w-2xl text-sand">
-          Not a calendar. A record of what was supposed to happen against what did. The 320K spot is the
-          Thursday send that never occurred.
+      <header className="max-w-3xl">
+        <h1 className="font-serif text-4xl leading-[1.08] text-paper sm:text-5xl">
+          What changed, what is true, and what comes next
+        </h1>
+        <p className="mt-4 text-sand">
+          Not an activity feed. One continuous line: what was observed, what was expected,
+          where the two diverged, and what is still only expected. The line runs solid
+          behind now and dashed ahead of it — nothing ahead of now has happened yet.
         </p>
-      </div>
+      </header>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Lane title="Past" caption="What happened" spots={timeline.past} />
-        <Lane title="Now" caption="What requires attention" spots={timeline.nowLane} featured />
-        <Lane title="Future" caption="What is expected" spots={timeline.future} />
-      </div>
-
-      <Link
-        href={`/exceptions/${IDS.excMissed}`}
-        className="inline-flex rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950"
-      >
-        Open the 320K exception
-      </Link>
-
-      <section className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Unified event stream</p>
-        <h2 className="mt-1 font-serif text-3xl">What entered EvoPulse</h2>
-        <p className="mt-2 max-w-2xl text-sm text-sand">
-          Every signal is an Event. Engines subscribe to this stream — they do not invent a second history.
-        </p>
-        <ol className="mt-5 space-y-3">
-          {stream.map((event) => (
-            <li key={event.id} className="grid gap-1 border-l border-white/10 pl-3 md:grid-cols-[11rem_1fr]">
-              <p className="font-mono text-[11px] text-mute">{formatDay(event.occurred_at)}</p>
-              <div>
-                <p className="font-mono text-sm text-paper">{event.type}</p>
-                <p className="text-sm text-sand">
-                  {event.source}
-                  {event.entity_type ? ` · ${event.entity_type}` : ""}
-                  {event.entity_id ? `/${event.entity_id}` : ""}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <TimeMachine model={model} />
     </div>
-  );
-}
-
-function Lane({
-  title,
-  caption,
-  spots,
-  featured,
-}: {
-  title: string;
-  caption: string;
-  featured?: boolean;
-  spots: ReturnType<typeof buildTimeline>["past"];
-}) {
-  return (
-    <section
-      className={`rounded-2xl border p-5 ${featured ? "border-need/50 bg-need/5" : "border-white/10 bg-ink-800/40"}`}
-    >
-      <p className="text-[11px] uppercase tracking-[0.18em] text-mute">{caption}</p>
-      <h2 className="mt-1 font-serif text-3xl">{title}</h2>
-      <ol className="mt-5 space-y-4">
-        {spots.length === 0 ? <li className="text-sm text-mute">Quiet.</li> : null}
-        {spots.map((spot) => (
-          <li key={spot.id} className="border-l border-white/10 pl-3">
-            <p className="font-mono text-[11px] text-mute">{formatDay(spot.at)}</p>
-            <p className="mt-1 text-paper">{spot.title}</p>
-            <p className="text-sm text-sand">{spot.detail}</p>
-            {spot.amount ? <Badge>320000 DZD</Badge> : null}
-          </li>
-        ))}
-      </ol>
-    </section>
   );
 }
