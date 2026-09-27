@@ -178,8 +178,11 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
 
   if (action.type === "apply_discount" && action.policy_outcome !== "BLOCKED") {
     const payload = JSON.parse(action.payload) as { percent?: number; amount?: number };
+    // Merge, don't replace: the opportunity keeps its companyId/contactId (who the deal belongs to).
+    const existing = one<{ payload: string }>(db, "SELECT payload FROM entities WHERE id = ?", [IDS.opportunity]);
     run(db, "UPDATE entities SET payload = ? WHERE id = ?", [
       JSON.stringify({
+        ...safeObject(existing?.payload),
         amount: payload.amount ?? 304000,
         currency: "DZD",
         stage: "discount_offered",
@@ -263,4 +266,13 @@ function shiftIso(iso: string, days: number): string {
   const offset = iso.slice(-6);
   const local = new Date(shifted.getTime() + 3_600_000);
   return local.toISOString().replace(".000Z", offset);
+}
+
+function safeObject(raw: string | undefined): Record<string, unknown> {
+  try {
+    const value = JSON.parse(raw || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
 }

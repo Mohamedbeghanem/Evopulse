@@ -19,6 +19,7 @@ import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 import { wipeAutopilotTables } from "./autopilot";
 import { wipeWarningTables } from "./warnings";
 import { wipeAgentTables } from "./agent/schema";
+import { wipeOutbox } from "./outbound/outbox";
 import { expandDistributionWorld } from "./company/world";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
@@ -369,6 +370,7 @@ export function wipeAndSeed(db: DatabaseSync) {
   wipeAutopilotTables(db);
   wipeCommandTables(db);
   wipeAgentTables(db);
+  wipeOutbox(db);
   const tables = [
     "audit_logs",
     "approvals",

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 const PRIMARY = [
   { href: "/", label: "Pulse", match: (path: string) => path === "/demo" || path === "/" || path.startsWith("/situations") },
   { href: "/command", label: "Command", match: (path: string) => path.startsWith("/command") },
+  { href: "/inbox", label: "Inbox", match: (path: string) => path.startsWith("/inbox") },
   { href: "/timeline", label: "Timeline", match: (path: string) => path.startsWith("/timeline") },
 ];
 

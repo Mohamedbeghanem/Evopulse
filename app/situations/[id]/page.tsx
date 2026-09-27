@@ -14,6 +14,8 @@ import { buildCausalExplorer } from "@/lib/engine/causal";
 import { calculateGraphImpact } from "@/lib/engine/impact";
 import { IDS } from "@/lib/ids";
 import { exceptionDetail } from "@/lib/read";
+import { situationLoop } from "@/lib/demo-loop/inbox";
+import { formatDay } from "@/lib/clock";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function SituationPage({ params }: { params: Promise<{ id: 
     const attention = attentionById(projectAttention(ctx.db, now).items, id);
     const cascade = id === IDS.excDelay || attention?.sourceExceptionId === IDS.excDelay;
     return {
+      loop: situationLoop(ctx.db, id),
       detail,
       attention,
       cascade,
@@ -90,6 +93,26 @@ export default async function SituationPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-sand">{causal.subhead}</p>
         </section>
       ) : null}
+
+      <section className="mt-10 space-y-2" aria-label="Replies and verification" data-testid="situation-loop">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Replies &amp; verification</p>
+        {page.loop.verifications.length ? (
+          page.loop.verifications.map((verification) => (
+            <p key={verification.id} className="text-sm text-sand">
+              <span className="font-mono text-xs text-paper">{verification.status}</span>
+              {" · "}
+              {verification.status === "PENDING"
+                ? `Waiting for a reply${verification.target ? ` from ${verification.target}` : ""} by ${formatDay(verification.expectedBy)}.`
+                : `${verification.replyFrom ? `Reply from ${verification.replyFrom}` : "Resolved"}${verification.resolvedAt ? ` · ${formatDay(verification.resolvedAt)}` : ""}.`}
+            </p>
+          ))
+        ) : (
+          <p className="text-sm text-mute">No action is awaiting a reply yet. Executed is not handled — a reply must verify it.</p>
+        )}
+        <Link href="/inbox" className="inline-block text-sm text-need hover:text-paper">
+          Open Inbox →
+        </Link>
+      </section>
 
       <section className="mt-10 space-y-2">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Evidence</p>

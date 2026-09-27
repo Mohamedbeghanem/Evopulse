@@ -16,6 +16,10 @@ import { pulseCounts } from "@/lib/ui/pulse-counts";
 import { AgentList } from "@/components/agents/AgentList";
 import type { AgentCard } from "@/lib/business/agents";
 import { situationHref, situationRowFromAttention } from "@/lib/ui/situation";
+import { DemoPathPanel } from "@/components/demo-loop/DemoPathPanel";
+import { OutcomePanel } from "@/components/demo-loop/OutcomePanel";
+import type { DemoPathStep } from "@/lib/demo-loop/demo-path";
+import type { PulseOutcome } from "@/lib/demo-loop/outcomes";
 
 type PulseView = {
   headline: string;
@@ -38,10 +42,14 @@ export function PulseBoard({
   pulse,
   companyName,
   agents = [],
+  outcome,
+  demoPath,
 }: {
   pulse: PulseView;
   companyName: string;
   agents?: AgentCard[];
+  outcome?: PulseOutcome;
+  demoPath?: { steps: DemoPathStep[]; currentStepId: string | null };
 }) {
   const avatar = useAgentAvatar();
   const items = useMemo(
@@ -104,6 +112,9 @@ export function PulseBoard({
           </Link>
         ))}
       </div>
+
+      {demoPath ? <DemoPathPanel steps={demoPath.steps} currentStepId={demoPath.currentStepId} /> : null}
+      {outcome ? <OutcomePanel outcome={outcome} /> : null}
 
       {agents.length ? (
         <section className="mt-10 space-y-3">
