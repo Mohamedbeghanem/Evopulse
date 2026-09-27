@@ -78,6 +78,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - **Early Warning (product P22)** lives at `lib/warnings/`. Deterministic buffer math (`available` vs `required`) decides AT RISK before a deadline is missed. Detect still owns MISSED. LLM does not classify the warning.
 - **Exception Autopilot (product P26)** lives at `lib/autopilot/`. It classifies open situations (`NORMAL` → `HANDLED`) from stored state. Safe AUTO actions may execute after a live policy recheck. `AUTO_HANDLED` is not resolution — only verification SUCCESS produces `HANDLED`.
 - **Command Center** lives at `lib/command/`. It routes natural language onto the existing engines and returns structured evidence. It does not own policy, simulation, or execution.
+- **Agent runtime** lives at `lib/agent/`. Command Center can run a governed tool loop (inspect → simulate → plan → policy → safe execute → approval). DeepSeek Harness is an optional isolated adapter, not a product dependency. Deterministic mode stays the default. See [docs/AGENT_RUNTIME.md](./docs/AGENT_RUNTIME.md).
 - **Attention projection** lives at `lib/attention/`. It is a read/selector layer: warning + exception + Autopilot + impact for one situation collapse to one primary state. Pulse, Command “What needs me?”, and Autopilot counters consume this projection. It is not a new business engine.
 - **Feature freeze:** core intelligence architecture is frozen. See [docs/FEATURE_FREEZE.md](./docs/FEATURE_FREEZE.md).
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
@@ -103,7 +104,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | `/simulate` | Business Simulator — what-if baseline vs simulation, delta, WHY paths |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
-| `/command` | Routes questions into the live engines |
+| `/command` | Operating console — live agent run over the engines |
 | `/goals` · `/goals/:id` | Cross-business goal + structured plan |
 | `/graph` | Commitment graph |
 | `/warnings` · `/warnings/:id` | Early warning — AT RISK, not missed |
@@ -111,7 +112,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /api/ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation` · `GET /api/autopilot` · `POST /api/autopilot/evaluate` · `POST /api/autopilot/handle-safe`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /api/ask` · `POST /api/agent/run` · `GET /api/agent/runs/:id` · `POST /api/agent/runs/:id/cancel` · `POST /api/agent/runs/:id/approve` · `POST /api/agent/runs/:id/reject` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation` · `GET /api/autopilot` · `POST /api/autopilot/evaluate` · `POST /api/autopilot/handle-safe`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `POST /api/demo/shipment-earlier` · `GET /api/health`
 

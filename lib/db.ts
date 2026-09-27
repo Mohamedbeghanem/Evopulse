@@ -212,6 +212,8 @@ function migrate(db: DatabaseSync) {
   migrateCommandTables(db);
   const { migrateAutopilotTables } = require("./autopilot/schema") as typeof import("./autopilot/schema");
   migrateAutopilotTables(db);
+  const { migrateAgentTables } = require("./agent/schema") as typeof import("./agent/schema");
+  migrateAgentTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {

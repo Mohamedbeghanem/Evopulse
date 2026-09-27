@@ -8,6 +8,8 @@ EVENT → GRAPH → EXPECTATION → EARLY WARNING → DETECT → EXCEPTION → I
 
 Simulation branches from live state without writing it. Command Center routes into those engines. Pulse renders the canonical attention projection — one business situation, one primary attention state.
 
+The agent runtime (`lib/agent/`) is an approved adapter **above** this loop. It may inspect and invoke the engines through a governed tool registry. It must not replace engines, bypass policy, or become a second source of truth. See [AGENT_RUNTIME.md](./AGENT_RUNTIME.md).
+
 ## Allowed
 
 - P0 / P1 fixes
