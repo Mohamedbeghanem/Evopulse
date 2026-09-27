@@ -1,0 +1,13 @@
+services:
+  evopulse:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    volumes:
+      - evopulse-data:/app/data
+
+volumes:
+  evopulse-data:

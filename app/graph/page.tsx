@@ -1,0 +1,35 @@
+import { getDb } from "@/lib/db";
+import { businessGraph } from "@/lib/engine/graph";
+
+export const dynamic = "force-dynamic";
+
+export default function GraphPage() {
+  const graph = businessGraph(getDb());
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs uppercase tracking-[0.24em] text-mute">Commitment graph</p>
+        <h1 className="mt-2 font-serif text-5xl">Atlas 320K</h1>
+        <p className="mt-3 max-w-2xl text-sand">
+          Contact → company → opportunity → our promise → their promise → the miss.
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {graph.nodes.map((node) => (
+          <div key={node.id} className="rounded-2xl border border-white/10 bg-ink-800/40 p-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">{node.kind}</p>
+            <p className="mt-1 font-serif text-xl">{node.label}</p>
+            {node.status ? <p className="text-sm text-need">{node.status}</p> : null}
+          </div>
+        ))}
+      </div>
+      <ul className="space-y-1 font-mono text-xs text-mute">
+        {graph.edges.map((edge, i) => (
+          <li key={`${edge.from}-${edge.to}-${i}`}>
+            {edge.from} —{edge.label}→ {edge.to}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

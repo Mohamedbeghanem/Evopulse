@@ -1,0 +1,52 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+export function DemoBar() {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function post(path: string, label: string, next?: string) {
+    setBusy(label);
+    setError(null);
+    try {
+      const res = await fetch(path, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      router.refresh();
+      if (next) router.push(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="border-t border-white/5 bg-ink-800/70">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-2 text-xs">
+        <span className="font-mono text-need">DEMO</span>
+        <span className="text-mute">Sun 27 Sep 2026 · Tunis clock · Atlas 320K seeded</span>
+        <span className="ml-auto flex flex-wrap gap-2">
+          <button
+            disabled={Boolean(busy)}
+            onClick={() => post("/api/demo/reset", "reset", "/")}
+            className="rounded-full border border-white/15 px-3 py-1 text-sand hover:border-paper hover:text-paper disabled:opacity-50"
+          >
+            {busy === "reset" ? "Resetting…" : "Reset demo"}
+          </button>
+          <button
+            disabled={Boolean(busy)}
+            onClick={() => post("/api/demo/discount", "discount", "/exceptions/exc_discount_blocked")}
+            className="rounded-full bg-need px-3 py-1 font-medium text-ink-950 hover:bg-paper disabled:opacity-50"
+          >
+            {busy === "discount" ? "Ingesting…" : "Later message: 10%"}
+          </button>
+        </span>
+        {error ? <span className="w-full text-miss">{error}</span> : null}
+      </div>
+    </div>
+  );
+}

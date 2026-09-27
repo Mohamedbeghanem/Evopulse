@@ -1,0 +1,271 @@
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
+import {
+  CHECKPOINT_ISO,
+  DECISION_DUE_ISO,
+  DEMO_NOW_ISO,
+  MESSAGE_ONE_ISO,
+  PROPOSAL_DUE_ISO,
+} from "./clock";
+import { IDS } from "./ids";
+import { SEED_MESSAGE_ONE } from "./engine/extract";
+import { buildRecoveryPlan } from "./engine/recovery";
+
+function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
+  db.prepare(sql).run(...params);
+}
+
+function one<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T | undefined {
+  return db.prepare(sql).get(...params) as T | undefined;
+}
+
+export function seedIfEmpty(db: DatabaseSync) {
+  const existing = one<{ c: number }>(db, "SELECT COUNT(*) as c FROM entities");
+  if (existing && existing.c > 0) return;
+  seedWorld(db);
+}
+
+export function seedWorld(db: DatabaseSync) {
+  const now = DEMO_NOW_ISO;
+
+  run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["demo_now", now]);
+  run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["demo_phase", "seeded"]);
+
+  run(db, `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`, [
+    IDS.company,
+    "company",
+    "Atlas Retail Group",
+    JSON.stringify({ city: "Algiers", sector: "retail" }),
+    "2026-08-12T09:00:00+01:00",
+  ]);
+  run(db, `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`, [
+    IDS.contact,
+    "contact",
+    "Amine Khelifi",
+    JSON.stringify({ role: "Purchasing Director", companyId: IDS.company, email: "amine.khelifi@atlasretail.dz" }),
+    "2026-08-12T09:00:00+01:00",
+  ]);
+  run(db, `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`, [
+    IDS.opportunity,
+    "opportunity",
+    "Atlas Q4 warehouse fit-out",
+    JSON.stringify({ amount: 320000, currency: "DZD", stage: "proposal", companyId: IDS.company, contactId: IDS.contact }),
+    "2026-09-04T11:00:00+01:00",
+  ]);
+
+  run(db, `INSERT OR REPLACE INTO goals (id, name, target, payload) VALUES (?, ?, ?, ?)`, [
+    IDS.goalRevenue,
+    "Protect September revenue",
+    "close Atlas 320K",
+    JSON.stringify({ month: "2026-09" }),
+  ]);
+
+  const policies: [string, string, string, string][] = [
+    ["pol_discount", "discount_max", "5", "Maximum commercial discount percent"],
+    ["pol_finance", "financial_commitment_requires_approval", "true", "Money movement needs a human"],
+    ["pol_msg", "external_message_requires_approval", "true", "Customer-facing messages need a human"],
+    ["pol_pay", "payment_over_500k_requires_approval", "true", "Large payments need a human"],
+    ["pol_del", "customer_data_deletion", "forbidden", "Customer data cannot be deleted"],
+  ];
+  for (const [id, key, value, description] of policies) {
+    run(db, `INSERT OR REPLACE INTO policies (id, key, value, description) VALUES (?, ?, ?, ?)`, [
+      id,
+      key,
+      value,
+      description,
+    ]);
+  }
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.message1,
+      "message_received",
+      IDS.contact,
+      MESSAGE_ONE_ISO,
+      JSON.stringify({ text: SEED_MESSAGE_ONE, from: "Amine Khelifi" }),
+      "inbox",
+      MESSAGE_ONE_ISO,
+    ],
+  );
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO commitments
+      (id, actor, actor_entity_id, action, description, deadline, status, source_event_id, evidence, confidence, model, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.commitOurs,
+      "company",
+      IDS.company,
+      "send_revised_proposal",
+      "Send the revised 320,000 DZD proposal",
+      PROPOSAL_DUE_ISO,
+      "missed",
+      IDS.message1,
+      SEED_MESSAGE_ONE,
+      0.94,
+      "heuristic-v1",
+      MESSAGE_ONE_ISO,
+    ],
+  );
+  run(
+    db,
+    `INSERT OR REPLACE INTO commitments
+      (id, actor, actor_entity_id, action, description, deadline, status, source_event_id, evidence, confidence, model, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.commitTheirs,
+      "customer",
+      IDS.contact,
+      "provide_decision",
+      "Customer gives a decision on Friday",
+      DECISION_DUE_ISO,
+      "blocked",
+      IDS.message1,
+      SEED_MESSAGE_ONE,
+      0.92,
+      "heuristic-v1",
+      MESSAGE_ONE_ISO,
+    ],
+  );
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.expectOurs,
+      IDS.commitOurs,
+      "Revised 320,000 DZD proposal sent Thursday",
+      PROPOSAL_DUE_ISO,
+      "MISSED",
+      "No proposal-sent event before Thursday 18:00",
+      MESSAGE_ONE_ISO,
+      now,
+    ],
+  );
+  run(
+    db,
+    `INSERT OR REPLACE INTO expectations (id, commitment_id, description, due_at, status, actual, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.expectTheirs,
+      IDS.commitTheirs,
+      "Customer decision Friday",
+      DECISION_DUE_ISO,
+      "BLOCKED",
+      "Blocked — customer cannot decide without the revised proposal",
+      MESSAGE_ONE_ISO,
+      now,
+    ],
+  );
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO dependencies (id, from_id, from_type, to_id, to_type, description) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.depDecisionOnProposal,
+      IDS.commitTheirs,
+      "commitment",
+      IDS.commitOurs,
+      "commitment",
+      "Customer decision depends on the revised proposal",
+    ],
+  );
+  run(
+    db,
+    `INSERT OR REPLACE INTO dependencies (id, from_id, from_type, to_id, to_type, description) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      "dep_exp_chain",
+      IDS.expectTheirs,
+      "expectation",
+      IDS.expectOurs,
+      "expectation",
+      "Friday decision expectation depends on Thursday send",
+    ],
+  );
+
+  const impact = {
+    customersAffected: 1,
+    opportunitiesAffected: 1,
+    revenueAssociated: 320000,
+    currency: "DZD",
+    cashTimingAffected: true,
+    urgency: "high",
+    notes: "Associated opportunity 320,000 DZD. Causal certainty is limited to this deal — not a forecast.",
+  };
+  const evidence = {
+    source: "Customer conversation",
+    quote: SEED_MESSAGE_ONE,
+    expected: "Revised proposal sent Thursday 24 Sep 18:00",
+    actual: "No proposal-sent event before Thursday 18:00",
+    deal: "320,000 DZD",
+    confidence: 0.94,
+  };
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO exceptions
+      (id, title, kind, expectation_id, opportunity_id, attention, severity, urgency, impact_json, evidence_json, confidence, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      IDS.excMissed,
+      "Our commitment missed — revised proposal never sent",
+      "commitment_missed",
+      IDS.expectOurs,
+      IDS.opportunity,
+      "NEEDS_YOU",
+      "critical",
+      "high",
+      JSON.stringify(impact),
+      JSON.stringify(evidence),
+      0.94,
+      "open",
+      now,
+    ],
+  );
+
+  buildRecoveryPlan(db, IDS.excMissed, now);
+
+  run(
+    db,
+    `INSERT OR REPLACE INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      "evt_clock_skip",
+      "time_advanced",
+      IDS.opportunity,
+      now,
+      JSON.stringify({
+        from: MESSAGE_ONE_ISO,
+        to: now,
+        note: "Simulated: proposal was not sent. Thursday send and Friday decision both lapsed.",
+        checkpointPreview: CHECKPOINT_ISO,
+      }),
+      "pulse-engine",
+      now,
+    ],
+  );
+}
+
+export function wipeAndSeed(db: DatabaseSync) {
+  const tables = [
+    "audit_logs",
+    "approvals",
+    "actions",
+    "plans",
+    "exceptions",
+    "dependencies",
+    "expectations",
+    "commitments",
+    "events",
+    "goals",
+    "policies",
+    "entities",
+    "meta",
+  ];
+  for (const table of tables) db.exec(`DELETE FROM ${table}`);
+  seedWorld(db);
+}
