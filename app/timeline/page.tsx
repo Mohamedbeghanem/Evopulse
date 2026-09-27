@@ -11,7 +11,10 @@ export const dynamic = "force-dynamic";
 export default function TimelinePage() {
   const db = getDb();
   const timeline = buildTimeline(db);
-  const stream = eventsFor(db).list({ limit: 80 });
+  const stream = eventsFor(db)
+    .list()
+    .filter((event) => !event.metadata.routine)
+    .slice(0, 80);
 
   return (
     <div className="space-y-8">

@@ -1,5 +1,13 @@
 export type ActorKind = "company" | "customer";
-export type Attention = "NEEDS_YOU" | "MONITORING" | "HANDLED" | "HEALTHY";
+export type Attention =
+  | "NEEDS_YOU"
+  | "MONITORING"
+  | "HANDLED"
+  | "HEALTHY"
+  /** Exception Autopilot states (lib/autopilot). HEALTHY doubles as the autopilot's NORMAL. */
+  | "AUTO_HANDLED"
+  | "NEEDS_APPROVAL"
+  | "BLOCKED";
 export type ExpectationStatus =
   | "ON_TRACK"
   | "UPCOMING"

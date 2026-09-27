@@ -207,6 +207,24 @@ function migrate(db: DatabaseSync) {
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
   migrateGoalTables(db);
+  migrateAutopilotTables(db);
+}
+
+/** Exception Autopilot decision log. Additive; one row per state change per subject. */
+function migrateAutopilotTables(db: DatabaseSync) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS autopilot_decisions (
+      id TEXT PRIMARY KEY,
+      subject_type TEXT NOT NULL,
+      subject_id TEXT NOT NULL,
+      state TEXT NOT NULL,
+      rule TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      input_json TEXT NOT NULL DEFAULT '{}',
+      decided_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_autopilot_decisions_subject ON autopilot_decisions(subject_type, subject_id);
+  `);
 }
 
 function migrateEventsTable(db: DatabaseSync) {

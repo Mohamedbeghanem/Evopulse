@@ -92,7 +92,8 @@ export class EventRepository {
       where.push("occurred_at <= ?");
       params.push(filters.to);
     }
-    const limit = Math.min(Math.max(filters.limit ?? 200, 1), 500);
+    // Default covers the full seeded demo stream (~180 routine + scenario events) without truncating.
+    const limit = Math.min(Math.max(filters.limit ?? 500, 1), 500);
     const sql = `SELECT * FROM events ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
       ORDER BY occurred_at ASC, id ASC LIMIT ?`;
     return all<EventRow>(this.db, sql, [...params, limit]).map(toEvent);

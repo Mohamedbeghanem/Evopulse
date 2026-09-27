@@ -22,6 +22,8 @@ export function buildTimeline(db: DatabaseSync) {
   const spots: TimelineSpot[] = [];
 
   for (const event of events) {
+    // Routine activity (lib/autopilot/routine) lives behind "View activity" on the Pulse, not here.
+    if (JSON.parse(event.metadata || "{}").routine) continue;
     const payload = JSON.parse(event.payload || "{}") as {
       text?: string;
       note?: string;

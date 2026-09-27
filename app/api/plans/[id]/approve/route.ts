@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb, getMeta } from "@/lib/db";
 import { approvePlan, executePlan } from "@/lib/engine/execute";
+import { runAutopilot } from "@/lib/autopilot";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -9,7 +10,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const now = getMeta(db, "demo_now");
   try {
     if (body.execute !== false) {
-      return NextResponse.json(executePlan(db, id, now));
+      const result = executePlan(db, id, now);
+      runAutopilot(db, now);
+      return NextResponse.json(result);
     }
     return NextResponse.json({ plan: approvePlan(db, id, now) });
   } catch (error) {

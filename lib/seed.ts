@@ -14,6 +14,7 @@ import { seedSupplierGraph } from "./engine/seed-graph";
 import { upsertExpectation } from "./engine/expectations";
 import { EXCEPTION_TYPES } from "./engine/exception-types";
 import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
+import { seedRoutineActivity } from "./autopilot/routine";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -350,11 +351,13 @@ export function seedWorld(db: DatabaseSync) {
   });
 
   seedSupplierGraph(db);
+  seedRoutineActivity(db);
 }
 
 export function wipeAndSeed(db: DatabaseSync) {
   wipeLearningTables(db);
   const tables = [
+    "autopilot_decisions",
     "audit_logs",
     "approvals",
     "actions",
