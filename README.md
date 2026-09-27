@@ -55,7 +55,9 @@ Docker:
 docker compose up --build
 ```
 
-Binds `0.0.0.0:$PORT` (default 3000). SQLite lives in `data/evopulse.db` (ephemeral on most hosts — expected for a demo).
+Binds `0.0.0.0:$PORT` (default 3000). In Docker every SQLite file lives on the `/data` volume (`DB_PATH`, `CONTROL_DB_PATH`, `WORKSPACE_DB_DIR`); locally it defaults to `data/`. Deploy steps for Fly.io / Render (disk-backed): [docs/DEPLOY.md](./docs/DEPLOY.md). Health: `GET /api/health`.
+
+Mobile: open `/m` on a phone (installable PWA — What needs me, Why, one-tap human approve/reject, Ask). Expo client plan: [docs/MOBILE.md](./docs/MOBILE.md).
 
 ## Demo without typing
 
