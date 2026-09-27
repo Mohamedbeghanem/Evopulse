@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { CHECKPOINT_ISO } from "../clock";
 import { all, audit, one, run, setMeta } from "../db";
+import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import type { ActionRow, PlanRow } from "../types";
 
@@ -39,6 +40,19 @@ export function executeAction(db: DatabaseSync, actionId: string, now: string, a
 
   applySideEffects(db, action, now);
   run(db, "UPDATE actions SET status = ? WHERE id = ?", ["executed", actionId]);
+  eventsFor(db).append({
+    type: EVENT_TYPES.ACTION_EXECUTED,
+    source: "action-engine",
+    source_id: actionId,
+    actor_id: actor,
+    entity_type: "action",
+    entity_id: actionId,
+    payload: { type: action.type, title: action.title, planId: action.plan_id },
+    occurred_at: now,
+    received_at: now,
+    confidence: 1,
+    idempotent: true,
+  });
   audit(db, actor, "execute_action", "action", actionId, { type: action.type });
 
   const siblings = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ?", [action.plan_id]);
@@ -86,21 +100,33 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
         now,
       ],
     );
-    run(
-      db,
-      `INSERT INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id("evt"),
-        "proposal_prepared",
-        IDS.opportunity,
-        now,
-        JSON.stringify({ documentId: IDS.document }),
-        "action-engine",
-        now,
-      ],
-    );
+    eventsFor(db).append({
+      type: EVENT_TYPES.QUOTE_SENT,
+      source: "action-engine",
+      source_id: action.id,
+      actor_id: IDS.company,
+      entity_type: "opportunity",
+      entity_id: IDS.opportunity,
+      payload: { documentId: IDS.document, actionType: action.type },
+      occurred_at: now,
+      received_at: now,
+      confidence: 1,
+      idempotent: true,
+    });
     run(db, "UPDATE commitments SET status = ? WHERE id = ?", ["fulfilled", IDS.commitOurs]);
+    eventsFor(db).append({
+      type: EVENT_TYPES.COMMITMENT_FULFILLED,
+      source: "action-engine",
+      source_id: IDS.commitOurs,
+      actor_id: IDS.company,
+      entity_type: "commitment",
+      entity_id: IDS.commitOurs,
+      payload: { via: action.id, documentId: IDS.document },
+      occurred_at: now,
+      received_at: now,
+      confidence: 1,
+      idempotent: true,
+    });
     run(db, "UPDATE expectations SET status = ?, actual = ?, updated_at = ? WHERE id = ?", [
       "FULFILLED",
       "Revised proposal prepared and ready to send",
@@ -121,38 +147,20 @@ function applySideEffects(db: DatabaseSync, action: ActionRow, now: string) {
     ]);
   }
 
-  if (action.type === "draft_message" || action.type === "send_message") {
-    run(
-      db,
-      `INSERT INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id("evt"),
-        "message_drafted",
-        IDS.contact,
-        now,
-        action.payload,
-        "action-engine",
-        now,
-      ],
-    );
-  }
-
   if (action.type === "create_checkpoint") {
-    run(
-      db,
-      `INSERT INTO events (id, type, entity_id, occurred_at, payload, source, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id("evt"),
-        "checkpoint_created",
-        IDS.opportunity,
-        now,
-        JSON.stringify({ dueAt: CHECKPOINT_ISO }),
-        "action-engine",
-        now,
-      ],
-    );
+    eventsFor(db).append({
+      type: EVENT_TYPES.TASK_COMPLETED,
+      source: "action-engine",
+      source_id: action.id,
+      actor_id: IDS.company,
+      entity_type: "opportunity",
+      entity_id: IDS.opportunity,
+      payload: { dueAt: CHECKPOINT_ISO, actionType: action.type },
+      occurred_at: now,
+      received_at: now,
+      confidence: 1,
+      idempotent: true,
+    });
   }
 
   if (action.type === "apply_discount" && action.policy_outcome !== "BLOCKED") {

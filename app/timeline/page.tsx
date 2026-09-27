@@ -2,13 +2,16 @@ import Link from "next/link";
 import { Badge } from "@/components/Badge";
 import { formatDay } from "@/lib/clock";
 import { getDb } from "@/lib/db";
+import { eventsFor } from "@/lib/events";
 import { buildTimeline } from "@/lib/engine/timeline";
 import { IDS } from "@/lib/ids";
 
 export const dynamic = "force-dynamic";
 
 export default function TimelinePage() {
-  const timeline = buildTimeline(getDb());
+  const db = getDb();
+  const timeline = buildTimeline(db);
+  const stream = eventsFor(db).list({ limit: 80 });
 
   return (
     <div className="space-y-8">
@@ -33,6 +36,29 @@ export default function TimelinePage() {
       >
         Open the 320K exception
       </Link>
+
+      <section className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Unified event stream</p>
+        <h2 className="mt-1 font-serif text-3xl">What entered EvoPulse</h2>
+        <p className="mt-2 max-w-2xl text-sm text-sand">
+          Every signal is an Event. Engines subscribe to this stream — they do not invent a second history.
+        </p>
+        <ol className="mt-5 space-y-3">
+          {stream.map((event) => (
+            <li key={event.id} className="grid gap-1 border-l border-white/10 pl-3 md:grid-cols-[11rem_1fr]">
+              <p className="font-mono text-[11px] text-mute">{formatDay(event.occurred_at)}</p>
+              <div>
+                <p className="font-mono text-sm text-paper">{event.type}</p>
+                <p className="text-sm text-sand">
+                  {event.source}
+                  {event.entity_type ? ` · ${event.entity_type}` : ""}
+                  {event.entity_id ? `/${event.entity_id}` : ""}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   );
 }

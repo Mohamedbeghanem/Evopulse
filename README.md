@@ -6,9 +6,9 @@ Tagline: **Nothing falls through.**
 
 Hackathon MVP for **GOMYCODE Come Build with AI — Algeria — 27 Sep 2026**. One closed loop, not the full OS.
 
-**Product authority:** [PLAN.md](./PLAN.md) — sections 0–34, including PR #2–#26 architecture, hackathon cut (§28), demo story (§29), and moat (§34).
+**Product authority:** [PLAN.md](./PLAN.md) — sections 0–34, including product P2–#26 architecture, hackathon cut (§28), demo story (§29), and moat (§34).
 
-**PR #1 on `main`** (320K proposal miss loop) remains the hackathon submit baseline. §28 / §29 are the next vertical expansion, not already shipped.
+**PR #1 on `main`** (320K proposal miss loop) remains the hackathon submit baseline. **Product P2 (Event Layer, PLAN §1)** lives at `lib/events/` — not GitHub docs PR #2, which only landed this PLAN.md. §28 / §29 are the next vertical expansion.
 
 **Team size:** 2–5. **Final Team Confirmation:** already done. Confirmed names only — remaining slots stay placeholders on [PROJECT_CARD.md](./PROJECT_CARD.md).
 
@@ -69,6 +69,12 @@ Seed is already at the miss. Click through:
 
 Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
+## Architecture
+
+- **Event Layer (product P2 / PLAN §1)** lives at `lib/events/` — `EventRepository`, `EventService`, and an in-process dispatcher. Everything entering EvoPulse becomes a row on the `events` table and is then dispatched to registered handlers. Later engines (graph, twin, pulse matchers) subscribe to this stream; they do not grow a second history.
+- Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
+- Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
+
 ## Stack
 
 - Next.js 15 + React 19 + TypeScript + Tailwind
@@ -82,7 +88,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | Route | Job |
 | --- | --- |
 | `/` | Pulse — attention, NEEDS YOU, impact currency |
-| `/timeline` | Business Time Machine — Past / Now / Future |
+| `/timeline` | Business Time Machine — Past / Now / Future + event stream |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
 | `/command` | Ask EvoPulse (grounded) |
@@ -90,7 +96,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /actions/:id/execute` · `GET /graph/:entity` · `POST /ask` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `GET /api/health`
 

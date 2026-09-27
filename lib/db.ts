@@ -25,12 +25,21 @@ function migrate(db: DatabaseSync) {
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
-      entity_id TEXT,
-      occurred_at TEXT NOT NULL,
-      payload TEXT NOT NULL DEFAULT '{}',
       source TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      source_id TEXT,
+      actor_id TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      payload TEXT NOT NULL DEFAULT '{}',
+      occurred_at TEXT NOT NULL,
+      received_at TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 1,
+      metadata TEXT NOT NULL DEFAULT '{}'
     );
+
+    CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+    CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_events_occurred ON events(occurred_at);
 
     CREATE TABLE IF NOT EXISTS commitments (
       id TEXT PRIMARY KEY,
@@ -146,6 +155,27 @@ function migrate(db: DatabaseSync) {
       value TEXT NOT NULL
     );
   `);
+  migrateEventsTable(db);
+}
+
+function migrateEventsTable(db: DatabaseSync) {
+  const cols = new Set(
+    (db.prepare("PRAGMA table_info(events)").all() as { name: string }[]).map((c) => c.name),
+  );
+  const add = (sql: string) => db.exec(sql);
+  if (!cols.has("source_id")) add("ALTER TABLE events ADD COLUMN source_id TEXT");
+  if (!cols.has("actor_id")) add("ALTER TABLE events ADD COLUMN actor_id TEXT");
+  if (!cols.has("entity_type")) add("ALTER TABLE events ADD COLUMN entity_type TEXT");
+  if (!cols.has("received_at")) {
+    add("ALTER TABLE events ADD COLUMN received_at TEXT NOT NULL DEFAULT ''");
+    if (cols.has("created_at")) {
+      db.exec("UPDATE events SET received_at = created_at WHERE received_at IS NULL OR received_at = ''");
+    } else {
+      db.exec("UPDATE events SET received_at = occurred_at WHERE received_at IS NULL OR received_at = ''");
+    }
+  }
+  if (!cols.has("confidence")) add("ALTER TABLE events ADD COLUMN confidence REAL NOT NULL DEFAULT 1");
+  if (!cols.has("metadata")) add("ALTER TABLE events ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'");
 }
 
 export function getDb(): DatabaseSync {

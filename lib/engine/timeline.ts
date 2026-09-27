@@ -22,14 +22,19 @@ export function buildTimeline(db: DatabaseSync) {
   const spots: TimelineSpot[] = [];
 
   for (const event of events) {
-    const payload = JSON.parse(event.payload || "{}") as { text?: string; note?: string };
+    const payload = JSON.parse(event.payload || "{}") as {
+      text?: string;
+      note?: string;
+      description?: string;
+      reason?: string;
+    };
     spots.push({
       id: event.id,
       lane: parseIso(event.occurred_at).getTime() <= nowMs ? "PAST" : "FUTURE",
       at: event.occurred_at,
       title: labelEvent(event.type),
-      detail: payload.text || payload.note || event.type,
-      tone: event.type === "time_advanced" ? "miss" : "ice",
+      detail: payload.text || payload.note || payload.description || payload.reason || event.type,
+      tone: eventTone(event.type),
     });
   }
 
@@ -101,6 +106,17 @@ export function buildTimeline(db: DatabaseSync) {
 
 function labelEvent(type: string) {
   const map: Record<string, string> = {
+    "message.received": "Customer message",
+    "commitment.created": "Commitment created",
+    "commitment.missed": "Commitment missed",
+    "commitment.fulfilled": "Commitment fulfilled",
+    "deal.created": "Deal created",
+    "quote.sent": "Quote / proposal ready",
+    "action.executed": "Action executed",
+    "policy.blocked": "Policy blocked",
+    "customer.replied": "Customer replied",
+    "task.completed": "Checkpoint planted",
+    "time.advanced": "Clock advanced — proposal not sent",
     message_received: "Customer message",
     time_advanced: "Clock advanced — proposal not sent",
     proposal_prepared: "Proposal prepared",
@@ -108,4 +124,24 @@ function labelEvent(type: string) {
     checkpoint_created: "Checkpoint planted",
   };
   return map[type] || type;
+}
+
+function eventTone(type: string): TimelineSpot["tone"] {
+  if (
+    type === "commitment.missed" ||
+    type === "policy.blocked" ||
+    type === "time.advanced" ||
+    type === "time_advanced"
+  ) {
+    return "miss";
+  }
+  if (
+    type === "commitment.fulfilled" ||
+    type === "quote.sent" ||
+    type === "action.executed" ||
+    type === "task.completed"
+  ) {
+    return "ok";
+  }
+  return "ice";
 }
