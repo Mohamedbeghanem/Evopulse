@@ -200,14 +200,20 @@ describe("harness adapter MODE C safety", { concurrency: 1 }, () => {
       name: "mid-cancel",
       available: () => true,
       async complete() {
-        const row = db.prepare("SELECT id FROM agent_runs ORDER BY started_at DESC LIMIT 1").get() as { id: string };
-        agent.cancel(row.id);
+        const row = db
+          .prepare("SELECT id FROM agent_runs WHERE runtime = 'deepseek' AND status = 'running' ORDER BY rowid DESC LIMIT 1")
+          .get() as { id: string } | undefined;
+        if (row?.id) agent.cancel(row.id);
         return { toolCalls: [{ name: "get_attention", arguments: {} }], stop: false };
       },
     };
     agent = new DeepSeekHarnessRuntime(db, { provider });
     const result = await agent.run({ command: "What needs me?" });
-    assert.ok(result.status === "cancelled" || result.fallbackUsed || result.toolCalls.some((call) => call.result.error === "Run cancelled."));
+    assert.ok(
+      result.status === "cancelled" ||
+        result.fallbackUsed ||
+        result.toolCalls.some((call) => call.result.error === "Run cancelled."),
+    );
     if (result.status === "cancelled") assert.equal(result.phase, "CANCELLED");
   });
 
@@ -258,9 +264,18 @@ describe("harness adapter MODE C safety", { concurrency: 1 }, () => {
     const started = await agent.run({ command: "What needs me?" });
     const approvalView = agent.requestApproval(started.id);
     assert.equal(approvalView.id, started.id);
-    const after = await agent.resumeAfterApproval(started.id, { decision: "reject", actor: "operator" });
-    assert.equal(after.id, started.id);
-    assert.ok(after.status === "complete" || after.status === "waiting_for_approval" || after.status === "failed" || after.approvals.length >= 0);
+    assert.equal(agent.getStatus(started.id).id, started.id);
+    if (started.approvals[0]) {
+      const after = await agent.resumeAfterApproval(started.id, {
+        approvalId: started.approvals[0].id,
+        decision: "reject",
+        actor: "operator",
+      });
+      assert.equal(after.id, started.id);
+      assert.ok(after.approvals.some((item) => item.id === started.approvals[0].id && item.status === "rejected"));
+    } else {
+      assert.ok(started.status === "complete" || started.status === "waiting_for_approval" || started.fallbackUsed);
+    }
   });
 });
 
