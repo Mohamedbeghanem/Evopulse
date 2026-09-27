@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default function GraphPage() {
   const graph = businessGraph(getDb());
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-6 py-8 lg:px-10">
       <div>
         <p className="text-xs uppercase tracking-[0.24em] text-mute">Business graph</p>
         <h1 className="mt-2 font-serif text-5xl">Atlas 320K + SH-204</h1>

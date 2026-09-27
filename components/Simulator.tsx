@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { EntityChange, ProjectionMetrics, SimulationResult } from "@/lib/simulation/types";
+import { Button } from "@/components/ui/primitives";
+import { ErrorState, LoadingState, PageHeader, SectionHeader } from "@/components/ui/chrome";
 
 type Shipment = {
   id: string;
@@ -17,10 +19,12 @@ export function Simulator({
   shipments,
   source,
   initialFingerprint,
+  autoRun = false,
 }: {
   shipments: Shipment[];
   source: string;
   initialFingerprint: string;
+  autoRun?: boolean;
 }) {
   const [targetId, setTargetId] = useState(shipments[0]?.id ?? "");
   const [days, setDays] = useState(3);
@@ -46,14 +50,19 @@ export function Simulator({
         body: JSON.stringify({ type: "supplier_delay", targetId, days }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Simulation failed");
+      if (!res.ok) throw new Error(data.error || "Simulation did not run. The twin was not changed.");
       setResult(data as SimulationResult);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Simulation failed");
+      setError(err instanceof Error ? err.message : "Simulation did not run. The twin was not changed.");
     } finally {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (autoRun && targetId && !result && !busy) void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun, targetId]);
 
   async function exit() {
     const fingerprintBefore = result?.isolation.fingerprintBefore ?? initialFingerprint;
@@ -79,23 +88,20 @@ export function Simulator({
 
   return (
     <div className="space-y-8">
-      <section
-        className={`rounded-2xl border p-5 ${result ? "border-ice/50 bg-ice/5" : "border-white/10 bg-ink-800/50"}`}
-      >
-        <div className="flex flex-wrap items-end gap-4">
+      <PageHeader kicker="Simulation chamber · NOT LIVE" title="What if?">
+        <p>Clone a graph slice. Change one lever. Compare LIVE, SIMULATION, and DELTA. Reality is never written.</p>
+      </PageHeader>
+
+      <section className="border border-dashed border-ice/40 bg-ice/5 p-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ice">SIMULATION · NOT LIVE BUSINESS STATE</p>
+        <div className="mt-4 flex flex-wrap items-end gap-4">
           <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Scenario</span>
-            <select disabled className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper">
-              <option>Supplier delay</option>
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Shipment</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Shipment</span>
             <select
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
               disabled={Boolean(result)}
-              className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper"
+              className="mt-1 rounded-md border border-white/15 bg-ink-900 px-3 py-2 text-paper"
             >
               {shipments.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -106,12 +112,12 @@ export function Simulator({
             </select>
           </label>
           <label className="text-sm">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-mute">Additional delay</span>
+            <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Additional delay</span>
             <select
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
               disabled={Boolean(result)}
-              className="mt-1 rounded-lg border border-white/15 bg-ink-900 px-3 py-2 text-paper"
+              className="mt-1 rounded-md border border-white/15 bg-ink-900 px-3 py-2 text-paper"
             >
               {DAY_OPTIONS.map((d) => (
                 <option key={d} value={d}>
@@ -121,44 +127,36 @@ export function Simulator({
             </select>
           </label>
           {result ? (
-            <button
-              onClick={exit}
-              className="rounded-full border border-ice/60 px-5 py-2.5 text-sm font-medium text-ice hover:bg-ice hover:text-ink-950"
-            >
+            <Button variant="ghost" onClick={exit}>
               EXIT SIMULATION
-            </button>
+            </Button>
           ) : (
-            <button
-              onClick={run}
-              disabled={busy || !targetId}
-              className="rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
-            >
+            <Button variant="attention" onClick={() => void run()} disabled={busy || !targetId}>
               {busy ? "Simulating…" : "RUN SIMULATION"}
-            </button>
+            </Button>
           )}
         </div>
         {target ? (
           <p className="mt-4 text-sm text-sand">
-            Live: {target.label} expected <span className="text-paper">{day(target.expectedAt)}</span>
+            Live arrival {day(target.expectedAt)}
             {target.originalExpectedAt && target.originalExpectedAt !== target.expectedAt
-              ? ` (originally ${day(target.originalExpectedAt)})`
+              ? ` · originally ${day(target.originalExpectedAt)}`
               : ""}
-            <span className="ml-2 font-mono text-[11px] text-mute">source: {source}</span>
+            <span className="ml-2 font-mono text-[11px] text-mute">source {source}</span>
           </p>
         ) : null}
-        {error ? <p className="mt-3 text-sm text-miss">{error}</p> : null}
+        {busy ? <div className="mt-3"><LoadingState label="Cloning the downstream slice. Evidence is closed." /></div> : null}
+        {error ? <div className="mt-3"><ErrorState title="Simulation did not run." body={error} /></div> : null}
       </section>
 
       {exitCheck ? (
-        <section
-          className={`rounded-2xl border p-5 text-sm ${exitCheck.unchanged ? "border-ok/40 bg-ok/5" : "border-miss/40 bg-miss/5"}`}
-        >
+        <section className={`border p-5 text-sm ${exitCheck.unchanged ? "border-ok/40 bg-ok/5" : "border-miss/40 bg-miss/5"}`}>
           <p className={`font-mono text-xs ${exitCheck.unchanged ? "text-ok" : "text-miss"}`}>
             {exitCheck.unchanged ? "SIMULATION DISCARDED · REALITY UNCHANGED" : "WARNING · REAL STATE CHANGED"}
           </p>
           <p className="mt-2 text-sand">
-            {target?.label} is still expected <span className="text-paper">{day(exitCheck.expectedAt)}</span>. State
-            fingerprint <span className="font-mono">{exitCheck.fingerprint}</span>
+            {target?.label} is still expected <span className="text-paper">{day(exitCheck.expectedAt)}</span>. Fingerprint{" "}
+            <span className="font-mono">{exitCheck.fingerprint}</span>
             {exitCheck.unchanged ? " matches the pre-simulation snapshot." : " differs from the pre-simulation snapshot."}
           </p>
         </section>
@@ -181,37 +179,29 @@ function Results({
   const { baseline, simulated, delta } = result;
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full bg-ice px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink-950">
-          Simulation mode
-        </span>
-        <span className="text-sm text-sand">
-          {result.scope.origin.label} +{result.scenario.days} days · {result.scope.nodes} entities ·{" "}
-          {result.scope.edges} dependencies cloned
-        </span>
-        <span className={`ml-auto font-mono text-[11px] ${result.isolation.unchanged ? "text-ok" : "text-miss"}`}>
-          isolation {result.isolation.unchanged ? "verified" : "FAILED"} · {result.isolation.tablesChecked} tables ·{" "}
-          {result.isolation.fingerprintAfter}
-        </span>
-      </div>
-
-      <section className="rounded-2xl border border-need/40 bg-need/5 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Delta</p>
-        <ul className="mt-3 space-y-1 font-serif text-2xl text-paper">
-          {delta.headline.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
+      <p className={`font-mono text-[11px] ${result.isolation.unchanged ? "text-ok" : "text-miss"}`}>
+        Isolation {result.isolation.unchanged ? "verified" : "FAILED"} · twin fingerprint unchanged · {result.isolation.tablesChecked} tables
+      </p>
+      <section className="grid gap-4 xl:grid-cols-3">
+        <World title="LIVE" word="REALITY" metrics={baseline} tone="live" />
+        <World title="SIMULATION" word="NOT REAL" metrics={simulated} tone="sim" />
+        <div className="border border-need/40 bg-need/10 p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-need">DELTA · IF THIS RUNS</p>
+          <ul className="mt-4 space-y-2 font-serif text-2xl">
+            {delta.headline.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm text-sand">
+            {delta.cash.movedToNextPeriod.toLocaleString("en-US")} DZD cash moves into next period
+            {delta.cash.invoicesMoved[0] ? ` · ${delta.cash.invoicesMoved[0].label}` : ""}. Not lost revenue. Not 540K.
+          </p>
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Column title="Baseline" subtitle="current business" metrics={baseline} />
-        <Column title="Simulation" subtitle={`+${result.scenario.days} days · not real`} metrics={simulated} simulated />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="font-serif text-3xl">What changes</h2>
-        <div className="divide-y divide-white/5 rounded-2xl border border-white/10">
+      <section>
+        <SectionHeader title="Compare WHY paths" />
+        <div className="mt-3 divide-y divide-white/5 border border-white/10">
           {result.changes.map((change) => (
             <ChangeRow key={change.id} change={change} open={why === change.id} toggle={setWhy} />
           ))}
@@ -221,36 +211,31 @@ function Results({
   );
 }
 
-function Column({
+function World({
   title,
-  subtitle,
+  word,
   metrics,
-  simulated,
+  tone,
 }: {
   title: string;
-  subtitle: string;
+  word: string;
   metrics: ProjectionMetrics;
-  simulated?: boolean;
+  tone: "live" | "sim";
 }) {
   const money = (n: number) => `${n.toLocaleString("en-US")} ${metrics.currency}`;
   return (
-    <div className={`rounded-2xl border p-5 ${simulated ? "border-ice/50 bg-ice/5" : "border-white/10 bg-ink-800/50"}`}>
-      <div className="flex items-baseline justify-between">
-        <p className="font-serif text-2xl">{title}</p>
-        <p className={`font-mono text-[11px] uppercase ${simulated ? "text-ice" : "text-mute"}`}>{subtitle}</p>
-      </div>
+    <div className={tone === "sim" ? "border border-dashed border-ice/50 bg-ice/5 p-5" : "border border-white/10 bg-ink-900 p-5"}>
+      <p className={`font-mono text-[11px] uppercase tracking-[0.16em] ${tone === "sim" ? "text-ice" : "text-mute"}`}>
+        {title} · {word}
+      </p>
       <dl className="mt-4 space-y-3 text-sm">
         <Metric k="Shipment arrives" v={day(metrics.shipmentArrival)} />
         <Metric k="Commitments missed" v={String(metrics.commitmentsMissed.length)} list={metrics.commitmentsMissed} />
         <Metric k="Orders late" v={String(metrics.ordersLate.length)} list={metrics.ordersLate} />
-        <Metric
-          k="Customer deadlines affected"
-          v={String(metrics.customersAffected.length)}
-          list={metrics.customersAffected}
-        />
+        <Metric k="Customer deadlines" v={String(metrics.customersAffected.length)} list={metrics.customersAffected} />
         <Metric k="Revenue on late orders" v={money(metrics.revenueAtRisk)} />
         <Metric k="Cash this period" v={money(metrics.cashInPeriod)} />
-        <Metric k="Cash pushed to next period" v={money(metrics.cashNextPeriod)} />
+        <Metric k="Cash next period" v={money(metrics.cashNextPeriod)} />
       </dl>
     </div>
   );
@@ -297,9 +282,7 @@ function ChangeRow({
         <ol className="mt-4 space-y-2 border-l border-ice/40 pl-4 text-sm">
           {change.why.steps.map((step) => (
             <li key={step.nodeId}>
-              {step.relationship ? (
-                <span className="font-mono text-[11px] text-ice">—{step.relationship}→ </span>
-              ) : null}
+              {step.relationship ? <span className="font-mono text-[11px] text-ice">—{step.relationship}→ </span> : null}
               <span className="text-paper">{step.label}</span>
               {step.baselineAt || step.simulatedAt ? (
                 <span className="ml-2 text-xs text-mute">
@@ -308,7 +291,6 @@ function ChangeRow({
                     : `${day(step.baselineAt)} → ${day(step.simulatedAt)}`}
                 </span>
               ) : null}
-              {step.edgeId ? <span className="ml-2 font-mono text-[10px] text-mute">{step.edgeId}</span> : null}
             </li>
           ))}
         </ol>

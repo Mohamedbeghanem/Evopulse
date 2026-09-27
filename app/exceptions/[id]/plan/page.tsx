@@ -3,14 +3,18 @@ import { notFound } from "next/navigation";
 import { ActionFeedback } from "@/components/ActionFeedback";
 import { ApproveButton } from "@/components/ApproveButton";
 import { Badge } from "@/components/Badge";
+import { InspectorField } from "@/components/shell/Inspector";
+import { Workspace } from "@/components/shell/Workspace";
+import { PageHeader, SectionHeader } from "@/components/ui/chrome";
+import { PolicyBadge } from "@/components/ui/badges";
 import { getDb, getMeta } from "@/lib/db";
 import { buildRecoveryPlan } from "@/lib/engine/recovery";
-import { exceptionDetail } from "@/lib/read";
-import { policies } from "@/lib/read";
+import { exceptionDetail, policies } from "@/lib/read";
+import { getSituation } from "@/lib/ui/attention";
 
 export const dynamic = "force-dynamic";
 
-export default async function PlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ApprovalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
   try {
@@ -19,7 +23,8 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     /* already exists or unknown */
   }
   const detail = exceptionDetail(db, id);
-  if (!detail) notFound();
+  const situation = getSituation(db, id);
+  if (!detail || !situation) notFound();
   const { exception, plan, actions, historicalEvidence, verifications } = detail;
   const rules = policies(db);
   const blocked = actions.some((a) => a.policy_outcome === "BLOCKED");
@@ -29,44 +34,59 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     primaryAction && typeof primaryAction.payload === "object" && primaryAction.payload
       ? (primaryAction.payload as { strategy?: string })
       : {};
-  const originalStrategy = payload.strategy || "personalized_followup";
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Recovery</p>
-        <h1 className="mt-2 font-serif text-4xl sm:text-5xl">{plan?.title || "Recovery plan"}</h1>
-        <p className="mt-3 max-w-2xl text-sand">{plan?.summary}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {plan ? <Badge>{plan.status}</Badge> : null}
-          {blocked ? <Badge>BLOCKED</Badge> : <Badge>APPROVAL_REQUIRED</Badge>}
-        </div>
+    <Workspace
+      inspectorTitle="Business source"
+      inspector={
+        <>
+          <InspectorField label="Quote" value={`“${exception.evidence.quote}”`} />
+          <InspectorField label="Source" value={exception.evidence.source} />
+          <InspectorField label="Expected" value={exception.evidence.expected} />
+          <InspectorField label="Actual" value={exception.evidence.actual} />
+          <InspectorField label="Confidence" value={`${Math.round(exception.confidence * 100)}%`} />
+          <p className="text-xs text-mute">The model cannot approve this. A human must.</p>
+        </>
+      }
+    >
+      <PageHeader
+        kicker={blocked ? "Policy · BLOCKED" : "Human gate · NEEDS APPROVAL"}
+        title={blocked ? "Software already refused this." : "What needs human authority?"}
+      >
+        <p>{plan?.summary || "Recovery is ready for a human decision."}</p>
+      </PageHeader>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {plan ? <Badge>{plan.status}</Badge> : null}
+        {blocked ? <Badge>BLOCKED</Badge> : <Badge>NEEDS_APPROVAL</Badge>}
       </div>
 
-      <ol className="space-y-3">
-        {actions.map((action, index) => (
-          <li key={action.id} className="rounded-2xl border border-white/10 bg-ink-800/50 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-xs text-mute">
-                {String(index + 1).padStart(2, "0")} · {action.type}
-              </p>
-              <div className="flex gap-2">
-                <Badge>{action.policy_outcome}</Badge>
-                <Badge>{action.status}</Badge>
+      <section className="mt-10">
+        <SectionHeader title="What EvoPulse wants to do" />
+        <ol className="mt-4 divide-y divide-white/10 border-y border-white/10">
+          {actions.map((action, index) => (
+            <li key={action.id} className="py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono text-[11px] text-mute">
+                  {String(index + 1).padStart(2, "0")} · {action.type}
+                </p>
+                <div className="flex gap-3">
+                  <PolicyBadge outcome={action.policy_outcome} />
+                  <Badge>{action.status}</Badge>
+                </div>
               </div>
-            </div>
-            <h2 className="mt-2 font-serif text-2xl">{action.title}</h2>
-            <p className="mt-1 text-sm text-sand">{action.description}</p>
-            <p className="mt-3 text-xs text-mute">{action.policy_reason}</p>
-          </li>
-        ))}
-      </ol>
+              <h2 className="mt-2 font-serif text-2xl">{action.title}</h2>
+              <p className="mt-1 text-sm text-sand">{action.description}</p>
+              <p className="mt-2 text-xs text-mute">{action.policy_reason}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-      <section className="rounded-2xl border border-white/10 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Policies in force</p>
-        <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+      <section className="mt-8">
+        <SectionHeader title="Policy in force" />
+        <ul className="mt-4 grid gap-2 font-mono text-sm text-sand sm:grid-cols-2">
           {rules.map((rule) => (
-            <li key={rule.id} className="font-mono text-sand">
+            <li key={rule.id}>
               {rule.key} = {rule.value}
             </li>
           ))}
@@ -74,10 +94,10 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
       </section>
 
       {historicalEvidence && historicalEvidence.strategies.length > 0 ? (
-        <section className="rounded-2xl border border-white/10 p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Historical strategy evidence</p>
-          <p className="mt-2 text-sm text-sand">
-            Aggregated from stored outcome rows. Synthetic historical seed is marked. Not a prediction.
+        <section className="mt-8">
+          <SectionHeader title="Learning — historical evidence" />
+          <p className="mt-3 text-sm text-sand">
+            Aggregated from stored outcome rows. Synthetic historical seed is marked. Not silent retraining.
           </p>
           <ul className="mt-4 space-y-2 text-sm">
             {historicalEvidence.strategies.map((item) => (
@@ -90,36 +110,38 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
               </li>
             ))}
           </ul>
-          {historicalEvidence.historically_stronger_strategy ? (
-            <p className="mt-4 text-sm text-paper">
-              {historicalEvidence.historically_stronger_strategy.wording}
-            </p>
-          ) : null}
           <p className="mt-3 text-xs text-mute">{historicalEvidence.note}</p>
         </section>
       ) : null}
 
-      {plan && plan.status !== "executed" && !blocked ? <ApproveButton planId={plan.id} /> : null}
-      {plan?.status === "executed" ? (
-        <p className="rounded-2xl border border-ok/30 bg-ok/10 p-4 text-sm text-ok">
-          Recovery executed. Verification {pendingVerification ? "pending — customer response expected" : "recorded"}.
-          Send alone does not mark the exception solved. Use the demo bar to ingest “I&apos;ll sign today if you
-          give me 10%.”
-        </p>
-      ) : null}
-      {primaryAction && !blocked ? (
-        <ActionFeedback actionId={primaryAction.id} originalStrategy={originalStrategy} />
-      ) : null}
-      {blocked ? (
-        <p className="rounded-2xl border border-miss/30 bg-miss/10 p-4 text-sm text-miss">
-          The 10% proposal is BLOCKED. Alternatives (5% or Net-14) stay inside policy. Humans still
-          govern the send.
-        </p>
-      ) : null}
-
-      <Link href={`/exceptions/${exception.id}`} className="text-sm text-sand underline underline-offset-4">
-        Back to evidence
-      </Link>
-    </div>
+      <div className="mt-8 space-y-4">
+        {plan && plan.status !== "executed" && !blocked ? <ApproveButton planId={plan.id} /> : null}
+        {plan?.status === "executed" ? (
+          <p className="border border-ice/30 bg-ice/10 p-4 text-sm text-ice">
+            Recovery executed. Verification {pendingVerification ? "pending — customer response expected" : "recorded"}.
+            EXECUTED ≠ HANDLED.{" "}
+            <Link href={`/verification/${exception.id}`} className="underline underline-offset-4">
+              Open verification
+            </Link>
+            .
+          </p>
+        ) : null}
+        {primaryAction && !blocked ? (
+          <ActionFeedback actionId={primaryAction.id} originalStrategy={payload.strategy || "personalized_followup"} />
+        ) : null}
+        {blocked ? (
+          <p className="border border-white/10 p-4 text-sm text-sand" role="status">
+            BLOCKED is successful governance, not an application error. The 10% proposal cannot execute.{" "}
+            <Link href="/policy" className="text-need underline underline-offset-4">
+              Open policy alternatives
+            </Link>
+            .
+          </p>
+        ) : null}
+        <Link href={`/situations/${exception.id}`} className="text-sm text-sand underline underline-offset-4">
+          Back to situation
+        </Link>
+      </div>
+    </Workspace>
   );
 }

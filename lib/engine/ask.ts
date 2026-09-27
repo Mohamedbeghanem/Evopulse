@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { formatDay, formatMoney } from "../clock";
-import { all, getMeta, one } from "../db";
+import { all, getMeta } from "../db";
+import { calculateGraphImpact } from "./impact";
 import { IDS } from "../ids";
 import type { ActionRow, CommitmentRow, ExceptionRow, ExpectationRow } from "../types";
 import { CANNED_PROMPTS } from "../prompts";
@@ -35,6 +36,25 @@ export function answerQuestion(db: DatabaseSync, question: string) {
             ? "10% discount is BLOCKED by policy discount_max=5%. An alternative recovery (5% or Net-14) is waiting."
             : "No open NEEDS YOU items.",
       citations: need.map((e) => ({ type: "exception", id: e.id, title: e.title })),
+      now,
+      phase,
+    };
+  }
+
+  if (/850|sh-204|atlas supply|rk-7|cascade|supplier delay/.test(q)) {
+    const delayed = getMeta(db, "supplier_phase", "stable") === "delayed";
+    const impact = calculateGraphImpact(db, IDS.shipment);
+    const delay = exceptions.find((e) => e.id === IDS.excDelay);
+    return {
+      question,
+      grounded: true,
+      answer: delayed
+        ? `SH-204 moved Monday → Wednesday. ${impact.affected_orders.length} orders and ${impact.affected_customers.length} customers depend on RK-7. ${formatMoney(impact.associated_revenue, impact.currency)} associated revenue. ${formatMoney(impact.affected_expected_cash, impact.currency)} expected cash timing. Not lost. ${delay ? delay.title : ""}`
+        : `SH-204 is still expected Monday. The graph holds ${formatMoney(impact.associated_revenue, impact.currency)} associated revenue and ${formatMoney(impact.affected_expected_cash, impact.currency)} expected cash timing, but Detect has not opened a delay. AT RISK — NOT MISSED.`,
+      citations: [
+        { type: "shipment", id: IDS.shipment, title: "SH-204" },
+        ...exceptions.filter((e) => e.id === IDS.excDelay).map((e) => ({ type: "exception", id: e.id, title: e.title })),
+      ],
       now,
       phase,
     };

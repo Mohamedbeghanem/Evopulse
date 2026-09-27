@@ -25,12 +25,10 @@ export function DemoBar() {
   }
 
   return (
-    <div className="border-t border-white/5 bg-ink-800/70">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-2 text-xs">
+    <div className="border-b border-white/5 bg-ink-900/80">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs lg:px-8">
         <span className="font-mono text-need">DEMO</span>
-        <span className="text-mute">
-          Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded
-        </span>
+        <span className="text-mute">Reset restores the canonical Atlas seed. Nothing is production-destructive.</span>
         <span className="ml-auto flex flex-wrap gap-2">
           <button
             disabled={Boolean(busy)}
@@ -41,20 +39,24 @@ export function DemoBar() {
           </button>
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/supplier-delay", "supplier", "/explore")}
+            onClick={() => post("/api/demo/supplier-delay", "supplier", "/")}
             className="rounded-full border border-need/40 px-3 py-1 text-need hover:bg-need hover:text-ink-950 disabled:opacity-50"
           >
             {busy === "supplier" ? "Cascading…" : "Trigger Supplier Delay"}
           </button>
           <button
             disabled={Boolean(busy)}
-            onClick={() => post("/api/demo/discount", "discount", "/exceptions/exc_discount_blocked")}
+            onClick={() => post("/api/demo/discount", "discount", "/policy")}
             className="rounded-full bg-need px-3 py-1 font-medium text-ink-950 hover:bg-paper disabled:opacity-50"
           >
             {busy === "discount" ? "Ingesting…" : "Later message: 10%"}
           </button>
         </span>
-        {error ? <span className="w-full text-miss">{error}</span> : null}
+        {error ? (
+          <span className="w-full text-miss" role="status">
+            {error}
+          </span>
+        ) : null}
       </div>
     </div>
   );

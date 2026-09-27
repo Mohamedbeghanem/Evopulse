@@ -22,7 +22,7 @@ export default async function ImpactPage({ params }: { params: Promise<{ excepti
   const whyB = explainWhyAffected(db, IDS.shipment, IDS.orderB);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-6 py-8 lg:px-10">
       <div>
         <p className="text-xs uppercase tracking-[0.24em] text-mute">Impact explorer</p>
         <h1 className="mt-2 font-serif text-5xl">Supplier delay +2 days</h1>
@@ -89,10 +89,10 @@ export default async function ImpactPage({ params }: { params: Promise<{ excepti
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href={`/exceptions/${IDS.excDelay}`}
+          href={`/situations/${IDS.excDelay}`}
           className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950"
         >
-          Open exception
+          Open situation
         </Link>
         <Link href="/explore" className="rounded-full border border-white/15 px-5 py-2.5 text-sm">
           Causal explorer

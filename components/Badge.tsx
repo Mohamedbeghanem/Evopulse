@@ -1,5 +1,6 @@
 const TONES: Record<string, string> = {
   NEEDS_YOU: "bg-need text-ink-950",
+  NEEDS_APPROVAL: "bg-need/20 text-need",
   MONITORING: "bg-ice/20 text-ice",
   HANDLED: "bg-ok/20 text-ok",
   HEALTHY: "bg-white/10 text-sand",

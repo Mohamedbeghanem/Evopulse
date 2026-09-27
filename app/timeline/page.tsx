@@ -1,96 +1,190 @@
-import Link from "next/link";
-import { Badge } from "@/components/Badge";
-import { formatDay } from "@/lib/clock";
-import { getDb } from "@/lib/db";
-import { eventsFor } from "@/lib/events";
-import { buildTimeline } from "@/lib/engine/timeline";
-import { IDS } from "@/lib/ids";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { EventRow } from "@/components/ui/rows";
+import { EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader } from "@/components/ui/chrome";
+import { Tabs } from "@/components/ui/primitives";
+import { Workspace } from "@/components/shell/Workspace";
+import { InspectorField } from "@/components/shell/Inspector";
+import { formatDay } from "@/lib/clock";
+import { IDS } from "@/lib/ids";
+import { tapeKindForEvent } from "@/lib/ui/event-kind";
+
+type TimelinePayload = {
+  past: Spot[];
+  nowLane: Spot[];
+  future: Spot[];
+};
+
+type Spot = {
+  id: string;
+  at: string;
+  title: string;
+  detail: string;
+  amount?: number;
+};
+
+type EventItem = {
+  id: string;
+  type: string;
+  occurred_at: string;
+  source: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+};
 
 export default function TimelinePage() {
-  const db = getDb();
-  const timeline = buildTimeline(db);
-  const stream = eventsFor(db).list({ limit: 80 });
+  const [data, setData] = useState<{ timeline: TimelinePayload; events: EventItem[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState("ALL");
+  const [selected, setSelected] = useState<EventItem | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetch("/api/timeline"), fetch("/api/events?limit=80")])
+      .then(async ([timelineRes, eventsRes]) => {
+        const timeline = await timelineRes.json();
+        const events = await eventsRes.json();
+        if (!timelineRes.ok) throw new Error(timeline.error || "Timeline could not be read.");
+        if (!cancelled) {
+          setData({
+            timeline: timeline.past ? timeline : timeline.timeline || timeline,
+            events: events.events || events,
+          });
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Timeline could not be read.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const events = useMemo(() => {
+    const list = Array.isArray(data?.events) ? data!.events : [];
+    if (filter === "ALL") return list;
+    return list.filter((event) => tapeKindForEvent(event.type) === filter);
+  }, [data, filter]);
+
+  if (error) {
+    return (
+      <div className="px-6 py-8">
+        <ErrorState title="Timeline could not be read." body={error} />
+        <Link href="/" className="mt-4 inline-block text-need underline underline-offset-4">
+          Pulse remains reachable
+        </Link>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="px-6 py-8">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mute">Past</p>
+        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.2em] text-mute">Now</p>
+        <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.2em] text-mute">Expected future</p>
+        <div className="mt-6">
+          <LoadingState label="Reading the tape…" />
+        </div>
+      </div>
+    );
+  }
+
+  const timeline = data.timeline;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mute">Business Time Machine</p>
-        <h1 className="mt-2 font-serif text-5xl">Past · Now · Future</h1>
-        <p className="mt-3 max-w-2xl text-sand">
-          Not a calendar. A record of what was supposed to happen against what did. The 320K spot is the
-          Thursday send that never occurred.
-        </p>
+    <Workspace
+      inspectorTitle="Mark"
+      inspectorOpen={Boolean(selected)}
+      onInspectorClose={() => setSelected(null)}
+      inspector={
+        selected ? (
+          <>
+            <InspectorField label="Kind" value={tapeKindForEvent(selected.type)} />
+            <InspectorField label="Clock" value={formatDay(selected.occurred_at)} />
+            <InspectorField label="Type" value={selected.type} />
+            <InspectorField label="Source" value={selected.source} />
+            <InspectorField label="Object" value={selected.entity_id || "—"} />
+          </>
+        ) : (
+          <p className="text-sm text-sand">Select a mark on the tape.</p>
+        )
+      }
+    >
+      <PageHeader kicker="Business Time Machine" title="Past · Now · Expected future.">
+        <p>Not an activity feed. What was supposed to happen against what did, with one attention object at NOW.</p>
+      </PageHeader>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-3">
+        <Lane title="Past" spots={timeline.past || []} />
+        <Lane title="Now" spots={timeline.nowLane || []} featured href={`/situations/${IDS.excMissed}`} />
+        <Lane title="Expected future" spots={timeline.future || []} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Lane title="Past" caption="What happened" spots={timeline.past} />
-        <Lane title="Now" caption="What requires attention" spots={timeline.nowLane} featured />
-        <Lane title="Future" caption="What is expected" spots={timeline.future} />
+      <div className="mt-10">
+        <SectionHeader title="Tape" />
+        <div className="mt-4">
+          <Tabs
+            value={filter}
+            onChange={setFilter}
+            tabs={["ALL", "EXPECTED", "OBSERVED", "DETECTED", "PLANNED", "EXECUTED", "VERIFIED"].map((id) => ({
+              id,
+              label: id,
+            }))}
+          />
+        </div>
+        {events.length === 0 ? (
+          <EmptyState title="Nothing on the tape for this scope." body="Show me what changed today." />
+        ) : (
+          <ol className="mt-4">
+            {events.map((event) => (
+              <button key={event.id} type="button" className="block w-full text-left" onClick={() => setSelected(event)}>
+                <EventRow
+                  kind={tapeKindForEvent(event.type)}
+                  at={formatDay(event.occurred_at)}
+                  title={event.type}
+                  detail={`${event.source}${event.entity_type ? ` · ${event.entity_type}` : ""}`}
+                />
+              </button>
+            ))}
+          </ol>
+        )}
       </div>
-
-      <Link
-        href={`/exceptions/${IDS.excMissed}`}
-        className="inline-flex rounded-full bg-need px-5 py-2.5 text-sm font-medium text-ink-950"
-      >
-        Open the 320K exception
-      </Link>
-
-      <section className="rounded-2xl border border-white/10 bg-ink-800/40 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Unified event stream</p>
-        <h2 className="mt-1 font-serif text-3xl">What entered EvoPulse</h2>
-        <p className="mt-2 max-w-2xl text-sm text-sand">
-          Every signal is an Event. Engines subscribe to this stream — they do not invent a second history.
-        </p>
-        <ol className="mt-5 space-y-3">
-          {stream.map((event) => (
-            <li key={event.id} className="grid gap-1 border-l border-white/10 pl-3 md:grid-cols-[11rem_1fr]">
-              <p className="font-mono text-[11px] text-mute">{formatDay(event.occurred_at)}</p>
-              <div>
-                <p className="font-mono text-sm text-paper">{event.type}</p>
-                <p className="text-sm text-sand">
-                  {event.source}
-                  {event.entity_type ? ` · ${event.entity_type}` : ""}
-                  {event.entity_id ? `/${event.entity_id}` : ""}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </div>
+    </Workspace>
   );
 }
 
 function Lane({
   title,
-  caption,
   spots,
   featured,
+  href,
 }: {
   title: string;
-  caption: string;
+  spots: Spot[];
   featured?: boolean;
-  spots: ReturnType<typeof buildTimeline>["past"];
+  href?: string;
 }) {
   return (
-    <section
-      className={`rounded-2xl border p-5 ${featured ? "border-need/50 bg-need/5" : "border-white/10 bg-ink-800/40"}`}
-    >
-      <p className="text-[11px] uppercase tracking-[0.18em] text-mute">{caption}</p>
-      <h2 className="mt-1 font-serif text-3xl">{title}</h2>
-      <ol className="mt-5 space-y-4">
+    <section className={`border p-5 ${featured ? "border-need/50 bg-need/5" : "border-white/10"}`}>
+      <h2 className="font-serif text-3xl">{title}</h2>
+      <ol className="mt-4 space-y-3">
         {spots.length === 0 ? <li className="text-sm text-mute">Quiet.</li> : null}
         {spots.map((spot) => (
-          <li key={spot.id} className="border-l border-white/10 pl-3">
+          <li key={spot.id}>
             <p className="font-mono text-[11px] text-mute">{formatDay(spot.at)}</p>
             <p className="mt-1 text-paper">{spot.title}</p>
             <p className="text-sm text-sand">{spot.detail}</p>
-            {spot.amount ? <Badge>320000 DZD</Badge> : null}
           </li>
         ))}
       </ol>
+      {href ? (
+        <Link href={href} className="mt-4 inline-block text-sm text-need underline underline-offset-4">
+          Review recovery
+        </Link>
+      ) : null}
     </section>
   );
 }
