@@ -236,6 +236,12 @@ export function getDb(): DatabaseSync {
 }
 
 export function resetDbFile() {
+  try {
+    const { releaseWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+    releaseWarningHooks();
+  } catch {
+    /* warnings module may not be loaded yet */
+  }
   const path = dbPath();
   if (globalForDb.evopulseDb) {
     try {

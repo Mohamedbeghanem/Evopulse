@@ -1,6 +1,6 @@
 export { EarlyWarningEngine, DELIVER_A_WARNING_ID } from "./engine";
 export { WarningExplanationService } from "./explain";
-export { ensureWarningHooks, handleWarningEvent } from "./hooks";
+export { ensureWarningHooks, handleWarningEvent, releaseWarningHooks } from "./hooks";
 export { migrateWarningTables, wipeWarningTables } from "./schema";
 export { DEFAULT_DOWNSTREAM_DURATIONS, WARNING_THRESHOLDS } from "./thresholds";
 export {

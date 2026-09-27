@@ -3,7 +3,11 @@ import { getMeta } from "../db";
 import { registerEngineHook, type BusinessEvent } from "../events";
 import { EarlyWarningEngine } from "./engine";
 
+let live: DatabaseSync | null = null;
+let hooked = false;
+
 export function handleWarningEvent(db: DatabaseSync, event: BusinessEvent) {
+  if (!isUsable(db)) return;
   const now = event.received_at || event.occurred_at || getMeta(db, "demo_now");
   EarlyWarningEngine.for(db).evaluateFromEvent(
     { id: event.id, type: event.type, entity_id: event.entity_id },
@@ -11,16 +15,36 @@ export function handleWarningEvent(db: DatabaseSync, event: BusinessEvent) {
   );
 }
 
-const hooked = new WeakSet<DatabaseSync>();
-
 export function ensureWarningHooks(db: DatabaseSync) {
-  if (hooked.has(db)) return;
-  hooked.add(db);
+  live = db;
+  if (hooked) return;
+  hooked = true;
   registerEngineHook("early-warning", (event) => {
     try {
-      handleWarningEvent(db, event);
+      if (!live || !isUsable(live)) return;
+      handleWarningEvent(live, event);
     } catch (error) {
+      if (isClosedDbError(error)) return;
       console.error("[early-warning] handler failed", event.id, event.type, error);
     }
   });
+}
+
+export function releaseWarningHooks() {
+  live = null;
+}
+
+function isUsable(db: DatabaseSync): boolean {
+  try {
+    db.prepare("SELECT 1").get();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isClosedDbError(error: unknown): boolean {
+  return Boolean(
+    error && typeof error === "object" && "code" in error && (error as { code?: string }).code === "ERR_INVALID_STATE",
+  );
 }
