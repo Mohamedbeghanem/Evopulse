@@ -38,7 +38,6 @@ function migrate(db: DatabaseSync) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
-    CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
     CREATE INDEX IF NOT EXISTS idx_events_occurred ON events(occurred_at);
 
     CREATE TABLE IF NOT EXISTS commitments (
@@ -223,6 +222,7 @@ function migrateEventsTable(db: DatabaseSync) {
   if (!cols.has("source_id")) add("ALTER TABLE events ADD COLUMN source_id TEXT");
   if (!cols.has("actor_id")) add("ALTER TABLE events ADD COLUMN actor_id TEXT");
   if (!cols.has("entity_type")) add("ALTER TABLE events ADD COLUMN entity_type TEXT");
+  if (!cols.has("entity_id")) add("ALTER TABLE events ADD COLUMN entity_id TEXT");
   if (!cols.has("received_at")) {
     add("ALTER TABLE events ADD COLUMN received_at TEXT NOT NULL DEFAULT ''");
     if (cols.has("created_at")) {
@@ -233,6 +233,7 @@ function migrateEventsTable(db: DatabaseSync) {
   }
   if (!cols.has("confidence")) add("ALTER TABLE events ADD COLUMN confidence REAL NOT NULL DEFAULT 1");
   if (!cols.has("metadata")) add("ALTER TABLE events ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id)");
 }
 
 function tableColumns(db: DatabaseSync, table: string): Set<string> {
