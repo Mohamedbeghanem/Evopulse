@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import { ProductChrome } from "@/components/session/ProductChrome";
 import { resolveRequestContext } from "@/lib/auth";
+import { toPlain } from "@/lib/plain";
 import "./globals.css";
 
 const serif = Instrument_Serif({
@@ -34,7 +35,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
-        <ProductChrome mode={ctx.user ? ctx.mode : "anon"} user={ctx.user} workspace={ctx.workspace}>
+        <ProductChrome
+          mode={ctx.user ? ctx.mode : "anon"}
+          user={toPlain(ctx.user)}
+          workspace={toPlain(ctx.workspace)}
+        >
           {children}
         </ProductChrome>
       </body>

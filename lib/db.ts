@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { id } from "./ids";
+import { toPlain } from "./plain";
 
 const globalForDb = globalThis as unknown as { evopulseDb?: DatabaseSync };
 const dbContext = new AsyncLocalStorage<DatabaseSync>();
@@ -388,11 +389,11 @@ export function resetDbFile() {
 }
 
 export function all<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T[] {
-  return db.prepare(sql).all(...params) as T[];
+  return toPlain(db.prepare(sql).all(...params) as T[]);
 }
 
 export function one<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T | undefined {
-  return db.prepare(sql).get(...params) as T | undefined;
+  return toPlain(db.prepare(sql).get(...params) as T | undefined);
 }
 
 export function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {

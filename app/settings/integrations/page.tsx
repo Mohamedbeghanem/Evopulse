@@ -2,6 +2,7 @@ import { IntegrationsPanel } from "@/components/user/SettingsForms";
 import { PageHeader } from "@/components/ui/chrome";
 import { IntegrationService } from "@/lib/integrations/service";
 import { requireAppUser } from "@/lib/onboarding/guard";
+import { toPlain } from "@/lib/plain";
 
 export default async function IntegrationsSettingsPage() {
   const { workspace } = await requireAppUser();
@@ -11,7 +12,7 @@ export default async function IntegrationsSettingsPage() {
         <p>Available connections work. Coming soon stays coming soon.</p>
       </PageHeader>
       <div className="mt-8">
-        <IntegrationsPanel connectors={IntegrationService.list(workspace.id)} />
+        <IntegrationsPanel connectors={toPlain(IntegrationService.list(workspace.id))} />
       </div>
     </div>
   );

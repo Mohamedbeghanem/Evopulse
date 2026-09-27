@@ -2,6 +2,7 @@ import { TeamForm } from "@/components/user/SettingsForms";
 import { PageHeader } from "@/components/ui/chrome";
 import { listMemberships } from "@/lib/auth";
 import { requireAppUser } from "@/lib/onboarding/guard";
+import { toPlain } from "@/lib/plain";
 
 export default async function TeamSettingsPage() {
   const { workspace } = await requireAppUser();
@@ -11,7 +12,7 @@ export default async function TeamSettingsPage() {
         <p>Owner, Admin, Member, Viewer — only roles the product actually enforces.</p>
       </PageHeader>
       <div className="mt-8">
-        <TeamForm members={listMemberships(workspace.id)} />
+        <TeamForm members={toPlain(listMemberships(workspace.id))} />
       </div>
     </div>
   );
