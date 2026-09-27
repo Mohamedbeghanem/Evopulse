@@ -124,6 +124,11 @@ Breakpoints: **1440 / 1280 / 1024**. At 1024 the rail stacks under the brief.
 - Learning seed rates (`lib/learning/seed-outcomes.ts`) — displayed only as source 09
 - Mobbin: [Perplexity answer with source rail](https://mobbin.com/screens/fa28b1b4-e249-46f0-a225-087a1c36e00b) — structure only
 
+## Previews
+
+`previews/evidence-1440.png`, `evidence-1280.png`, `evidence-1024.png`  
+Also copied to `/opt/cursor/artifacts/screenshots/`.
+
 ## Image prompt
 
 See `evidence-image-prompt.md`.

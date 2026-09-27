@@ -227,12 +227,21 @@
     .pane li strong { display: block; color: var(--paper); font-weight: 500; }
     .neq {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 0 10px;
       font-family: var(--serif);
       font-size: 42px;
       color: var(--mute);
+      line-height: 1;
+    }
+    .neq small {
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
     }
 
     .resolution.pending h2 { color: var(--ice); }
@@ -388,7 +397,7 @@
     <main id="main">
       <p class="eyebrow">After execute · Atlas 320K</p>
       <h1>Did it work?</h1>
-      <p class="lede">
+      <p class="lede" id="lede">
         The follow-up was sent. That is execution. It is not resolution. We are waiting for a customer response before Monday 28 Sep 08:18.
       </p>
 
@@ -434,7 +443,7 @@
             </li>
           </ul>
         </div>
-        <div class="neq" aria-hidden="true">≠</div>
+        <div class="neq" role="separator" aria-label="Executed is not handled">≠<small>is not</small></div>
         <div class="pane resolution pending" id="resolution">
           <span class="badge ice" id="res-badge">Monitoring</span>
           <h2 id="res-title">Not handled</h2>
@@ -539,6 +548,7 @@
           exc: "status awaiting_verification · attention MONITORING",
           live: "Primary state: VERIFICATION PENDING. Exception attention MONITORING. Status awaiting_verification. Not HANDLED.",
           body: "A verification row is pending. Expected event: customer.response (aliases customer.replied). Deadline: Monday 28 Sep 08:18 — twenty-four hours after execute. No matching event yet.",
+          lede: "The follow-up was sent. That is execution. It is not resolution. We are waiting for a customer response before Monday 28 Sep 08:18.",
           life: ["done", "now", "wait", "wait"]
         },
         success: {
@@ -549,6 +559,7 @@
           exc: "status resolved · attention HANDLED",
           live: "Preview: VERIFICATION SUCCESS. Exception attention HANDLED. Outcome customer_replied. Only success may mark HANDLED.",
           body: "customer.replied arrived Sunday 27 Sep 11:05 — before the deadline. Verification SUCCESS. Outcome recorded: customer_replied. Attention may now read HANDLED.",
+          lede: "The world confirmed it. customer.replied arrived before the deadline. Only then may attention read HANDLED.",
           life: ["done", "done", "done", "now"]
         },
         failed: {
@@ -559,6 +570,7 @@
           exc: "status open · attention NEEDS_YOU",
           live: "Preview: VERIFICATION FAILED. Deadline passed with no matching event. Attention returns to NEEDS YOU. Still not HANDLED.",
           body: "Deadline passed with no matching event. Verification FAILED. Outcome recorded: no_response. The exception reopens. Execution remains true. Resolution does not.",
+          lede: "The send still happened. The world did not confirm it. Execution remains true. Resolution does not. Attention returns to NEEDS YOU.",
           life: ["done", "done", "fail", "wait"]
         }
       };
@@ -570,6 +582,7 @@
       var exc = document.getElementById("exc-now");
       var live = document.getElementById("live");
       var pane = document.getElementById("resolution");
+      var lede = document.getElementById("lede");
       var steps = document.querySelectorAll("#lifecycle li");
 
       function apply(next) {
@@ -581,6 +594,7 @@
         body.textContent = s.body;
         exc.textContent = s.exc;
         live.textContent = s.live;
+        lede.textContent = s.lede;
         pane.className = s.paneClass;
         steps.forEach(function (li, i) { li.className = s.life[i]; });
         buttons.forEach(function (btn) {

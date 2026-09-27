@@ -140,6 +140,12 @@ Breakpoints: **1440 / 1280 / 1024**. At 1024 the split stacks; ≠ becomes a tex
 - PLAN §14 — “Do NOT mark problem solved”
 - Mobbin: [Linear project statuses](https://mobbin.com/screens/e494c7a9-8c56-4840-bca4-a0324b332710) — explicit stages
 
+## Previews
+
+`previews/verification-pending-{1440,1280,1024}.png`  
+`previews/verification-success-*.png` · `previews/verification-failed-*.png`  
+Also copied to `/opt/cursor/artifacts/screenshots/`.
+
 ## Image prompt
 
 See `verification-image-prompt.md`.
