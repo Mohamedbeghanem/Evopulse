@@ -31,16 +31,26 @@ export const DEMOTION_FLOORS: Record<AutonomyLevel, number> = { 0: 0, 1: 0, 2: 0
 /** Outcome results that suspend an action type immediately. */
 export const SEVERE_RESULTS = new Set(["severe_failure", "customer_harm", "policy_violation"]);
 
-/** Actors that may never approve promotion, reinstate, or resume. Engines report; humans grant. */
+/**
+ * Identities that may never approve promotion, reinstate, or resume: engines and default/placeholder names.
+ * Compared case-insensitively after trimming. There is no auth yet, so this is a deny-list of known non-humans,
+ * not an allow-list of real people.
+ */
 export const NON_HUMAN_ACTORS = new Set([
   "",
-  "ai",
-  "llm",
+  "operator",
+  "evopulse",
   "system",
+  "seed",
   "autopilot",
   "autonomy-engine",
+  "pulse-engine",
+  "impact-engine",
+  "ai",
+  "bot",
+  "llm",
   "planner",
-  "seed",
+  "unknown",
 ]);
 
 export function isHumanActor(actor: string | undefined | null): boolean {

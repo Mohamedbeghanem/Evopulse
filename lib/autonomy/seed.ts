@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { DEMO_NOW_ISO } from "../clock";
-import { one, run } from "../db";
+import { audit, one, run } from "../db";
 import { loadPolicies } from "../engine/policy";
 import { OutcomeLedger } from "../learning/outcomes";
 import { AUTONOMY_ACTIONS, policyCeiling } from "./ceilings";
@@ -31,6 +31,10 @@ export const SEEDED_AUTONOMY: Record<string, { level: AutonomyLevel; successes: 
 const SYNTHETIC_NOTE = "synthetic historical observation — not a live Atlas case";
 export const AUTONOMY_SYNTHETIC_PREFIX = "syn_aut_";
 
+/**
+ * Explicit demo seed. Called ONLY from lib/seed.ts (seedIfEmpty / wipeAndSeed), never lazily.
+ * Profiles that already exist (for example lazily created at L0) are left untouched: seeding never raises them.
+ */
 export function seedAutonomy(db: DatabaseSync, now = DEMO_NOW_ISO) {
   seedAutonomyHistory(db, now);
   const policies = loadPolicies(db);
@@ -62,7 +66,7 @@ export function seedAutonomy(db: DatabaseSync, now = DEMO_NOW_ISO) {
     );
     run(
       db,
-      `INSERT INTO autonomy_changes (id, action_type, kind, from_level, to_level, actor, reason, evidence, created_at)
+      `INSERT OR IGNORE INTO autonomy_changes (id, action_type, kind, from_level, to_level, actor, reason, evidence, created_at)
        VALUES (?, ?, 'seed_grant', NULL, ?, 'seed', ?, ?, ?)`,
       [
         `${AUTONOMY_SYNTHETIC_PREFIX}chg_${spec?.abbr ?? type}`,
@@ -73,6 +77,13 @@ export function seedAutonomy(db: DatabaseSync, now = DEMO_NOW_ISO) {
         now,
       ],
     );
+    audit(db, "seed", "autonomy.seed_grant", "autonomy_profile", type, {
+      from_level: null,
+      to_level: level,
+      reason,
+      evidence: { verified: e.verified, successes: e.successes, failures: e.failures, synthetic: e.synthetic },
+      at: now,
+    });
   }
 
   // Candidates and stats are derived by the same review path the live system uses.

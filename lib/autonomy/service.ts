@@ -5,7 +5,7 @@ import { registerEngineHook, eventsFor, type BusinessEvent } from "../events";
 import { id } from "../ids";
 import { LEARNING_EVENT_TYPES } from "../learning/verification";
 import type { PolicyOutcome } from "../types";
-import { actionLabel, CUSTOMER_FACING_TYPES, instancePolicy, policyCeiling, REVERSIBLE_INTERNAL_TYPES } from "./ceilings";
+import { actionLabel, AUTONOMY_ACTIONS, CUSTOMER_FACING_TYPES, instancePolicy, policyCeiling, REVERSIBLE_INTERNAL_TYPES } from "./ceilings";
 import { evidenceFor, evidenceText } from "./evidence";
 import { demotionTrigger, isHumanActor, meetsRequirements } from "./rules";
 import { AUTONOMY_PAUSE_META_KEY } from "./schema";
@@ -335,16 +335,14 @@ export function autonomyOverview(db: DatabaseSync, now?: string) {
 
 // ─── Human governance ───────────────────────────────────────────────────────
 
+/** Refusals are audited in audit_logs only: no autonomy_changes row, no event, so retries cannot flood either. */
 function refusePromotion(db: DatabaseSync, type: string, level: number, target: number | null, actor: string, reason: string, e: AutonomyEvidence | null, now: string, status: 400 | 403 | 409): never {
-  recordChange(db, {
-    actionType: type,
-    kind: "promotion_refused",
-    from: level,
-    to: target,
-    actor: actor || "unknown",
+  audit(db, actor || "unknown", "autonomy.promotion_refused", "autonomy_profile", type, {
+    from_level: level,
+    to_level: target,
     reason,
     evidence: e ? evidenceSummary(e) : {},
-    now,
+    at: now,
   });
   throw new AutonomyError(reason, status);
 }
@@ -514,7 +512,17 @@ export function reinstateAction(db: DatabaseSync, type: string, opts: ChangeOpts
 export function autonomyGate(
   db: DatabaseSync,
   actionType: string,
-  opts: { payload?: Record<string, unknown>; policyOutcome?: PolicyOutcome; policyReason?: string; now?: string } = {},
+  opts: {
+    payload?: Record<string, unknown>;
+    policyOutcome?: PolicyOutcome;
+    policyReason?: string;
+    now?: string;
+    /**
+     * A human explicitly asked for this batch to run (e.g. the goal engine's "Execute safe actions").
+     * Pause, suspension and policy still hold; the earned level does not, because the human is the approver.
+     */
+    humanInitiated?: boolean;
+  } = {},
 ): AutonomyGateResult {
   ensureAutonomy(db);
   const policies = loadPolicies(db);
@@ -539,8 +547,14 @@ export function autonomyGate(
 
   if (inst.outcome === "BLOCKED") return result(0, "blocked", `Policy blocks this action: ${inst.reason}`);
   if (pause.paused) return result(0, "observe", `Emergency pause is on (${pause.reason}). Observe only; a human decides.`);
+  if (row?.suspended) return result(0, "observe", `Suspended: ${row.suspended_reason} A human must reinstate it.`);
+  if (opts.humanInitiated) {
+    const lvl = (row ? Math.min(asLevel(row.level), ceiling.level) : 0) as AutonomyLevel;
+    return inst.outcome === "AUTO"
+      ? result(lvl, "auto", "Run requested by a human; inside policy, not paused or suspended.")
+      : result(lvl, "prepare", `Policy requires approval for this instance: ${inst.reason}`);
+  }
   if (!row) return result(0, "observe", `No autonomy profile for ${actionType}. Observe only; a human decides.`);
-  if (row.suspended) return result(0, "observe", `Suspended: ${row.suspended_reason} A human must reinstate it.`);
 
   const effective = Math.min(asLevel(row.level), ceiling.level) as AutonomyLevel;
   const capNote = ceiling.level < row.level ? ` (${ceiling.label} caps level ${row.level} at ${ceiling.level})` : "";
@@ -565,12 +579,14 @@ export function gateAction(
   db: DatabaseSync,
   action: { type: string; payload?: string | Record<string, unknown>; policy_outcome: PolicyOutcome; policy_reason?: string },
   now?: string,
+  opts: { humanInitiated?: boolean } = {},
 ): AutonomyGateResult {
   return autonomyGate(db, action.type, {
     payload: parsePayload(action.payload),
     policyOutcome: action.policy_outcome,
     policyReason: action.policy_reason,
     now,
+    humanInitiated: opts.humanInitiated,
   });
 }
 
@@ -634,10 +650,24 @@ export function ensureAutonomyHooks(db: DatabaseSync) {
 }
 
 /** Lazily seeds profiles on databases created before this module existed, and wires the review hook. */
+/**
+ * Lazy bootstrap for databases that were never seeded with autonomy (created before this module, or profiles
+ * removed). It only creates missing profiles at L0 Observe, with no synthetic history: authority is never granted
+ * here. Seeded levels and history come only from seedIfEmpty / wipeAndSeed (lib/seed.ts).
+ */
 export function ensureAutonomy(db: DatabaseSync) {
   ensureAutonomyHooks(db);
-  if (countProfiles(db) > 0) return;
-  // Lazy import keeps service ↔ seed acyclic at module load.
-  const { seedAutonomy } = require("./seed") as typeof import("./seed");
-  seedAutonomy(db);
+  if (countProfiles(db) >= AUTONOMY_ACTIONS.length) return;
+  const now = new Date().toISOString();
+  for (const { type } of AUTONOMY_ACTIONS) {
+    run(
+      db,
+      `INSERT OR IGNORE INTO autonomy_profiles
+        (action_type, level, suspended, suspended_reason, candidate_level, verified_outcomes, successes, failures,
+         override_rate, evidence_mark, last_change_kind, last_change_by, last_change_reason, last_change_at,
+         created_at, updated_at)
+       VALUES (?, 0, 0, '', NULL, 0, 0, 0, 0, 0, '', '', 'Created at Observe. Autonomy is earned.', ?, ?, ?)`,
+      [type, now, now, now],
+    );
+  }
 }

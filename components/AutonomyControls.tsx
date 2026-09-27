@@ -1,7 +1,46 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const APPROVER_KEY = "evopulse.autonomy.approver";
+
+/** The approver's name, remembered per browser. There is no auth; the server refuses engine/default names. */
+function readApprover(): string {
+  try {
+    return window.localStorage.getItem(APPROVER_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function writeApprover(name: string) {
+  try {
+    window.localStorage.setItem(APPROVER_KEY, name);
+  } catch {
+    /* storage unavailable: the name is used for this page view only */
+  }
+}
+
+/** Small "Approving as" field. Promote, reinstate and resume send this name as the actor. */
+export function ApproverField() {
+  const [name, setName] = useState("");
+  useEffect(() => setName(readApprover()), []);
+  return (
+    <label className="flex items-center gap-2 text-xs text-mute">
+      Approving as
+      <input
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          writeApprover(e.target.value.trim());
+        }}
+        placeholder="Your name"
+        className="w-40 rounded-full border border-white/15 bg-ink-900 px-3 py-1.5 text-sm text-paper placeholder:text-mute"
+      />
+    </label>
+  );
+}
 
 async function post(path: string, body: Record<string, unknown>) {
   const res = await fetch(path, {
@@ -18,9 +57,14 @@ function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function run(path: string, body: Record<string, unknown>) {
+    const actor = readApprover();
+    if (!actor) {
+      setError("Enter your name in “Approving as” first.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const err = await post(path, body);
+    const err = await post(path, { ...body, actor });
     setBusy(false);
     if (err) setError(err);
     else router.refresh();
@@ -49,7 +93,7 @@ export function AutonomyActionControls({
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(`${base}/promote`, { actor: "operator", toLevel: candidateLevel })}
+            onClick={() => run(`${base}/promote`, { toLevel: candidateLevel })}
             className="rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink-950 hover:bg-need disabled:opacity-50"
           >
             Approve promotion → L{candidateLevel} {candidateName}
@@ -59,7 +103,7 @@ export function AutonomyActionControls({
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(`${base}/reinstate`, { actor: "operator" })}
+            onClick={() => run(`${base}/reinstate`, {})}
             className="rounded-full border border-ok/40 px-3 py-1.5 text-xs text-ok disabled:opacity-50"
           >
             Reinstate
@@ -68,7 +112,7 @@ export function AutonomyActionControls({
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(`${base}/suspend`, { actor: "operator", reason: "Suspended from the autonomy page." })}
+            onClick={() => run(`${base}/suspend`, { reason: "Suspended from the autonomy page." })}
             className="rounded-full border border-miss/40 px-3 py-1.5 text-xs text-miss disabled:opacity-50"
           >
             Suspend
@@ -88,7 +132,7 @@ export function EmergencyPauseControl({ paused }: { paused: boolean }) {
         <button
           type="button"
           disabled={busy}
-          onClick={() => run("/api/autonomy/resume", { actor: "operator", reason: "Resumed from the autonomy page." })}
+          onClick={() => run("/api/autonomy/resume", { reason: "Resumed from the autonomy page." })}
           className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
         >
           Resume earned autonomy
@@ -97,7 +141,7 @@ export function EmergencyPauseControl({ paused }: { paused: boolean }) {
         <button
           type="button"
           disabled={busy}
-          onClick={() => run("/api/autonomy/pause", { actor: "operator", reason: "Emergency pause from the autonomy page." })}
+          onClick={() => run("/api/autonomy/pause", { reason: "Emergency pause from the autonomy page." })}
           className="rounded-full bg-miss px-5 py-2.5 text-sm font-medium text-ink-950 disabled:opacity-50"
         >
           Emergency pause

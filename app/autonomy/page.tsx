@@ -1,4 +1,4 @@
-import { EmergencyPauseControl, AutonomyActionControls } from "@/components/AutonomyControls";
+import { ApproverField, AutonomyActionControls, EmergencyPauseControl } from "@/components/AutonomyControls";
 import { Badge } from "@/components/Badge";
 import { LEVEL_DESCRIPTIONS, LEVEL_NAMES, annotatePlanActions, autonomyOverview, type AutonomyLevel } from "@/lib/autonomy";
 import { all, getDb } from "@/lib/db";
@@ -33,8 +33,16 @@ export default function AutonomyPage() {
             approval. Poor results take authority away automatically. Company policy is always the hard ceiling.
           </p>
         </div>
-        <EmergencyPauseControl paused={pause.paused} />
+        <div className="flex flex-col items-end gap-3">
+          <ApproverField />
+          <EmergencyPauseControl paused={pause.paused} />
+        </div>
       </div>
+
+      <p className="text-xs text-mute">
+        Automatic suspension is triggered by severe-failure outcomes; live wiring lands with the autopilot
+        integration.
+      </p>
 
       {pause.paused ? (
         <p className="rounded-2xl border border-miss/30 bg-miss/10 p-4 text-sm text-miss">

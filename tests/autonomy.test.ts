@@ -28,7 +28,9 @@ import {
   gateAction,
   policyOnlyGate,
 } from "../lib/autonomy";
-import { all, getDb, one, resetDbFile, run } from "../lib/db";
+import { all, getDb, getMeta, one, resetDbFile, run } from "../lib/db";
+import { createGoal, executeSafeActions } from "../lib/goals";
+import { isHumanActor } from "../lib/autonomy";
 import { eventsFor } from "../lib/events";
 import { IDS } from "../lib/ids";
 import { LEARNING_EVENT_TYPES, OutcomeLedger } from "../lib/learning";
@@ -112,6 +114,11 @@ describe("adaptive autonomy", { concurrency: 1 }, () => {
     assert.equal(del.effectiveLevelName, "Observe");
     assert.equal(del.limitReason, "Autonomy prohibited");
 
+    // Seed grants are in audit_logs as well as autonomy_changes.
+    const grants = all<{ object_id: string; actor: string }>(db, "SELECT object_id, actor FROM audit_logs WHERE action = 'autonomy.seed_grant'");
+    assert.equal(new Set(grants.map((g) => g.object_id)).size, 8, "one grant audit per profiled type");
+    assert.ok(grants.every((g) => g.actor === "seed"));
+
     // Numbers come from ledger rows, not labels.
     for (const [type, spec] of Object.entries(SEEDED_AUTONOMY)) {
       const rows = all<{ success: number }>(db, "SELECT success FROM outcomes WHERE context_signature = ?", [
@@ -182,8 +189,10 @@ describe("adaptive autonomy", { concurrency: 1 }, () => {
     expectAutonomyError(() => approvePromotion(db, "apply_discount", { actor: "maya" }), 409, /Financial control/);
     expectAutonomyError(() => approvePromotion(db, "delete_customer_data", { actor: "maya" }), 409, /Autonomy prohibited/);
 
-    const refused = listChanges(db).filter((c) => c.kind === "promotion_refused");
+    const refused = all(db, "SELECT id FROM audit_logs WHERE action = 'autonomy.promotion_refused'");
     assert.ok(refused.length >= 3, "refusals are audited");
+    assert.equal(listChanges(db).filter((c) => (c.kind as string) === "promotion_refused").length, 0, "refusals write no change rows");
+    assert.equal(eventsFor(db).list({ type: "autonomy.promotion_refused" }).length, 0, "refusals emit no events");
 
     // Ceiling is derived from lib/engine/policy.ts on every read.
     run(db, "UPDATE policies SET value = 'false' WHERE key = 'external_message_requires_approval'");
@@ -440,6 +449,58 @@ describe("adaptive autonomy", { concurrency: 1 }, () => {
     assert.equal(policyOnlyGate.gate(db, row("create_task", "AUTO"), NOW).mayAutoExecute, true);
     assert.equal(adaptiveAutonomyGate.gate(db, row("create_task", "AUTO"), NOW).mayAutoExecute, false);
     emergencyResume(db, { actor: "maya" });
+  });
+
+  it("lazy bootstrap never grants autonomy: a DB without profiles gets L0 and no synthetic history", async () => {
+    const db = getDb();
+    run(db, "DELETE FROM autonomy_profiles");
+    // Change rows left behind used to crash re-seeding with a UNIQUE constraint; now nothing re-seeds lazily.
+    let profiles = listProfiles(db);
+    assert.ok(profiles.every((p) => p.level === 0 && p.effectiveLevel === 0));
+
+    run(db, "DELETE FROM autonomy_profiles");
+    run(db, "DELETE FROM autonomy_changes");
+    run(db, "DELETE FROM outcomes WHERE id LIKE 'syn_aut_%'");
+    const { GET } = await import("../app/api/autonomy/route");
+    const overview = await (await GET()).json();
+    assert.equal(overview.profiles.length, 8);
+    for (const p of overview.profiles) assert.equal(p.effectiveLevel, 0, p.actionType);
+    assert.equal(one<{ c: number }>(db, "SELECT COUNT(*) AS c FROM outcomes WHERE id LIKE 'syn_aut_%'")!.c, 0);
+    assert.equal(listChanges(db).filter((c) => c.kind === "seed_grant").length, 0, "no grant without a human");
+    assert.equal(autonomyGate(db, "create_checkpoint").mayAutoExecute, false);
+  });
+
+  it("named human rule: engine and default identities are refused, case-insensitively", () => {
+    for (const actor of ["EvoPulse", "operator", "OPERATOR", " system ", "Seed", "autopilot", "autonomy-engine", "pulse-engine", "impact-engine", "AI", "bot", "", "   "]) {
+      assert.equal(isHumanActor(actor), false, JSON.stringify(actor));
+    }
+    assert.equal(isHumanActor("Mohamed"), true);
+    const db = getDb();
+    expectAutonomyError(() => approvePromotion(db, "prepare_proposal", { actor: "EvoPulse" }), 403, /named human/);
+    expectAutonomyError(() => approvePromotion(db, "prepare_proposal", { actor: "operator" }), 403, /named human/);
+    assert.equal(approvePromotion(db, "prepare_proposal", { actor: "Mohamed" }).level, 3);
+  });
+
+  it("emergency pause and suspension stop the goal engine's execute-safe", () => {
+    const db = getDb();
+    const now = getMeta(db, "demo_now");
+    const paused = createGoal(db, { utterance: "Protect everything at risk this week." }, now);
+    emergencyPause(db, { actor: "Mohamed" });
+    const none = executeSafeActions(db, paused.plan!.id!, now);
+    assert.equal(none.executed.length, 0, "nothing runs while paused");
+    assert.ok(none.heldByAutonomy.length > 0);
+    emergencyResume(db, { actor: "Mohamed" });
+
+    // The plan's only safe step is prepare_proposal. Suspending that type holds it; reinstating lets it run.
+    suspendAction(db, "prepare_proposal", { actor: "Mohamed" });
+    const held = executeSafeActions(db, paused.plan!.id!, now);
+    assert.equal(held.executed.length, 0);
+    const heldTypes = held.heldByAutonomy.map((id) => one<{ type: string }>(db, "SELECT type FROM actions WHERE id = ?", [id])!.type);
+    assert.deepEqual(heldTypes, ["prepare_proposal"], "the suspended type is held");
+    reinstateAction(db, "prepare_proposal", { actor: "Mohamed" });
+    const ran = executeSafeActions(db, paused.plan!.id!, now);
+    assert.equal(ran.executed.length, 1, "runs once pause and suspension are lifted");
+    assert.equal(ran.heldByAutonomy.length, 0);
   });
 
   it("audit: every change is recorded with actor, reason, evidence counts and timestamp", () => {
