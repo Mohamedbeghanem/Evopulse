@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EvoPulse Control OS — Inspector</title>
+    <link rel="stylesheet" href="../../AURORA_TOKENS.css" />
+    <link rel="stylesheet" href="os.css" />
+  </head>
+  <body>
+    <a class="skip" href="#inspector">Skip to inspector</a>
+    <div class="os os--inspector" data-active="pulse">
+      <aside class="sidebar" aria-label="Control OS" data-os-sidebar></aside>
+
+      <button class="reopen" type="button" data-reopen-sidebar aria-label="Open sidebar">
+        <svg viewBox="0 0 16 16"><path d="M5 3h8M5 8h8M5 13h8M3 3v10" /></svg>
+      </button>
+
+      <div class="workspace">
+        <header class="page-header">
+          <div>
+            <p class="kicker">PULSE · ATTENTION</p>
+            <h1>Good afternoon. <em>2 decisions</em> need you today.</h1>
+            <p class="lede">Workspace stays put. Atlas Supply is selected — context opens on the right.</p>
+          </div>
+          <div class="header-actions">
+            <button class="chip" type="button">Today <span aria-hidden="true">▾</span></button>
+          </div>
+        </header>
+        <main class="workspace-body mode-operational">
+          <div class="ghost-stack">
+            <div class="ghost-row">
+              <span>Supplier delay · Situation (not designed)</span>
+              <span class="status status--risk pulse"><i></i> At risk — not missed</span>
+            </div>
+            <div class="ghost-row">
+              <span>Secondary object · Situation row (not designed)</span>
+              <span class="status status--monitor"><i></i> Monitoring</span>
+            </div>
+          </div>
+        </main>
+        <div class="composer-dock">
+          <div class="composer">
+            <label class="visually-hidden" for="composer-query">Ask your business</label>
+            <input class="composer-input" id="composer-query" placeholder="Ask your business…" />
+            <div class="composer-bar">
+              <span class="mode-hint">Ask · Search · Navigate · Simulate · Act</span>
+              <a class="send" href="command-overlay.html" aria-label="Open command">
+                <svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="inspector" id="inspector" aria-label="Inspector">
+        <div class="inspector-head">
+          <div>
+            <p class="inspector-kicker">SUPPLIER</p>
+            <h2>Atlas Supply</h2>
+          </div>
+          <a class="icon-btn" href="shell.html" aria-label="Close inspector">
+            <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </a>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Current state</h3>
+          <p class="status status--risk pulse" style="margin: 0"><i></i> Active situation · At risk — not missed</p>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Impact</h3>
+          <div class="fact"><b>Shipment SH-204</b><span>Linked</span></div>
+          <div class="fact"><b>3 orders</b><span>A · B · C</span></div>
+          <div class="fact"><b>Associated revenue</b><span>graph-sourced</span></div>
+          <div class="fact"><b>Cash timing</b><span>downstream</span></div>
+        </div>
+
+        <div class="inspector-section">
+          <h3>Evidence</h3>
+          <div class="chip-row">
+            <span class="ev-chip">EVENT</span>
+            <span class="ev-chip">MODEL</span>
+            <span class="ev-chip">POLICY</span>
+          </div>
+          <div class="source" style="margin-top: 10px">
+            Supplier message
+            <small>Delay notice · business source</small>
+          </div>
+          <div class="source">
+            Shipment record
+            <small>SH-204 expected window</small>
+          </div>
+        </div>
+
+        <a class="inspector-cta" href="shell.html">Open full view</a>
+        <a class="inspector-cta btn-pri" href="shell.html">Why?</a>
+      </aside>
+    </div>
+
+    <div class="command-layer" id="command" aria-hidden="true">
+      <div class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
+        <div class="command-field">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" /><path d="m13 13-3-3" fill="none" stroke="currentColor" /></svg>
+          <h2 id="command-title" class="visually-hidden">EvoPulse Command</h2>
+          <input id="command-query" type="text" placeholder="Ask your business…" />
+          <button class="icon-btn" type="button" data-close-command aria-label="Close command">
+            <svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4 4 12" /></svg>
+          </button>
+        </div>
+        <p class="placeholder-note command-hint">Ask, search, navigate, simulate, or act. Policy still applies.</p>
+      </div>
+    </div>
+    <script src="os.js"></script>
+  </body>
+</html>

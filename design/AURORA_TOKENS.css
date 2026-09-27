@@ -1,0 +1,138 @@
+/*
+  EvoPulse Control OS — Aurora tokens (dark-first)
+
+  Evolves the legacy HTML DNA (near-black canvas, orange signal, ice AUTO).
+  Does not flatten into white SaaS. Does not theme per engine.
+
+  Orange = attention / active control. Never decoration.
+  Ice = machine work. Never “success confetti.” Send ≠ solved.
+*/
+
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Color — refined from legacy HTML references                          */
+  /* ------------------------------------------------------------------ */
+
+  --aurora-canvas: #07090c;
+  --aurora-nav: #090c10;
+  --aurora-surface: #0e1217;
+  --aurora-surface-raised: #141a22;
+  --aurora-surface-active: #1a212b;
+  --aurora-recessed: #0a0d11;
+  --aurora-graph: #0b0f14;
+
+  --aurora-ink: #e8ecf1;
+  --aurora-secondary: #a3adba;
+  --aurora-muted: #7c8796;
+  --aurora-quiet: #8f9aa8;
+
+  --aurora-hairline: #1c232c;
+  --aurora-hairline-strong: #232b35;
+  --aurora-panel-line: #1f2630;
+  --aurora-row-line: #1a2029;
+
+  --aurora-attention: #ff5a1f;
+  --aurora-attention-hot: #ff7a45;
+  --aurora-on-attention: #0a0c0f;
+  --aurora-watch: #f0b44c;
+  --aurora-auto: #7fb2e0;
+  --aurora-focus: #ff7a45;
+
+  --aurora-needs-you: var(--aurora-attention);
+  --aurora-needs-approval: var(--aurora-attention-hot);
+  --aurora-monitoring: var(--aurora-watch);
+  --aurora-blocked: var(--aurora-quiet);
+  --aurora-handled: var(--aurora-auto);
+  --aurora-at-risk: var(--aurora-attention);
+  --aurora-simulation: var(--aurora-auto);
+  --aurora-critical: var(--aurora-attention);
+  --aurora-success: var(--aurora-auto);
+
+  --aurora-overlay: rgba(7, 9, 12, 0.72);
+  --aurora-need-wash: rgba(255, 90, 31, 0.08);
+  --aurora-need-line: rgba(255, 90, 31, 0.45);
+  --aurora-watch-wash: rgba(240, 180, 76, 0.12);
+  --aurora-auto-wash: rgba(127, 178, 224, 0.12);
+
+  /* ------------------------------------------------------------------ */
+  /* Type — IBM Plex Sans + Mono (legacy + shipped app)                   */
+  /* ------------------------------------------------------------------ */
+
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --text-micro: 11px;
+  --text-caption: 12px;
+  --text-body: 14px;
+  --text-body-lg: 16px;
+  --text-title: 22px;
+  --text-display: 26px;
+
+  --leading-tight: 1.2;
+  --leading-body: 1.45;
+  --tracking-label: 0.12em;
+
+  /* ------------------------------------------------------------------ */
+  /* Space                                                                */
+  /* ------------------------------------------------------------------ */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ------------------------------------------------------------------ */
+  /* Radius / border / elevation                                          */
+  /* ------------------------------------------------------------------ */
+
+  --radius-chip: 4px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-overlay: 12px;
+
+  --border-hairline: 1px solid var(--aurora-hairline);
+  --border-panel: 1px solid var(--aurora-panel-line);
+
+  --elevate-0: none;
+  --elevate-overlay: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --elevate-inspector: inset 1px 0 0 var(--aurora-hairline);
+
+  /* ------------------------------------------------------------------ */
+  /* Layout                                                               */
+  /* ------------------------------------------------------------------ */
+
+  --os-frame-width: 1440px;
+  --os-frame-height: 900px;
+  --os-sidebar-width: 240px;
+  --os-sidebar-min: 220px;
+  --os-sidebar-max: 248px;
+  --os-inspector-width: 360px;
+  --os-inspector-min: 320px;
+  --os-inspector-max: 380px;
+  --os-header-height: 56px;
+  --os-composer-min-height: 56px;
+  --os-composer-max-width: 840px;
+  --os-nav-item-height: 34px;
+  --os-gutter-sidebar: 16px;
+  --os-gutter-workspace: 28px;
+  --os-gutter-inspector: 20px;
+
+  --workspace-focused-min: 760px;
+  --workspace-focused-max: 900px;
+  --workspace-focused: 840px;
+  --workspace-operational-min: 1080px;
+  --workspace-operational-max: 1200px;
+  --workspace-operational: 1140px;
+
+  --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0ms;
+  }
+}
