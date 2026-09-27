@@ -448,8 +448,10 @@ function severityOf(buffer: { state: BufferState; shortfall_minutes: number }, a
   if (buffer.state === "MISSED") return "CRITICAL";
   if (buffer.state === "AT_RISK") {
     if (Math.abs(buffer.shortfall_minutes) >= WARNING_THRESHOLDS.CRITICAL_SHORTFALL_MINUTES) return "CRITICAL";
-    if (associatedRevenue >= WARNING_THRESHOLDS.HIGH_VALUE_DZD) return "HIGH";
-    return "HIGH";
+    // Both arms of this used to return HIGH, which made HIGH_VALUE_DZD inert: every at-risk buffer
+    // was HIGH regardless of what was at stake. Below the high-value line the risk is real but not
+    // top of the queue.
+    return associatedRevenue >= WARNING_THRESHOLDS.HIGH_VALUE_DZD ? "HIGH" : "MEDIUM";
   }
   if (buffer.state === "TIGHT") return "MEDIUM";
   return "LOW";

@@ -70,8 +70,10 @@ export class CommandRouter {
     if (!/what if|days? late|days? later|simulate|another/.test(q)) return null;
     const matched = q.match(/(\d+)\s*days?/);
     const days = matched ? Number(matched[1]) : 3;
-    const targetId = entities.find((item) => item === IDS.shipment || item === IDS.supplier) ? IDS.shipment : IDS.shipment;
-    return { targetId, days };
+    // Both arms of this used to return IDS.shipment, so the entity test decided nothing. The only
+    // scenario the simulator runs is a supplier delay against the shipment, and the handler already
+    // defaults to it, so name it plainly rather than implying the target is derived from the message.
+    return { targetId: IDS.shipment, days };
   }
 
   route(message: string, sessionId?: string): CommandResult {

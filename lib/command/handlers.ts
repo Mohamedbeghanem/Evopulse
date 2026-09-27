@@ -413,7 +413,10 @@ function history(db: DatabaseSync, ctx: IntentContext): CommandResult {
   return base(ctx, {
     intent: "HISTORY",
     answerType: "HISTORICAL_EVIDENCE",
-    status: observations ? "OK" : "OK",
+    // Both arms of this used to be "OK". Looking up history succeeds whether or not comparable
+    // outcomes exist, and the summary below carries that distinction, so the status is simply OK.
+    // Reporting "no evidence yet" as its own status would need a new ResultStatus member.
+    status: "OK",
     summary: observations ? "Comparable recorded outcomes" : "No comparable recorded outcomes yet.",
     data: {
       observations,
