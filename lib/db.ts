@@ -358,12 +358,23 @@ export function resetDbFile() {
   }
 }
 
+/**
+ * node:sqlite hands back rows with a NULL prototype. React refuses to serialize
+ * those across a Server -> Client Component boundary ("Only plain objects ...
+ * can be passed"), so every row is rebuilt as a plain object on the way out.
+ * Doing it here means no caller has to remember to.
+ */
+function plain<T>(row: T): T {
+  return row === null || typeof row !== "object" ? row : ({ ...row } as T);
+}
+
 export function all<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T[] {
-  return db.prepare(sql).all(...params) as T[];
+  return (db.prepare(sql).all(...params) as T[]).map(plain);
 }
 
 export function one<T>(db: DatabaseSync, sql: string, params: SQLInputValue[] = []): T | undefined {
-  return db.prepare(sql).get(...params) as T | undefined;
+  const row = db.prepare(sql).get(...params) as T | undefined;
+  return row === undefined ? undefined : plain(row);
 }
 
 export function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
