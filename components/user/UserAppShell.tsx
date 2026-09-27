@@ -20,6 +20,7 @@ import {
   Terminal,
   User,
   Users,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -42,6 +43,7 @@ const WORKSPACE: NavItem[] = [
   { href: "/goals", label: "Goals", icon: Target, match: (path: string) => path.startsWith("/goals") },
   { href: "/approvals", label: "Approvals", icon: ClipboardCheck, match: (path: string) => path.startsWith("/approvals") },
   { href: "/connectors", label: "Connectors", icon: Plug, match: (path: string) => path.startsWith("/connectors") },
+  { href: "/agents/manus", label: "Agent runs", icon: Workflow, match: (path: string) => path.startsWith("/agents/manus") },
 ];
 
 const MORE: NavItem[] = [

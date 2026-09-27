@@ -3,6 +3,7 @@
 import {
   Activity,
   Bot,
+  Workflow,
   Building2,
   ChevronsLeft,
   ChevronsRight,
@@ -33,7 +34,8 @@ const PRIMARY: NavItem[] = [
 
 const WORKSPACE: NavItem[] = [
   { href: "/business", label: "Business", icon: Building2, match: (path: string) => path.startsWith("/business") || path.startsWith("/graph") },
-  { href: "/agents", label: "Agents", icon: Bot, match: (path: string) => path.startsWith("/agents") },
+  { href: "/agents", label: "Agents", icon: Bot, match: (path: string) => path.startsWith("/agents") && !path.startsWith("/agents/manus") },
+  { href: "/agents/manus", label: "Agent runs", icon: Workflow, match: (path: string) => path.startsWith("/agents/manus") },
   { href: "/goals", label: "Goals", icon: Target, match: (path: string) => path.startsWith("/goals") },
   { href: "/connectors", label: "Connectors", icon: Plug, match: (path: string) => path.startsWith("/connectors") },
 ];
