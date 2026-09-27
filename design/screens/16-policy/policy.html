@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse Control OS — Policy · What software refuses</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink-950: #080a0d;
+      --ink-900: #0c1016;
+      --ink-800: #131922;
+      --ink-700: #1b2330;
+      --ink-600: #253042;
+      --paper: #efe7d6;
+      --sand: #c8b896;
+      --mute: #8a8476;
+      --need: #f0a202;
+      --miss: #e85d4c;
+      --ok: #3dba8b;
+      --ice: #7eb6d9;
+      --line: rgba(239, 231, 214, 0.12);
+      --focus: #f0a202;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--ink-950);
+      color: var(--paper);
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(900px 480px at 92% -8%, rgba(232, 93, 76, 0.07), transparent 50%),
+        linear-gradient(180deg, #0c1016 0%, #080a0d 42%);
+      z-index: 0;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+    .skip {
+      position: absolute;
+      left: 12px;
+      top: -48px;
+      z-index: 20;
+      background: var(--paper);
+      color: var(--ink-950);
+      padding: 8px 12px;
+    }
+    .skip:focus { top: 12px; }
+
+    .os {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    header.chrome {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px 24px;
+      padding: 18px 28px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: baseline; gap: 14px; }
+    .brand strong {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: 1.55rem;
+      letter-spacing: -0.02em;
+    }
+    .brand span, .clock, .crumb {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .crumb a { text-decoration: none; border-bottom: 1px solid transparent; }
+    .crumb a:hover { color: var(--paper); border-bottom-color: var(--sand); }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 34%) 1fr;
+      min-height: 0;
+    }
+
+    aside.rail {
+      padding: 36px 28px 120px;
+      border-right: 1px solid var(--line);
+    }
+    .eyebrow {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mute);
+      margin: 0 0 14px;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(2.1rem, 3.6vw, 3.35rem);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      margin: 0 0 22px;
+    }
+    .state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--miss);
+      border: 1px solid rgba(232, 93, 76, 0.45);
+      padding: 6px 10px;
+    }
+    .state[data-tone="need"] {
+      color: var(--need);
+      border-color: rgba(240, 162, 2, 0.45);
+    }
+    .state i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .deal { margin-top: 36px; }
+    .deal dt {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--mute);
+      margin: 16px 0 4px;
+    }
+    .deal dd { margin: 0; color: var(--sand); }
+    .deal dd.money {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 1.35rem;
+      color: var(--paper);
+    }
+    .deal .note { margin-top: 6px; font-size: 0.85rem; color: var(--mute); }
+
+    .law {
+      margin-top: 40px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      color: var(--sand);
+      font-size: 0.95rem;
+    }
+    .law strong { color: var(--paper); font-weight: 500; }
+
+    main.brief { padding: 36px 40px 140px; max-width: 840px; }
+    section.block { padding: 0 0 28px; }
+    section.block + section.block {
+      border-top: 1px solid var(--line);
+      padding-top: 28px;
+    }
+    h2 {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+      margin: 0 0 14px;
+      font-weight: 500;
+    }
+    .lead {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+      line-height: 1.2;
+      margin: 0 0 10px;
+    }
+    .copy { margin: 0; color: var(--sand); max-width: 64ch; }
+
+    .math {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+      margin: 18px 0 8px;
+    }
+    .math figure {
+      margin: 0;
+      padding: 16px 0;
+    }
+    .math .k {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .math .v {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 1.7rem;
+      margin-top: 6px;
+    }
+    .math .v.miss { color: var(--miss); }
+    .math .rule {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--mute);
+      text-align: center;
+    }
+
+    .ledger { margin: 0; }
+    .ledger div {
+      display: grid;
+      grid-template-columns: minmax(12rem, 0.9fr) 5rem 1fr;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(239, 231, 214, 0.06);
+    }
+    .ledger dt {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.86rem;
+      color: var(--paper);
+    }
+    .ledger .val {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      color: var(--need);
+    }
+    .ledger dd { margin: 0; color: var(--sand); font-size: 0.92rem; }
+
+    .alts { list-style: none; margin: 8px 0 0; padding: 0; }
+    .alts li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(239, 231, 214, 0.06);
+    }
+    .alts h3 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+    .alts p { margin: 4px 0 0; color: var(--sand); font-size: 0.92rem; }
+    .gate {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      align-self: start;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      color: var(--need);
+      white-space: nowrap;
+    }
+    .gate.block {
+      color: var(--miss);
+      border-color: rgba(232, 93, 76, 0.4);
+    }
+
+    blockquote.quote {
+      margin: 0;
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.55rem;
+      line-height: 1.25;
+    }
+    .src {
+      margin: 12px 0 0;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+
+    footer.actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 28px 16px;
+      border-top: 1px solid var(--line);
+      background: rgba(8, 10, 13, 0.92);
+      backdrop-filter: blur(10px);
+    }
+    .actions .hint {
+      margin-right: auto;
+      font-size: 0.85rem;
+      color: var(--mute);
+      max-width: 48ch;
+    }
+    .btn {
+      border: 1px solid transparent;
+      padding: 11px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.92rem;
+    }
+    .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+    .btn-dead {
+      background: transparent;
+      color: var(--miss);
+      border-color: rgba(232, 93, 76, 0.35);
+    }
+    .btn-need {
+      background: var(--paper);
+      color: var(--ink-950);
+    }
+    .btn-need:hover:not(:disabled) { background: var(--need); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--paper);
+      border-color: rgba(239, 231, 214, 0.22);
+    }
+
+    .banner {
+      display: none;
+      margin: 0 0 24px;
+      padding: 14px 16px;
+      border: 1px solid rgba(232, 93, 76, 0.35);
+      color: var(--sand);
+    }
+    .banner[data-show="true"] { display: block; }
+    .banner[data-tone="need"] { border-color: rgba(240, 162, 2, 0.35); color: var(--need); }
+    .banner[data-tone="ok"] { border-color: rgba(61, 186, 139, 0.35); color: var(--ok); }
+
+    .live { min-height: 0; margin: 0; }
+
+    @media (max-width: 1280px) {
+      main.brief { padding: 32px 28px 140px; }
+      aside.rail { padding: 32px 22px 120px; }
+      .ledger div { grid-template-columns: 1fr; gap: 4px; }
+    }
+    @media (max-width: 1024px) {
+      .shell { grid-template-columns: 1fr; }
+      aside.rail { border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 28px; }
+      main.brief { padding: 28px 22px 150px; max-width: none; }
+      .math { grid-template-columns: 1fr; }
+      .math .rule { text-align: left; }
+      footer.actions { padding: 12px 18px 14px; }
+      .actions .hint { width: 100%; margin: 0 0 4px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#brief">Skip to policy decision</a>
+  <div class="os">
+    <header class="chrome">
+      <div class="brand">
+        <strong>EvoPulse</strong>
+        <span>Control OS · 16 Policy</span>
+      </div>
+      <nav class="crumb" aria-label="Control OS surfaces">
+        <a href="../12-approval/approval.html">12 Approval</a>
+      </nav>
+      <p class="clock">Sun 27 Sep 2026 · 11:05 +01 · Africa/Tunis</p>
+    </header>
+
+    <div class="shell">
+      <aside class="rail" aria-labelledby="question">
+        <p class="eyebrow">Governed autonomy</p>
+        <h1 id="question">What software refuses</h1>
+        <p class="state" id="stateChip" data-tone="miss"><i aria-hidden="true"></i><span id="stateLabel">BLOCKED</span></p>
+
+        <dl class="deal">
+          <dt>Policy in force</dt>
+          <dd>discount_max = 5</dd>
+          <dt>Requested</dt>
+          <dd class="money">10% on 320,000 DZD</dd>
+          <dd class="note">AI proposed the close. Software refused. This is not an application error.</dd>
+          <dt>Opportunity</dt>
+          <dd>Atlas Q4 warehouse fit-out · 320,000 DZD list</dd>
+          <dt>Customer</dt>
+          <dd>Amine Khelifi · “I'll sign today if you give me 10%.”</dd>
+          <dt>Event</dt>
+          <dd>policy.blocked · evt_policy_discount_10 · planner-v1</dd>
+        </dl>
+
+        <p class="law">
+          <strong>BLOCKED is the system working.</strong>
+          Policy sits between AI and execution. EvoPulse cannot override discount_max. Alternatives still need a human.
+        </p>
+      </aside>
+
+      <main class="brief" id="brief">
+        <div class="banner" id="banner" data-show="true" role="status" aria-live="polite">
+          Policy discount_max=5% blocks a 10% discount. 10% cannot be approved, edited into existence, or self-authorized.
+        </div>
+
+        <section class="block" aria-labelledby="refused">
+          <h2 id="refused">Refused action</h2>
+          <p class="lead">Apply 10% discount.</p>
+          <p class="copy">Customer asked for 10% to sign today. Policy forbids it. Outcome is BLOCKED — not failed, not pending, not a toast.</p>
+          <div class="math" aria-label="Requested versus allowed">
+            <figure>
+              <div class="k">Requested</div>
+              <div class="v miss">10%</div>
+            </figure>
+            <div class="rule">discount_max</div>
+            <figure>
+              <div class="k">Allowed ceiling</div>
+              <div class="v">5%</div>
+            </figure>
+          </div>
+          <p class="src">Reason · Policy discount_max=5% blocks a 10% discount. · act_apply_10 · apply_discount</p>
+        </section>
+
+        <section class="block" aria-labelledby="alts">
+          <h2 id="alts">Inside policy — still human-gated</h2>
+          <p class="lead">5% and/or Net-14.</p>
+          <p class="copy">Canonical recovery offers the 5% ceiling (320,000 → 304,000 DZD) and list price with Net-14 plus a pulled-forward slot. Both are financial commitments. Both are APPROVAL_REQUIRED. Neither is AUTO.</p>
+          <ul class="alts">
+            <li>
+              <div>
+                <h3>Alternative — offer 5% (policy max)</h3>
+                <p>320,000 → 304,000 DZD. Stays inside discount_max=5%. act_offer_5 · apply_discount</p>
+              </div>
+              <span class="gate">APPROVAL_REQUIRED</span>
+            </li>
+            <li>
+              <div>
+                <h3>Alternative — Net-14 + priority slot</h3>
+                <p>Keep list price 320,000 DZD, pull delivery forward one week, invoice Net-14. act_offer_terms · offer_alternative</p>
+              </div>
+              <span class="gate">APPROVAL_REQUIRED</span>
+            </li>
+            <li>
+              <div>
+                <h3>Draft policy-safe reply</h3>
+                <p id="replyText">Amine — I can meet you today. 10% is outside our authorization. I can do 5% (304,000 DZD) immediately, or keep 320,000 and pull the install slot forward a week with Net-14. Which path do you want?</p>
+              </div>
+              <span class="gate">APPROVAL_REQUIRED</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="block" aria-labelledby="ledger">
+          <h2 id="ledger">Policy ledger</h2>
+          <dl class="ledger">
+            <div>
+              <dt>discount_max</dt>
+              <span class="val">5</span>
+              <dd>Maximum commercial discount percent</dd>
+            </div>
+            <div>
+              <dt>financial_commitment_requires_approval</dt>
+              <span class="val">true</span>
+              <dd>Money movement needs a human</dd>
+            </div>
+            <div>
+              <dt>external_message_requires_approval</dt>
+              <span class="val">true</span>
+              <dd>Customer-facing messages need a human</dd>
+            </div>
+            <div>
+              <dt>payment_over_500k_requires_approval</dt>
+              <span class="val">true</span>
+              <dd>Large payments need a human — not triggered here</dd>
+            </div>
+            <div>
+              <dt>customer_data_deletion</dt>
+              <span class="val">forbidden</span>
+              <dd>Customer data cannot be deleted</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="block" aria-labelledby="impact">
+          <h2 id="impact">Impact if 10% had executed</h2>
+          <p class="copy">
+            320,000 DZD list would become an unauthorized 10% concession. Software never computes that as “revenue saved.”
+            The live associated amount remains 320,000 DZD. The 5% path prices at 304,000 DZD only if a human approves it.
+          </p>
+        </section>
+
+        <section class="block" aria-labelledby="evidence">
+          <h2 id="evidence">Evidence</h2>
+          <blockquote class="quote">“I'll sign today if you give me 10%.”</blockquote>
+          <p class="src">Source · Customer conversation · Amine Khelifi · Sun 27 Sep 11:05 · demo ingest · confidence 93% · expected: concession ≤ discount_max=5%</p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="actions">
+      <p class="hint" id="actionHint">10% is closed. Choose a policy-safe path. A human still approves the send.</p>
+      <button class="btn btn-dead" id="btnTen" type="button" aria-describedby="tenHelp">Cannot approve 10%</button>
+      <button class="btn btn-need" id="btnFive" type="button">Take 5% to approval</button>
+      <button class="btn btn-ghost" id="btnTerms" type="button">Take Net-14 to approval</button>
+    </footer>
+  </div>
+
+  <p id="tenHelp" class="live" hidden>The 10% action is BLOCKED by discount_max=5%. There is no approve control for it.</p>
+  <p class="live" id="live" role="status" aria-live="polite"></p>
+
+  <script>
+    (function () {
+      var state = "BLOCKED";
+      var chip = document.getElementById("stateChip");
+      var label = document.getElementById("stateLabel");
+      var banner = document.getElementById("banner");
+      var live = document.getElementById("live");
+      var hint = document.getElementById("actionHint");
+      var btnTen = document.getElementById("btnTen");
+      var btnFive = document.getElementById("btnFive");
+      var btnTerms = document.getElementById("btnTerms");
+
+      function say(text, tone) {
+        banner.dataset.show = "true";
+        banner.dataset.tone = tone || "miss";
+        banner.textContent = text;
+        live.textContent = text;
+      }
+
+      btnTen.addEventListener("click", function () {
+        say(
+          "10% remains BLOCKED. discount_max=5% is software law. EvoPulse cannot approve, edit, or execute act_apply_10. This is governed autonomy, not an error.",
+          "miss"
+        );
+        label.textContent = "BLOCKED";
+        chip.dataset.tone = "miss";
+        state = "BLOCKED";
+      });
+
+      function take(path) {
+        if (state === "BLOCKED_SELECTED") return;
+        state = "BLOCKED_SELECTED";
+        label.textContent = "BLOCKED · ALT READY";
+        chip.dataset.tone = "need";
+        btnFive.disabled = true;
+        btnTerms.disabled = true;
+        hint.textContent = "Alternative selected. Open Approval — EvoPulse still cannot approve the send.";
+        say(path, "need");
+      }
+
+      btnFive.addEventListener("click", function () {
+        take(
+          "Selected 5% (304,000 DZD). Policy outcome APPROVAL_REQUIRED because financial_commitment_requires_approval=true. Next surface is 12 Approval. 10% stays BLOCKED."
+        );
+      });
+
+      btnTerms.addEventListener("click", function () {
+        take(
+          "Selected Net-14 + priority slot at list 320,000 DZD. Policy outcome APPROVAL_REQUIRED — payment terms are a financial commitment. 10% stays BLOCKED."
+        );
+      });
+    })();
+  </script>
+</body>
+</html>
