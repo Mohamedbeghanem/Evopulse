@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse · Evidence · Why should I trust this?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink-950: #080a0d;
+      --ink-900: #0c1016;
+      --ink-800: #131922;
+      --ink-700: #1b2330;
+      --ink-600: #253042;
+      --paper: #efe7d6;
+      --sand: #c8b896;
+      --mute: #8a8476;
+      --need: #f0a202;
+      --miss: #e85d4c;
+      --ok: #3dba8b;
+      --ice: #7eb6d9;
+      --line: rgba(239, 231, 214, 0.14);
+      --serif: "Instrument Serif", Georgia, serif;
+      --sans: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1100px 520px at 8% -12%, rgba(240, 162, 2, 0.08), transparent 55%),
+        radial-gradient(800px 420px at 108% 0%, rgba(126, 182, 217, 0.07), transparent 50%),
+        linear-gradient(180deg, #0c1016 0%, #080a0d 42%);
+      color: var(--paper);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    a { color: inherit; }
+    :focus-visible {
+      outline: 2px solid var(--need);
+      outline-offset: 3px;
+    }
+
+    .skip {
+      position: absolute;
+      left: 12px;
+      top: -40px;
+      z-index: 20;
+      background: var(--need);
+      color: var(--ink-950);
+      padding: 8px 12px;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .skip:focus { top: 12px; }
+
+    .shell {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 28px 64px;
+    }
+
+    header.top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .brand em {
+      font-family: var(--serif);
+      font-style: normal;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+    }
+    .brand span {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    nav.switch {
+      display: flex;
+      gap: 6px;
+    }
+    nav.switch a {
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+    }
+    nav.switch a[aria-current="page"] {
+      background: var(--paper);
+      color: var(--ink-950);
+    }
+    nav.switch a:not([aria-current="page"]) {
+      color: var(--sand);
+      border: 1px solid var(--line);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px 24px;
+      padding: 14px 0 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--mute);
+      letter-spacing: 0.04em;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.7fr);
+      gap: 28px;
+      align-items: end;
+      padding: 28px 0 10px;
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 400;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .lede {
+      margin: 16px 0 0;
+      max-width: 38rem;
+      color: var(--sand);
+      font-size: 17px;
+    }
+    .money {
+      text-align: right;
+      padding-bottom: 4px;
+    }
+    .money strong {
+      display: block;
+      font-family: var(--mono);
+      font-size: clamp(28px, 3vw, 40px);
+      font-weight: 500;
+      color: var(--need);
+      letter-spacing: -0.03em;
+    }
+    .money small {
+      display: block;
+      margin-top: 6px;
+      color: var(--mute);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .badge.need { background: var(--need); color: var(--ink-950); }
+    .badge.ice { background: rgba(126, 182, 217, 0.16); color: var(--ice); }
+    .badge.ok { background: rgba(61, 186, 139, 0.16); color: var(--ok); }
+    .badge.miss { background: rgba(232, 93, 76, 0.16); color: var(--miss); }
+    .badge.mute { background: rgba(255, 255, 255, 0.08); color: var(--sand); }
+
+    .progression {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 28px 0 8px;
+      padding: 0;
+      list-style: none;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .progression li {
+      flex: 1 1 12.5%;
+      min-width: 112px;
+      padding: 12px 10px 14px;
+      border-right: 1px solid var(--line);
+    }
+    .progression li:last-child { border-right: 0; }
+    .progression button {
+      display: block;
+      width: 100%;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+    .progression .n {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--mute);
+    }
+    .progression .t {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sand);
+    }
+    .progression li.live .t { color: var(--need); }
+    .progression li.queued .t { color: var(--mute); }
+    .progression li.live { box-shadow: inset 0 2px 0 var(--need); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+      gap: 40px;
+      margin-top: 36px;
+    }
+
+    .brief h2 {
+      margin: 0 0 12px;
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+    }
+    .brief p { margin: 0 0 16px; color: var(--paper); }
+    .brief p.sand { color: var(--sand); }
+    .brief .quote { font-family: var(--serif); font-size: 1.15em; }
+    .brief .mono { font-family: var(--mono); font-size: 0.92em; color: var(--ice); }
+
+    .cite {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 18px;
+      margin: 0 1px;
+      padding: 0 5px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--ink-800);
+      color: var(--ice);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-decoration: none;
+      vertical-align: 2px;
+    }
+    .cite[aria-current="true"],
+    .cite:hover {
+      border-color: var(--ice);
+      color: var(--paper);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      margin: 28px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .compare > div { padding: 18px 20px 20px 0; }
+    .compare > div + div {
+      padding-left: 20px;
+      border-left: 1px solid var(--line);
+    }
+    .compare dt {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .compare dd {
+      margin: 8px 0 0;
+      font-family: var(--serif);
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    .compare .miss-text { color: var(--miss); }
+
+    .chain {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: stretch;
+      margin: 8px 0 28px;
+    }
+    .chain article {
+      padding: 4px 0;
+    }
+    .chain h3 {
+      margin: 8px 0 6px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 400;
+    }
+    .chain p { margin: 0; color: var(--sand); font-size: 14px; }
+    .depends {
+      align-self: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--need);
+      white-space: nowrap;
+    }
+
+    .note {
+      margin: 0;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      color: var(--sand);
+      font-size: 14px;
+    }
+
+    .sources {
+      border-left: 1px solid var(--line);
+      padding-left: 28px;
+    }
+    .sources h2 {
+      margin: 0 0 6px;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+      font-weight: 500;
+    }
+    .sources > p {
+      margin: 0 0 18px;
+      color: var(--sand);
+      font-size: 13px;
+    }
+    .source-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .source {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 12px;
+      padding: 12px 8px 12px 4px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+    .source:hover,
+    .source[aria-current="true"] {
+      background: rgba(126, 182, 217, 0.05);
+    }
+    .source .idx {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ice);
+      padding-top: 2px;
+    }
+    .source .kind {
+      margin: 0 0 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .source .title {
+      margin: 0;
+      font-size: 15px;
+      color: var(--paper);
+    }
+    .source blockquote {
+      margin: 8px 0 0;
+      padding: 0;
+      border: 0;
+      color: var(--sand);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+    .source .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--mute);
+    }
+
+    .related {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+    .related h2 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+      font-weight: 500;
+    }
+    .related p {
+      margin: 0;
+      max-width: 52rem;
+      color: var(--sand);
+      font-size: 14px;
+    }
+
+    footer.foot {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--mute);
+      font-size: 12px;
+    }
+    footer.foot p { margin: 0 0 6px; }
+
+    @media (max-width: 1280px) {
+      .shell { padding: 0 22px 56px; }
+      .workspace { gap: 28px; }
+      .sources { padding-left: 20px; }
+      h1 { font-size: 48px; }
+    }
+
+    @media (max-width: 1024px) {
+      .hero { grid-template-columns: 1fr; }
+      .money { text-align: left; }
+      .workspace { grid-template-columns: 1fr; }
+      .sources {
+        border-left: 0;
+        padding-left: 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .compare, .chain { grid-template-columns: 1fr; }
+      .compare > div + div {
+        padding-left: 0;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .depends { padding: 4px 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to evidence</a>
+  <div class="shell">
+    <header class="top">
+      <a class="brand" href="evidence.html">
+        <em>EvoPulse</em>
+        <span>Control OS</span>
+      </a>
+      <nav class="switch" aria-label="Screen">
+        <a href="evidence.html" aria-current="page">Evidence</a>
+        <a href="../19-verification/verification.html">Verification</a>
+      </nav>
+    </header>
+
+    <div class="meta">
+      <span>Sunday 27 Sep 2026 · 08:18 · Africa/Tunis</span>
+      <span>exc_proposal_missed · heuristic-v1 · confidence 94%</span>
+    </div>
+
+    <main id="main">
+      <p class="eyebrow">Evidence pack · Atlas Q4 warehouse fit-out</p>
+      <div class="hero">
+        <div>
+          <h1>Why should I trust this?</h1>
+          <p class="lede">
+            Because the claim is built from business sources — a customer message, two commitments, a missed expectation — not from a hidden chain of thought.
+          </p>
+        </div>
+        <aside class="money" aria-label="Associated revenue">
+          <span class="badge need">Needs you</span>
+          <strong>320,000 DZD</strong>
+          <small>associated with this opportunity · not a loss forecast</small>
+        </aside>
+      </div>
+
+      <ol class="progression" aria-label="Evidence progression">
+        <li class="live"><button type="button" data-jump="src-1"><span class="n">01</span><span class="t">Observed</span></button></li>
+        <li class="live"><button type="button" data-jump="src-4"><span class="n">02</span><span class="t">Detected</span></button></li>
+        <li class="live"><button type="button" data-jump="src-5"><span class="n">03</span><span class="t">Impact</span></button></li>
+        <li class="live"><button type="button" data-jump="src-6"><span class="n">04</span><span class="t">Plan</span></button></li>
+        <li class="live"><button type="button" data-jump="src-7"><span class="n">05</span><span class="t">Policy</span></button></li>
+        <li class="live"><button type="button" data-jump="src-8"><span class="n">06</span><span class="t">Action</span></button></li>
+        <li class="queued"><button type="button" data-jump="src-9"><span class="n">07</span><span class="t">Verification</span></button></li>
+        <li class="queued"><button type="button" data-jump="src-9"><span class="n">08</span><span class="t">Outcome</span></button></li>
+      </ol>
+
+      <div class="workspace">
+        <article class="brief">
+          <h2>Grounded brief</h2>
+          <p>
+            Wednesday 23 Sep, Amine Khelifi of Atlas Retail Group wrote:
+            <span class="quote">“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”</span>
+            <a class="cite" href="#src-1" data-cite="1">1</a>
+          </p>
+          <p class="sand">
+            The extractor pulled two commitments from that sentence. Ours: send the revised proposal Thursday 24 Sep 18:00.
+            <a class="cite" href="#src-2" data-cite="2">2</a>
+            His: give a decision Friday 25 Sep 17:00.
+            <a class="cite" href="#src-3" data-cite="3">3</a>
+            Friday depends on Thursday. One miss, two broken expectations.
+          </p>
+          <p>
+            Thursday 18:00 passed. No <span class="mono">quote.sent</span> event arrived.
+            <a class="cite" href="#src-4" data-cite="4">4</a>
+            Pulse opened the exception. Attention is <strong>NEEDS YOU</strong> — not HANDLED.
+          </p>
+
+          <dl class="compare">
+            <div>
+              <dt>Expected</dt>
+              <dd>Revised proposal sent Thursday 24 Sep 18:00</dd>
+            </div>
+            <div>
+              <dt>Actual</dt>
+              <dd class="miss-text">No proposal-sent event before Thursday 18:00</dd>
+            </div>
+          </dl>
+
+          <div class="chain">
+            <article>
+              <span class="badge mute">Our commitment</span>
+              <h3>Send the revised 320,000 DZD proposal</h3>
+              <p>Thu 24 Sep 18:00 · missed · cmt_send_proposal</p>
+            </article>
+            <p class="depends" aria-hidden="true">depends on →</p>
+            <article>
+              <span class="badge mute">Customer commitment</span>
+              <h3>Customer gives a decision on Friday</h3>
+              <p>Fri 25 Sep 17:00 · blocked · cmt_decision_friday</p>
+            </article>
+          </div>
+
+          <p class="sand">
+            Impact is the Atlas opportunity itself: 1 customer, 1 opportunity, 320,000 DZD associated, cash timing affected.
+            <a class="cite" href="#src-5" data-cite="5">5</a>
+            Causal certainty is limited to this deal.
+          </p>
+          <p class="sand">
+            A recovery plan is already assembled — prepare the revision, draft a named follow-up, plant a Monday checkpoint.
+            <a class="cite" href="#src-6" data-cite="6">6</a>
+            Policy keeps the customer-facing draft behind approval.
+            <a class="cite" href="#src-7" data-cite="7">7</a>
+            Those actions are <strong>proposed</strong>, not executed.
+            <a class="cite" href="#src-8" data-cite="8">8</a>
+          </p>
+          <p class="note">
+            Verification has not opened. Execution is not on this screen. Historical strategy rates below are synthetic observations for a comparable context — they are not this case, and they do not override policy.
+            <a class="cite" href="#src-9" data-cite="9">9</a>
+          </p>
+        </article>
+
+        <aside class="sources" aria-label="Business sources">
+          <h2>Sources</h2>
+          <p>Business objects, not web pages. Click a number in the brief to inspect it.</p>
+          <ol class="source-list">
+            <li>
+              <button class="source" id="src-1" type="button" data-cite="1">
+                <span class="idx">01</span>
+                <span>
+                  <p class="kind">Customer message · evt_msg_proposal</p>
+                  <p class="title">Inbox · Amine Khelifi</p>
+                  <blockquote>“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”</blockquote>
+                  <div class="meta-row">
+                    <span>Wed 23 Sep 16:42</span>
+                    <span>source inbox</span>
+                    <span>confidence 94%</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-2" type="button" data-cite="2">
+                <span class="idx">02</span>
+                <span>
+                  <p class="kind">Our commitment · cmt_send_proposal</p>
+                  <p class="title">Send the revised 320,000 DZD proposal</p>
+                  <blockquote>Actor company · deadline Thu 24 Sep 18:00 · status missed</blockquote>
+                  <div class="meta-row">
+                    <span>expected event quote.sent</span>
+                    <span>model heuristic-v1</span>
+                    <span>0.94</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-3" type="button" data-cite="3">
+                <span class="idx">03</span>
+                <span>
+                  <p class="kind">Customer commitment · cmt_decision_friday</p>
+                  <p class="title">Customer gives a decision on Friday</p>
+                  <blockquote>Blocked — Friday depends on the Thursday send. dep_decision_on_proposal</blockquote>
+                  <div class="meta-row">
+                    <span>Fri 25 Sep 17:00</span>
+                    <span>status blocked</span>
+                    <span>confidence 92%</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-4" type="button" data-cite="4">
+                <span class="idx">04</span>
+                <span>
+                  <p class="kind">Expectation · exp_send_proposal</p>
+                  <p class="title">Detected miss — no quote.sent</p>
+                  <blockquote>Expected: revised proposal sent Thursday 24 Sep 18:00. Actual: no proposal-sent event before Thursday 18:00.</blockquote>
+                  <div class="meta-row">
+                    <span>status MISSED</span>
+                    <span>detected Sun 27 Sep 08:18</span>
+                    <span>clock-owned</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-5" type="button" data-cite="5">
+                <span class="idx">05</span>
+                <span>
+                  <p class="kind">Opportunity · ent_opp_320k</p>
+                  <p class="title">Atlas Q4 warehouse fit-out</p>
+                  <blockquote>1 customer · 1 opportunity · 320,000 DZD associated · cash timing affected. Not a forecast of loss.</blockquote>
+                  <div class="meta-row">
+                    <span>Amine Khelifi</span>
+                    <span>Purchasing Director</span>
+                    <span>Atlas Retail Group</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-6" type="button" data-cite="6">
+                <span class="idx">06</span>
+                <span>
+                  <p class="kind">Plan · pln_recovery_320k</p>
+                  <p class="title">Recover the 320K Atlas decision</p>
+                  <blockquote>Prepare the revised proposal, draft a precise follow-up, and plant a Monday checkpoint. External send stays behind approval.</blockquote>
+                  <div class="meta-row">
+                    <span>planner-v1</span>
+                    <span>status planned</span>
+                    <span>APPROVAL REQUIRED</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-7" type="button" data-cite="7">
+                <span class="idx">07</span>
+                <span>
+                  <p class="kind">Policy</p>
+                  <p class="title">Software refuses what AI may propose</p>
+                  <blockquote>external_message_requires_approval = true. discount_max = 5. financial_commitment_requires_approval = true.</blockquote>
+                  <div class="meta-row">
+                    <span>pol_msg</span>
+                    <span>pol_discount</span>
+                    <span>not model-owned</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-8" type="button" data-cite="8">
+                <span class="idx">08</span>
+                <span>
+                  <p class="kind">Action · act_draft_followup</p>
+                  <p class="title">Draft apology / follow-up — proposed</p>
+                  <blockquote>Amine — the revised 320K proposal is ready. We missed Thursday. Decision still yours this week.</blockquote>
+                  <div class="meta-row">
+                    <span>draft_message</span>
+                    <span>personalized_followup</span>
+                    <span>not executed</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+            <li>
+              <button class="source" id="src-9" type="button" data-cite="9">
+                <span class="idx">09</span>
+                <span>
+                  <p class="kind">Historical outcomes · synthetic</p>
+                  <p class="title">Comparable stale-opportunity context</p>
+                  <blockquote>Personalized follow-up 13/18 · Call first 5/9 · Generic follow-up 4/15. Synthetic historical observation — not a live Atlas case.</blockquote>
+                  <div class="meta-row">
+                    <span>problem:stale_opportunity</span>
+                    <span>value_band:250k-500k</span>
+                    <span>not a prediction</span>
+                  </div>
+                </span>
+              </button>
+            </li>
+          </ol>
+        </aside>
+      </div>
+
+      <section class="related" aria-labelledby="related-title">
+        <h2 id="related-title">Not this claim</h2>
+        <p>
+          Verification is queued until a verifiable action executes. Outcome for this exception does not exist yet.
+          A separate demo path — Trigger Supplier Delay — adds a supplier message (“Your shipment will arrive Wednesday instead of Monday.”)
+          and graph-summed associated revenue across Orders A/B/C. Those amounts are not part of this 320K evidence pack.
+        </p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>AI extracted the quote. Software owns expectation state, policy, and attention. Humans govern anything that leaves the building.</p>
+      <p>Prototype · Aurora Control OS · seed clock Sunday 27 Sep 2026 08:18 · 100% synthetic Atlas data.</p>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var cites = document.querySelectorAll("[data-cite]");
+      function activate(n) {
+        document.querySelectorAll(".cite, .source").forEach(function (el) {
+          var on = el.getAttribute("data-cite") === n;
+          if (el.classList.contains("cite")) el.setAttribute("aria-current", on ? "true" : "false");
+          if (el.classList.contains("source")) el.setAttribute("aria-current", on ? "true" : "false");
+        });
+        var target = document.getElementById("src-" + n);
+        if (target) target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+      cites.forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          e.preventDefault();
+          activate(el.getAttribute("data-cite"));
+          if (el.classList.contains("source")) el.focus();
+        });
+      });
+      document.querySelectorAll(".progression button").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-jump");
+          var node = document.getElementById(id);
+          if (node) {
+            node.focus();
+            node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            activate(id.replace("src-", ""));
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

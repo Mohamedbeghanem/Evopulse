@@ -25,7 +25,8 @@ let hooked = false;
 export function handleAutopilotEvent(db: DatabaseSync, event: BusinessEvent) {
   if (!REEVAL_TYPES.has(event.type)) return;
   if (!isUsable(db)) return;
-  const now = event.received_at || event.occurred_at || getMeta(db, "demo_now");
+  // Business time is the demo clock. An event's own timestamp must never advance it.
+  const now = getMeta(db, "demo_now") || event.received_at || event.occurred_at;
   ExceptionAutopilotService.for(db).evaluateSituation(now);
 }
 
