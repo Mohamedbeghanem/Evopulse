@@ -10,9 +10,11 @@ import { pulseOutcome } from "@/lib/demo-loop/outcomes";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams?: Promise<{ create?: string }> }) {
+  const params = (await searchParams) || {};
   const db = getDb();
-  if (workspaceMode(db) !== "running") {
+  // `/?create=1` (landing page CTA) shows the Create a company surface without touching state until submit.
+  if (workspaceMode(db) !== "running" || params.create === "1") {
     return <EntryWorkspace />;
   }
   const pulse = pulseSummary(db, getMeta(db, "demo_now"));

@@ -1,4 +1,12 @@
 node_modules
 .next
-data/*.db
 .git
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/control.db*
+data/workspaces
+.env
+.env.*
+*.log
+tests

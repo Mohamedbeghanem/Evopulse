@@ -4,6 +4,7 @@ import { EVENT_TYPES, eventsFor } from "../events";
 import { evaluatePolicy, loadPolicies, parseActionPayload, recheckActionPolicy } from "../engine/policy";
 import { id } from "../ids";
 import type { ActionRow } from "../types";
+import { logToolCall } from "./activity";
 import { boundedText } from "./data";
 import { callMcpWriteToolApproved } from "./mcp";
 import { getOutboundAdapter } from "./outbound";
@@ -76,6 +77,21 @@ export function proposeConnectorAction(
   return one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId])!;
 }
 
+function logAction(db: DatabaseSync, action: ActionRow, outcome: Parameters<typeof logToolCall>[1]["outcome"], status: string, actor: string, summary: string) {
+  const payload = parseActionPayload(action.payload) as unknown as Partial<ConnectorActionPayload>;
+  if (!payload.installId) return;
+  logToolCall(db, {
+    installId: payload.installId,
+    tool: payload.tool || payload.operation || action.type,
+    permission: "WRITE",
+    outcome,
+    status,
+    actionId: action.id,
+    actor,
+    summary,
+  });
+}
+
 function load(db: DatabaseSync, actionId: string): ActionRow {
   const action = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
   if (!action) throw new ConnectorError("Action not found.", 404);
@@ -85,8 +101,11 @@ function load(db: DatabaseSync, actionId: string): ActionRow {
 
 /** Human approval only. The agent / autopilot can never approve its own connector write. */
 export function approveConnectorAction(db: DatabaseSync, actionId: string, actor: string, now: string): ActionRow {
-  if (isAiActor(actor)) throw new ConnectorError("AI cannot approve actions. A human must approve.", 403);
   const found = load(db, actionId);
+  if (isAiActor(actor)) {
+    logAction(db, found, "DENIED", "denied", actor, "AI attempted to approve; refused.");
+    throw new ConnectorError("AI cannot approve actions. A human must approve.", 403);
+  }
   if (found.status === "executed") throw new ConnectorError("Action already executed.", 409);
   if (found.status === "rejected") throw new ConnectorError("Action was rejected.", 409);
   const action = recheckActionPolicy(db, found);
@@ -102,6 +121,7 @@ export function approveConnectorAction(db: DatabaseSync, actionId: string, actor
     actor,
   ]);
   audit(db, actor, "connector.approve", "action", actionId, {});
+  logAction(db, found, "APPROVED", "approved", actor, "Approved by a human.");
   return one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId])!;
 }
 
@@ -116,6 +136,7 @@ export function rejectConnectorAction(db: DatabaseSync, actionId: string, actor:
     actor || "operator",
   ]);
   audit(db, actor || "operator", "connector.reject", "action", actionId, {});
+  logAction(db, found, "REJECTED", "rejected", actor || "operator", "Rejected by a human.");
   return one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId])!;
 }
 
@@ -141,6 +162,7 @@ export async function executeConnectorAction(
   // Policy is rechecked immediately before execution — a policy change after approval still wins.
   const action = recheckActionPolicy(db, found);
   if (action.policy_outcome === "BLOCKED") {
+    logAction(db, action, "BLOCKED", "blocked", actor, action.policy_reason || "Blocked by policy at execution recheck.");
     run(db, "UPDATE actions SET status = 'blocked' WHERE id = ?", [actionId]);
     throw new ConnectorError(action.policy_reason || "Blocked by policy.", 409);
   }
@@ -150,6 +172,9 @@ export async function executeConnectorAction(
   const payload = parseActionPayload(action.payload) as unknown as ConnectorActionPayload;
   const registry = ConnectorRegistry.for(db, workspaceId);
   if (!registry.isEnabled(payload.installId)) throw new ConnectorError("Connector is disabled.", 409);
+  if (action.type === "connector_write" && registry.view(payload.installId).disabledTools.includes(String(payload.tool))) {
+    throw new ConnectorError("An admin disabled this tool.", 409);
+  }
   let summary = "";
   let ok = true;
   let providerRef: string | undefined;
@@ -180,6 +205,7 @@ export async function executeConnectorAction(
     actionId,
   ]);
   registry.recordRun(payload.installId, "tool", ok ? "ok" : "error", ok ? `Executed ${action.title}` : safe);
+  logAction(db, action, ok ? "EXECUTED" : "FAILED", ok ? "executed" : "failed", actor, ok ? "Executed (not handled until verified)." : safe);
   if (ok) {
     runWithDb(db, () =>
       eventsFor(db).append({

@@ -29,6 +29,11 @@ function isDemo(path: string) {
   return path === "/" || path === "/demo" || path.startsWith("/demo/");
 }
 
+/** "/m" is the mobile PWA; it brings its own chrome (app/m/layout.tsx). */
+function isMobile(path: string) {
+  return path === "/m" || path.startsWith("/m/");
+}
+
 function isOnboarding(path: string) {
   return path.startsWith("/onboarding");
 }
@@ -48,6 +53,9 @@ export function ProductChrome({
 }) {
   const path = usePathname() || "/";
 
+  if (isMobile(path)) {
+    return <>{children}</>;
+  }
   if (isPublic(path)) {
     return <PublicShell>{children}</PublicShell>;
   }

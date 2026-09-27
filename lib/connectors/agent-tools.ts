@@ -3,6 +3,7 @@ import { getMeta } from "../db";
 import { id } from "../ids";
 import type { ToolDefinition, ToolHandlerContext } from "../agent/tools";
 import type { ToolResult, ToolSchema } from "../agent/types";
+import { logToolCall } from "./activity";
 import { proposeConnectorAction } from "./governance";
 import { callMcpReadTool } from "./mcp";
 import { ConnectorRegistry } from "./registry";
@@ -33,10 +34,12 @@ function toParameters(schema: Record<string, unknown>): ToolSchema["parameters"]
   );
 }
 
-function schemaFor(tool: PluginToolView): ToolSchema {
+function schemaFor(tool: PluginToolView, instructions = ""): ToolSchema {
+  // Admin-authored connector instructions travel with the tool description. Remote tool text stays data.
+  const guidance = instructions ? ` Workspace admin instructions for this connector: ${instructions.slice(0, 600)}` : "";
   return {
     name: tool.qualifiedName,
-    description: `[plugin ${tool.connectorId}${tool.permission === "WRITE" ? " · needs human approval" : ""}] ${tool.description}`,
+    description: `[plugin ${tool.connectorId}${tool.permission === "WRITE" ? " · needs human approval" : ""}] ${tool.description}${guidance}`,
     permission: tool.permission === "READ" ? "READ" : "HUMAN_REQUIRED",
     parameters: toParameters(tool.inputSchema),
   };
@@ -59,7 +62,8 @@ function result(ctx: ToolHandlerContext, tool: string, patch: Partial<ToolResult
 
 export function listPluginToolSchemas(db: DatabaseSync): ToolSchema[] {
   try {
-    return ConnectorRegistry.for(db, workspaceIdFor(db)).enabledTools().map(schemaFor);
+    const registry = ConnectorRegistry.for(db, workspaceIdFor(db));
+    return registry.enabledTools().map((tool) => schemaFor(tool, registry.instructionsFor(tool.installId)));
   } catch {
     return [];
   }
@@ -68,14 +72,31 @@ export function listPluginToolSchemas(db: DatabaseSync): ToolSchema[] {
 export function pluginToolDefinition(db: DatabaseSync, name: string): ToolDefinition | undefined {
   if (!name.startsWith(PLUGIN_TOOL_PREFIX)) return undefined;
   const workspaceId = workspaceIdFor(db);
-  const tool = ConnectorRegistry.for(db, workspaceId).findTool(name);
+  const registry = ConnectorRegistry.for(db, workspaceId);
+  const tool = registry.findTool(name);
   if (!tool) return undefined;
   return {
-    schema: schemaFor(tool),
+    schema: schemaFor(tool, registry.instructionsFor(tool.installId)),
     async execute(args, ctx) {
       const clean = Object.fromEntries(Object.entries(args || {}).filter(([key]) => key !== "idempotencyKey"));
+      const actor = `agent:${ctx.runId}`;
       if (tool.permission === "READ") {
-        const out = await callMcpReadTool(ctx.db, workspaceId, tool.installId, tool, clean);
+        let out: Awaited<ReturnType<typeof callMcpReadTool>>;
+        try {
+          out = await callMcpReadTool(ctx.db, workspaceId, tool.installId, tool, clean);
+        } catch (error) {
+          logToolCall(ctx.db, { installId: tool.installId, tool: tool.name, permission: "READ", outcome: "ALLOWED", status: "failed", actor, summary: error instanceof Error ? error.message : "failed" });
+          throw error;
+        }
+        logToolCall(ctx.db, {
+          installId: tool.installId,
+          tool: tool.name,
+          permission: "READ",
+          outcome: "ALLOWED",
+          status: out.isError ? "failed" : "ok",
+          actor,
+          summary: out.flaggedAsInstruction ? "Returned data (flagged: looks like an instruction; treated as data)." : "Returned data.",
+        });
         return result(ctx, name, {
           status: out.isError ? "failed" : "ok",
           error: out.isError ? "Plugin tool reported an error." : undefined,
@@ -107,6 +128,16 @@ export function pluginToolDefinition(db: DatabaseSync, name: string): ToolDefini
         },
         ctx.now,
       );
+      logToolCall(ctx.db, {
+        installId: tool.installId,
+        tool: tool.name,
+        permission: "WRITE",
+        outcome: action.policy_outcome === "BLOCKED" ? "BLOCKED" : "APPROVAL_REQUIRED",
+        status: action.policy_outcome === "BLOCKED" ? "blocked" : "proposed",
+        actionId: action.id,
+        actor,
+        summary: action.policy_reason,
+      });
       if (action.policy_outcome === "BLOCKED") {
         return result(ctx, name, {
           status: "blocked",
