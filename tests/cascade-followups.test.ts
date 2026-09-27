@@ -48,5 +48,20 @@ describe("supplier cascade follow-ups", { concurrency: 1 }, () => {
     assert.equal(expectation(IDS.expectShip).status, "AT_RISK");
     refreshExpectations(db, "2026-09-30T10:00:00+01:00"); // Wednesday, one hour after the revised arrival
     assert.equal(expectation(IDS.expectShip).status, "MISSED");
+    assert.equal(expectation(IDS.expectDeliverA).status, "MISSED", "Wed: SH-204 missed; Order A stays MISSED");
+    for (const at of ["2026-10-01T12:00:00+01:00", "2026-10-03T12:00:00+01:00"]) {
+      refreshExpectations(db, at); // Thursday, Saturday
+      refreshExpectations(db, at);
+      assert.equal(expectation(IDS.expectDeliverA).status, "MISSED", `Order A still MISSED at ${at}`);
+    }
+  });
+
+  it("the 320K decision stays BLOCKED by the missed proposal", () => {
+    const db = getDb();
+    for (const at of [getMeta(db, "demo_now"), "2026-10-03T12:00:00+01:00"]) {
+      refreshExpectations(db, at);
+      refreshExpectations(db, at);
+      assert.equal(expectation(IDS.expectTheirs).status, "BLOCKED", `their decision at ${at}`);
+    }
   });
 });

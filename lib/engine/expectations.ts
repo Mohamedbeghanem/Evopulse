@@ -173,6 +173,7 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
   // Per dependent (expectation id or commitment id): a MISSED/BLOCKED prerequisite blocks it;
   // an open prerequisite expected after the dependent's own deadline puts it at risk.
   const blockedPrereqs = new Set<string>();
+  const earliestBlockerDue = new Map<string, string>();
   const latestPrereqDue = new Map<string, string>();
   for (const d of all<{ to_id: string; from_id: string }>(
     db,
@@ -181,8 +182,11 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
     const prereq =
       one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ? OR commitment_id = ?", [d.to_id, d.to_id]);
     if (!prereq) continue;
-    if (prereq.status === "MISSED" || prereq.status === "BLOCKED") blockedPrereqs.add(d.from_id);
-    else if (prereq.status !== "FULFILLED" && prereq.status !== "CANCELLED") {
+    if (prereq.status === "MISSED" || prereq.status === "BLOCKED") {
+      blockedPrereqs.add(d.from_id);
+      const current = earliestBlockerDue.get(d.from_id);
+      if (!current || parseIso(expectedAtOf(prereq)) < parseIso(current)) earliestBlockerDue.set(d.from_id, expectedAtOf(prereq));
+    } else if (prereq.status !== "FULFILLED" && prereq.status !== "CANCELLED") {
       const current = latestPrereqDue.get(d.from_id);
       if (!current || parseIso(expectedAtOf(prereq)) > parseIso(current)) latestPrereqDue.set(d.from_id, expectedAtOf(prereq));
     }
@@ -205,7 +209,19 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
     const revised = Boolean(one(db, "SELECT id FROM expectation_changes WHERE expectation_id = ?", [row.id]));
     const prereqDue = latestPrereqDue.get(row.id) ?? latestPrereqDue.get(row.commitment_id);
     const prereqLate = Boolean(prereqDue && parseIso(prereqDue) > parseIso(expectedAtOf(row)));
-    const next = (revised || prereqLate) && (derived === "ON_TRACK" || derived === "UPCOMING") ? "AT_RISK" : derived;
+    // Never relabel a real miss as BLOCKED: keep MISSED if it was already MISSED, or if this deadline passed
+    // before the blocking prerequisite's own deadline (it missed first). A dependent whose prerequisite
+    // missed first (the 320K Friday decision after the Thursday proposal) stays BLOCKED.
+    const blockerDue = earliestBlockerDue.get(row.id) ?? earliestBlockerDue.get(row.commitment_id);
+    const missedFirst =
+      parseIso(expectedAtOf(row)) < parseIso(now) &&
+      Boolean(blockerDue && parseIso(expectedAtOf(row)) < parseIso(blockerDue));
+    const keepMissed = derived === "BLOCKED" && (row.status === "MISSED" || missedFirst);
+    const next = keepMissed
+      ? "MISSED"
+      : (revised || prereqLate) && (derived === "ON_TRACK" || derived === "UPCOMING")
+        ? "AT_RISK"
+        : derived;
     if (next !== row.status) {
       const actual =
         next === "MISSED"
