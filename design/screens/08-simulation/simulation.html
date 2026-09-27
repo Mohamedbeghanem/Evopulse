@@ -269,6 +269,9 @@
         background: transparent;
       }
       .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      [hidden] { display: none !important; }
+      .os:not([data-state="compared"]) #exit { display: none !important; }
+      .os:not([data-state="compared"]) .delta-ready { display: none; }
       .reopen {
         display: none;
         position: fixed;
@@ -591,6 +594,7 @@
       }
 
       @media (max-width: 1100px) {
+        html, body { overflow-x: hidden; }
         .sidebar { display: none; }
         .os.is-nav .sidebar {
           display: flex;
@@ -628,7 +632,7 @@
   </head>
   <body>
     <a class="skip" href="#workspace">Skip to workspace</a>
-    <div class="os is-inspect" data-state="idle" data-frame="1440">
+    <div class="os" data-state="idle" data-frame="1440">
       <aside class="sidebar" aria-label="Control OS">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">
@@ -715,7 +719,7 @@
             <button class="suggest" type="button" id="suggest">What if Atlas is another 3 days late?</button>
           </form>
 
-          <p class="status-line" id="live-status" aria-live="polite">Idle. Twin not cloned.</p>
+          <p class="status-line" id="live-status" aria-live="polite">Idle. Twin not cloned. Run the scenario to open LIVE / SIMULATION / DELTA.</p>
 
           <section class="compare" id="compare" aria-label="Live versus simulation versus delta">
             <div class="strip" aria-label="Arrival times">
@@ -923,7 +927,7 @@
           <div class="ifact"><b>Source</b><span>business_graph</span></div>
         </div>
 
-        <div class="inspector-section">
+        <div class="inspector-section delta-ready">
           <h3>Delta objects</h3>
           <div class="ifact"><b>Order B</b><span>newly late · 280,000 DZD</span></div>
           <div class="ifact"><b>Constantine Clinic</b><span>deadline newly affected</span></div>
@@ -1021,10 +1025,12 @@
         });
 
         document.querySelectorAll("[data-toggle-why]").forEach(function (btn) {
+          btn.setAttribute("aria-expanded", "false");
           btn.addEventListener("click", function () {
             var row = btn.closest(".change");
             var open = row.classList.toggle("is-open");
             btn.textContent = open ? "Hide" : "Why";
+            btn.setAttribute("aria-expanded", open ? "true" : "false");
           });
         });
 
