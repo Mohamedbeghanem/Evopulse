@@ -117,7 +117,9 @@
     .evidence dd { margin: 0; font-size: 14px; line-height: 22px; }
 
     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
-    .btn { height: 36px; padding: 0 16px; border-radius: var(--radius-ctrl); border: 1px solid transparent; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; }
+    .btn { height: 36px; padding: 0 16px; border-radius: var(--radius-ctrl); border: 1px solid transparent; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; min-width: 128px; justify-content: center; }
+    .menu-btn { display: none; height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--aurora-hairline); background: transparent; color: var(--aurora-ink); font-size: 12px; }
+    .brand-inline { display: none; font-size: 11px; letter-spacing: 0.14em; color: var(--aurora-primary); font-weight: 600; margin-right: 12px; }
     .btn-primary { background: var(--aurora-primary); color: var(--aurora-canvas); }
     .btn-ghost { background: transparent; color: var(--aurora-ink); border-color: var(--aurora-hairline); }
 
@@ -142,16 +144,15 @@
       .buffer b { font-size: 22px; }
     }
     @media (max-width: 1024px) {
-      :root { --sidebar: 64px; --gutter: 16px; }
-      .brand { font-size: 9px; text-align: center; padding: 4px 0; }
-      .nav a { font-size: 0; justify-content: center; padding: 0; }
-      .nav a[href="pulse.html"]::before { content: "P"; font-size: 13px; }
-      .nav a[href="command.html"]::before { content: "C"; font-size: 13px; }
-      .nav a[href="#timeline"]::before { content: "T"; font-size: 13px; }
-      .nav a[href="#business"]::before { content: "B"; font-size: 13px; }
-      .nav a[href="#goals"]::before { content: "G"; font-size: 13px; }
-      .side-foot { display: none; }
-      .cols, .buffer { grid-template-columns: 1fr; }
+      :root { --gutter: 16px; }
+      .menu-btn { display: inline-flex; align-items: center; }
+      .brand-inline { display: inline; }
+      .sidebar {
+        position: fixed; z-index: 30; height: 100%; left: 0; top: 0;
+        transform: translateX(-100%); transition: transform 200ms ease; width: 220px;
+      }
+      .app.nav-open .sidebar { transform: none; }
+      .cols { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -170,7 +171,7 @@
     </aside>
     <div class="main">
       <header class="topbar">
-        <span>Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
+        <span><button class="menu-btn" type="button" data-menu>Menu</button> <strong class="brand-inline">EVOPULSE</strong> Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
         <a href="pulse.html">Back to Pulse</a>
       </header>
       <main class="page">
@@ -310,7 +311,15 @@
     document.querySelectorAll("[data-simulate]").forEach((btn) => btn.addEventListener("click", openSim));
     document.querySelectorAll("[data-close-sim]").forEach((btn) => btn.addEventListener("click", closeSim));
     back.addEventListener("click", closeSim);
-    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSim(); });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeSim();
+        document.querySelector(".app").classList.remove("nav-open");
+      }
+    });
+    document.querySelectorAll("[data-menu]").forEach((btn) => {
+      btn.addEventListener("click", () => document.querySelector(".app").classList.toggle("nav-open"));
+    });
   </script>
 </body>
 </html>
