@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/primitives";
+
+/** Human-only plan approval. Never calls the agent tool `approve_action`. */
+const HUMAN_APPROVE_PLAN = (planId: string) => `/api/plans/${planId}/approve`;
 
 export function ApproveButton({ planId }: { planId: string }) {
   const router = useRouter();
@@ -9,9 +13,10 @@ export function ApproveButton({ planId }: { planId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
+    if (busy) return;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/plans/${planId}/approve`, {
+    const res = await fetch(HUMAN_APPROVE_PLAN(planId), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ execute: true }),
@@ -27,14 +32,22 @@ export function ApproveButton({ planId }: { planId: string }) {
 
   return (
     <div className="space-y-2">
-      <button
-        onClick={run}
+      <Button
+        type="button"
+        variant="attention"
+        onClick={() => void run()}
         disabled={busy}
-        className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950 hover:bg-need disabled:opacity-50"
+        aria-busy={busy}
+        aria-label="Approve and execute recovery — human authorization only"
       >
-        {busy ? "Executing…" : "Approve & execute recovery"}
-      </button>
-      {error ? <p className="text-sm text-miss">{error}</p> : null}
+        {busy ? "Executing recovery…" : "Approve & execute recovery"}
+      </Button>
+      <p className="text-xs text-mute">Human authorization only. Policy is rechecked before execution. AI cannot approve itself.</p>
+      {error ? (
+        <p className="text-sm text-miss" role="status">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
