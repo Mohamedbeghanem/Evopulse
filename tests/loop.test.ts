@@ -10,6 +10,7 @@ import { pulseSummary } from "../lib/engine/pulse";
 import { EVENT_TYPES, eventsFor } from "../lib/events";
 import { IDS } from "../lib/ids";
 import { exceptionDetail } from "../lib/read";
+import { StrategyMemory, VerificationService } from "../lib/learning";
 
 process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), "evopulse-")), "loop.db");
 
@@ -39,18 +40,27 @@ describe("seeded 320K loop", () => {
 
     executePlan(db, IDS.planRecovery, getMeta(db, "demo_now"));
     const after = exceptionDetail(db, IDS.excMissed);
-    assert.equal(after?.exception.attention, "HANDLED");
-    assert.equal(after?.exception.status, "resolved");
+    assert.equal(after?.exception.attention, "MONITORING");
+    assert.equal(after?.exception.status, "awaiting_verification");
     assert.equal(getMeta(db, "demo_phase"), "recovered");
+    const pending = VerificationService.for(db).getPendingVerifications(IDS.excMissed);
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0].status, "PENDING");
+    assert.equal(pending[0].expected_event_type, "customer.response");
     const pulseAfter = pulseSummary(db, getMeta(db, "demo_now"));
     assert.equal(pulseAfter.counts.NEEDS_YOU, 0);
-    assert.equal(pulseAfter.counts.HANDLED, 1);
+    assert.ok(pulseAfter.counts.MONITORING >= 1);
     const recoveredTypes = new Set(eventsFor(db).list().map((e) => e.type));
     assert.ok(recoveredTypes.has(EVENT_TYPES.ACTION_EXECUTED));
     assert.ok(recoveredTypes.has(EVENT_TYPES.QUOTE_SENT));
     assert.ok(recoveredTypes.has(EVENT_TYPES.COMMITMENT_FULFILLED));
 
     await ingestSeedDiscount(db);
+    const recovered = exceptionDetail(db, IDS.excMissed);
+    assert.equal(recovered?.exception.attention, "HANDLED");
+    assert.equal(recovered?.exception.status, "resolved");
+    const resolved = VerificationService.for(db).getPendingVerifications(IDS.excMissed);
+    assert.equal(resolved.length, 0);
     const detail = exceptionDetail(db, IDS.excDiscount);
     assert.ok(detail);
     assert.equal(detail?.exception.attention, "NEEDS_YOU");
@@ -60,6 +70,11 @@ describe("seeded 320K loop", () => {
     assert.ok(alt);
     assert.notEqual(alt?.policy_outcome, "BLOCKED");
     assert.equal(getMeta(db, "demo_phase"), "discount_blocked");
+    const evidence = StrategyMemory.for(db).getStrategyEvidence(
+      after?.historicalEvidence?.context_signature || "",
+    );
+    assert.ok(evidence.strategies.length >= 3);
+    assert.notEqual(blocked?.policy_outcome, evidence.historically_stronger_strategy?.strategy);
     const blockedTypes = new Set(eventsFor(db).list().map((e) => e.type));
     assert.ok(blockedTypes.has(EVENT_TYPES.POLICY_BLOCKED));
     assert.ok(blockedTypes.has(EVENT_TYPES.CUSTOMER_REPLIED));

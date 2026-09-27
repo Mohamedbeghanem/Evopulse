@@ -16,6 +16,14 @@ const TONES: Record<string, string> = {
   proposed: "bg-white/10 text-sand",
   executed: "bg-ok/20 text-ok",
   blocked: "bg-miss/20 text-miss",
+  awaiting_verification: "bg-ice/20 text-ice",
+  PENDING: "bg-ice/20 text-ice",
+  SUCCESS: "bg-ok/20 text-ok",
+  FAILED: "bg-miss/20 text-miss",
+  CANCELLED: "bg-white/10 text-sand",
+  RELIABLE_PATTERN: "bg-ok/20 text-ok",
+  EMERGING_PATTERN: "bg-ice/20 text-ice",
+  INSUFFICIENT_DATA: "bg-white/10 text-sand",
 };
 
 export function Badge({ children }: { children: string }) {

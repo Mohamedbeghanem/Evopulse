@@ -156,6 +156,8 @@ function migrate(db: DatabaseSync) {
     );
   `);
   migrateEventsTable(db);
+  const { migrateLearningTables } = require("./learning/schema") as typeof import("./learning/schema");
+  migrateLearningTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
