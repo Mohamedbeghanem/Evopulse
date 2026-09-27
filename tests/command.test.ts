@@ -48,6 +48,8 @@ describe("command center", { concurrency: 1 }, () => {
     const items = result.data.items as { kind: string }[];
     assert.ok(items.some((item) => item.kind === "NEEDS_YOU"));
     assert.ok(items.every((item) => item.kind === "NEEDS_YOU" || item.kind === "NEEDS_APPROVAL" || item.kind === "BLOCKED"));
+    assert.equal(result.sourceSystems.includes("AUTOPILOT"), true);
+    assert.notEqual(result.data.autopilot, "not_merged");
   });
 
   it("returns live early-warning buffers and excludes resolved warnings", () => {

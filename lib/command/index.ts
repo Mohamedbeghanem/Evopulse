@@ -1,3 +1,3 @@
 export { CommandRouter } from "./router";
-export { migrateCommandTables } from "./schema";
+export { migrateCommandTables, wipeCommandTables } from "./schema";
 export type { CommandIntent, CommandResult, SourceSystem } from "./types";

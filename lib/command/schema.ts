@@ -13,3 +13,8 @@ export function migrateCommandTables(db: DatabaseSync) {
     );
   `);
 }
+
+export function wipeCommandTables(db: DatabaseSync) {
+  migrateCommandTables(db);
+  db.exec("DELETE FROM command_sessions");
+}

@@ -6,7 +6,7 @@ import { calculateGraphImpact } from "../engine/impact";
 import { evaluatePolicy, loadPolicies } from "../engine/policy";
 import { businessTwin } from "../engine/twin";
 import { eventsFor } from "../events";
-import { executeSafeActions } from "../goals/execute-safe";
+import { ExceptionAutopilotService } from "../autopilot";
 import { createGoal } from "../goals/service";
 import { IDS, id } from "../ids";
 import { StrategyMemory, VerificationService, contextFromException } from "../learning";
@@ -56,6 +56,7 @@ export function runIntent(db: DatabaseSync, ctx: IntentContext): CommandResult {
   if (ctx.intent === "PLAN") return plan(db, ctx);
   if (ctx.intent === "HISTORY") return history(db, ctx);
   if (ctx.intent === "POLICY") return q.includes("why") ? audit(db, ctx, "POLICY") : policy(db, ctx);
+  if (ctx.intent === "AUTOPILOT") return attention(db, ctx);
   if (ctx.intent === "EXECUTION") return execution(db, ctx);
   if (ctx.intent === "STATUS" && /why did you/.test(q)) return audit(db, ctx, "STATUS");
   if (ctx.intent === "STATUS" && /monitor/.test(q)) return monitoring(db, ctx);
@@ -98,36 +99,41 @@ function changes(db: DatabaseSync, ctx: IntentContext): CommandResult {
 }
 
 function attention(db: DatabaseSync, ctx: IntentContext): CommandResult {
-  const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions WHERE attention = 'NEEDS_YOU' AND status != 'resolved'");
-  const actions = all<ActionRow>(db, "SELECT * FROM actions");
-  const approvals = actions.filter((action) => action.policy_outcome === "APPROVAL_REQUIRED" && action.status !== "executed");
-  const blocked = actions.filter((action) => action.policy_outcome === "BLOCKED" && action.status !== "executed");
-  const items = [
-    ...exceptions.map((row) => ({
-      kind: "NEEDS_YOU" as const,
-      id: row.id,
-      title: row.title,
-      detail: moneyFrom(row.impact_json),
-    })),
-    ...approvals.map((row) => ({ kind: "NEEDS_APPROVAL" as const, id: row.id, title: row.title, detail: row.policy_reason })),
-    ...blocked.map((row) => ({ kind: "BLOCKED" as const, id: row.id, title: row.title, detail: row.policy_reason })),
-  ];
+  const snapshot = ExceptionAutopilotService.for(db).evaluateSituation(ctx.now);
+  const rank: Record<string, number> = { BLOCKED: 0, NEEDS_YOU: 1, NEEDS_APPROVAL: 2 };
+  const cards = snapshot.cards
+    .filter((card) => ["NEEDS_YOU", "NEEDS_APPROVAL", "BLOCKED"].includes(card.classification))
+    .sort((a, b) => (rank[a.classification] ?? 9) - (rank[b.classification] ?? 9));
+  const items = cards.map((card) => ({
+    kind: card.classification,
+    id: card.exceptionId || card.warningId || card.id,
+    title: card.title,
+    detail: card.needsFromYou,
+    reasonCode: card.reasonCode,
+  }));
   return base(ctx, {
-    intent: "ATTENTION",
+    intent: ctx.intent === "AUTOPILOT" ? "AUTOPILOT" : "ATTENTION",
     answerType: "ATTENTION",
-    status: approvals.length || blocked.length ? "APPROVAL_REQUIRED" : items.length ? "OK" : "OK",
-    summary: items.length ? `${items.length} things need you` : "Nothing needs you.",
-    data: { items, autopilot: "not_merged" },
+    status: snapshot.summary.blocked
+      ? "BLOCKED"
+      : snapshot.summary.needsApproval
+        ? "APPROVAL_REQUIRED"
+        : items.length
+          ? "OK"
+          : "OK",
+    summary: items.length
+      ? `${snapshot.summary.needsYou} need you · ${snapshot.summary.needsApproval} need approval · ${snapshot.summary.blocked} blocked`
+      : "Nothing needs you.",
+    data: { items, autopilot: snapshot.summary },
     evidence: items.map((item) => ({
       statement: `${item.kind}: ${item.title}`,
-      sourceSystem: item.kind === "NEEDS_YOU" ? "DETECT" : "POLICY",
+      sourceSystem: "AUTOPILOT" as const,
       sourceId: item.id,
     })),
     links: [{ href: "/", label: "Open pulse" }],
-    sourceSystems: ["DETECT", "POLICY"],
-    approvalRequired: approvals.length > 0,
-    warnings: ["Exception Autopilot is not merged. Attention comes from Pulse and Policy, not an autopilot queue."],
-    exceptionId: exceptions[0]?.id,
+    sourceSystems: ["AUTOPILOT", "POLICY", "DETECT"],
+    approvalRequired: snapshot.summary.needsApproval > 0,
+    exceptionId: cards.find((card) => card.exceptionId)?.exceptionId || undefined,
   });
 }
 
@@ -350,7 +356,7 @@ function policy(db: DatabaseSync, ctx: IntentContext): CommandResult {
     status: grouped.BLOCKED.length ? "BLOCKED" : grouped.APPROVAL_REQUIRED.length ? "APPROVAL_REQUIRED" : "OK",
     summary: "Safe now",
     data: {
-      autopilot: "not_merged",
+      autopilot: ExceptionAutopilotService.for(db).evaluateSituation(ctx.now).summary,
       safe: grouped.AUTO.map(brief),
       approval: grouped.APPROVAL_REQUIRED.map(brief),
       blocked: grouped.BLOCKED.map(brief),
@@ -362,25 +368,16 @@ function policy(db: DatabaseSync, ctx: IntentContext): CommandResult {
       sourceId: action.id,
     })),
     links: [{ href: "/command", label: "Fix everything you're authorized to fix" }],
-    sourceSystems: ["POLICY"],
+    sourceSystems: ["POLICY", "AUTOPILOT"],
     approvalRequired: grouped.APPROVAL_REQUIRED.length > 0,
-    warnings: ["Exception Autopilot is not merged. Safe actions are the Policy AUTO set on stored plans."],
   });
 }
 
 function execution(db: DatabaseSync, ctx: IntentContext): CommandResult {
-  const plans = all<PlanRow>(db, "SELECT * FROM plans");
-  const executed: string[] = [];
-  const waiting: string[] = [];
-  const blocked: string[] = [];
-  for (const plan of plans) {
-    const pending = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ? AND status != 'executed'", [plan.id]);
-    if (!pending.some((action) => action.policy_outcome === "AUTO")) continue;
-    const outcome = executeSafeActions(db, plan.id, ctx.now, "command");
-    executed.push(...outcome.executed);
-    waiting.push(...outcome.pendingApproval);
-    blocked.push(...outcome.blocked);
-  }
+  const after = ExceptionAutopilotService.for(db).handleSafe(ctx.now);
+  const executed = after.handleSafe.executed;
+  const waiting = after.handleSafe.pendingApproval;
+  const blocked = after.handleSafe.blocked;
   const status: ResultStatus = executed.length ? "EXECUTED" : waiting.length ? "APPROVAL_REQUIRED" : blocked.length ? "BLOCKED" : "OK";
   return base(ctx, {
     intent: "EXECUTION",
@@ -391,14 +388,14 @@ function execution(db: DatabaseSync, ctx: IntentContext): CommandResult {
       executed,
       waiting,
       blocked,
-      autopilot: "not_merged",
+      autopilot: after.summary,
     },
     evidence: [
-      { statement: `${executed.length} AUTO actions executed after a live policy recheck.`, sourceSystem: "POLICY" },
+      { statement: `${executed.length} AUTO actions executed after a live policy recheck.`, sourceSystem: "AUTOPILOT" },
       { statement: `${waiting.length} still require approval. ${blocked.length} stay blocked.`, sourceSystem: "POLICY" },
     ],
     links: [{ href: "/goals", label: "Open goals" }],
-    sourceSystems: ["POLICY", "PLANNER", "VERIFICATION"],
+    sourceSystems: ["AUTOPILOT", "POLICY", "PLANNER", "VERIFICATION"],
     approvalRequired: waiting.length > 0,
   });
 }
@@ -463,7 +460,7 @@ function audit(db: DatabaseSync, ctx: IntentContext, intent: CommandIntent): Com
     answerType: "AUDIT_TRACE",
     status: blocked && aboutBlock ? "BLOCKED" : "OK",
     summary: aboutBlock ? "The 10% discount stays blocked by policy." : "Recorded decision trace",
-    data: { trace, autopilot: "not_merged" },
+    data: { trace, autopilot: ExceptionAutopilotService.for(db).evaluateSituation(ctx.now).summary },
     evidence: trace.map((step) => ({ statement: `${step.step}: ${step.detail}`, sourceSystem: "POLICY" as const })),
     links: [{ href: `/exceptions/${IDS.excDiscount}`, label: "View trace" }],
     sourceSystems: ["POLICY", "DETECT"],
@@ -555,16 +552,6 @@ function describeEvent(type: string, payload: Record<string, unknown>): string {
   if (type === "commitment.missed") return "A commitment passed its deadline with no fulfilment event.";
   if (type === "exception.created") return "A new exception was opened from a missed expectation.";
   return type;
-}
-
-function moneyFrom(raw: string): string {
-  try {
-    const impact = JSON.parse(raw) as { revenueAssociated?: number; currency?: string };
-    if (!impact.revenueAssociated) return "";
-    return formatMoney(impact.revenueAssociated, impact.currency || "DZD");
-  } catch {
-    return "";
-  }
 }
 
 function brief(action: ActionRow) {

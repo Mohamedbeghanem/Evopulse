@@ -1,5 +1,6 @@
 export const DEMO_COMMANDS = [
   "What changed today?",
+  "What needs me?",
   "What am I about to miss?",
   "Why is 850K at risk?",
   "What if Atlas is another 3 days late?",

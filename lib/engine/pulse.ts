@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one } from "../db";
 import { IDS } from "../ids";
+import { ExceptionAutopilotService } from "../autopilot";
 import { EarlyWarningEngine } from "../warnings";
 import { businessTwin } from "./twin";
 import { detectFromClock } from "./matcher";
@@ -64,6 +65,7 @@ export function pulseSummary(db: DatabaseSync, now: string) {
     twin: businessTwin(db),
     supplierPhase: one<{ value: string }>(db, "SELECT value FROM meta WHERE key = ?", ["supplier_phase"])?.value || "stable",
     comingNext: warningEngine.getActiveWarnings().map((row) => warningEngine.summarize(row)),
+    autopilot: ExceptionAutopilotService.for(db).evaluateSituation(now),
   };
 }
 

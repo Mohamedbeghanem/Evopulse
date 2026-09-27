@@ -1,38 +1,52 @@
 import type { DatabaseSync } from "node:sqlite";
 import { getMeta } from "../db";
 import { registerEngineHook, type BusinessEvent } from "../events";
-import { EarlyWarningEngine } from "./engine";
+import { ExceptionAutopilotService } from "./service";
+
+const REEVAL_TYPES = new Set([
+  "shipment.delayed",
+  "shipment.revised",
+  "exception.created",
+  "exception.resolved",
+  "action.executed",
+  "action.failed",
+  "verification.created",
+  "verification.resolved",
+  "verification.failed",
+  "customer.replied",
+  "quote.sent",
+  "commitment.missed",
+  "policy.blocked",
+]);
 
 let live: DatabaseSync | null = null;
 let hooked = false;
 
-export function handleWarningEvent(db: DatabaseSync, event: BusinessEvent) {
+export function handleAutopilotEvent(db: DatabaseSync, event: BusinessEvent) {
+  if (!REEVAL_TYPES.has(event.type)) return;
   if (!isUsable(db)) return;
   const now = event.received_at || event.occurred_at || getMeta(db, "demo_now");
-  EarlyWarningEngine.for(db).evaluateFromEvent(
-    { id: event.id, type: event.type, entity_id: event.entity_id },
-    now,
-  );
+  ExceptionAutopilotService.for(db).evaluateSituation(now);
 }
 
-export function ensureWarningHooks(db: DatabaseSync) {
+export function ensureAutopilotHooks(db: DatabaseSync) {
   live = db;
   if (hooked) return;
   hooked = true;
-  registerEngineHook("early-warning", (event) => {
+  registerEngineHook("exception-autopilot", (event) => {
     try {
       const { peekDb } = require("../db") as typeof import("../db");
       const handle = live && isUsable(live) ? live : peekDb();
       if (!handle || !isUsable(handle)) return;
-      handleWarningEvent(handle, event);
+      handleAutopilotEvent(handle, event);
     } catch (error) {
       if (isClosedDbError(error)) return;
-      console.error("[early-warning] handler failed", event.id, event.type, error);
+      console.error("[exception-autopilot] handler failed", event.id, event.type, error);
     }
   });
 }
 
-export function releaseWarningHooks() {
+export function releaseAutopilotHooks() {
   live = null;
 }
 

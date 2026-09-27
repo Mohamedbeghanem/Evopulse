@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
-import { all } from "../db";
-import type { PolicyOutcome, PolicyRow } from "../types";
+import { all, run } from "../db";
+import type { ActionRow, PolicyOutcome, PolicyRow } from "../types";
 
 export type ProposedAction = {
   type: string;
@@ -76,4 +76,27 @@ export function planOutcome(
   if (outcomes.includes("BLOCKED")) return "BLOCKED";
   if (outcomes.includes("APPROVAL_REQUIRED")) return "APPROVAL_REQUIRED";
   return "AUTO";
+}
+
+export function parseActionPayload(raw: string): Record<string, unknown> {
+  try {
+    const value = JSON.parse(raw || "{}") as unknown;
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Re-evaluate stored policy immediately before approval or execution. */
+export function recheckActionPolicy(db: DatabaseSync, action: ActionRow): ActionRow {
+  const decision = evaluatePolicy({ type: action.type, payload: parseActionPayload(action.payload) }, loadPolicies(db));
+  if (decision.outcome === action.policy_outcome && decision.reason === action.policy_reason) {
+    return action;
+  }
+  run(db, "UPDATE actions SET policy_outcome = ?, policy_reason = ? WHERE id = ?", [
+    decision.outcome,
+    decision.reason,
+    action.id,
+  ]);
+  return { ...action, policy_outcome: decision.outcome, policy_reason: decision.reason };
 }

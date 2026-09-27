@@ -48,7 +48,7 @@ Businesses do not fail because they lack dashboards. They fail because promises 
 2. Extract OUR commitment + CUSTOMER commitment + dependency (offline heuristic; optional live model).
 3. Time passes, proposal not sent → **Exception** with evidence + **320,000 DZD** impact.
 4. Recovery: prepare proposal, draft follow-up, checkpoint → **APPROVAL_REQUIRED**.
-5. Approve → execute → state updates (HANDLED).
+5. Approve → execute → verification PENDING (MONITORING). A later customer reply can verify SUCCESS → HANDLED.
 6. Later: “I'll sign today if you give me 10%.” → policy `discount_max=5%` → **BLOCKED** → 5% / Net-14 alternative.
 
 ### Demo (no typing)

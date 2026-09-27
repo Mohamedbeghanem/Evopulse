@@ -76,9 +76,11 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - **Business Simulator (what-if)** lives at `lib/simulation/`. It reads the Business Graph into a detached snapshot, clones the slice downstream of the scenario target, applies one change (e.g. supplier delay +3 days), and propagates it deterministically through real edges. Baseline and simulation use the same propagator. Nothing is written — a content hash of every table is taken before and after each run to prove it.
 - **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
 - **Early Warning (product P22)** lives at `lib/warnings/`. Deterministic buffer math (`available` vs `required`) decides AT RISK before a deadline is missed. Detect still owns MISSED. LLM does not classify the warning.
+- **Exception Autopilot (product P26)** lives at `lib/autopilot/`. It classifies open situations (`NORMAL` → `HANDLED`) from stored state. Safe AUTO actions may execute after a live policy recheck. `AUTO_HANDLED` is not resolution — only verification SUCCESS produces `HANDLED`.
+- **Command Center** lives at `lib/command/`. It routes natural language onto the existing engines and returns structured evidence. It does not own policy, simulation, or execution.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
 - **Expectation + Pulse/Exception (product P5–P6)** lives at `lib/engine/expectations.ts` and `lib/engine/matcher.ts`. `ExpectedEventMatcher` consumes the Event Layer dispatcher (`registerEngineHook`). Software decides miss vs match from event type, entity scope, and the clock — never an LLM. Control’s `VerificationService` table is unchanged; Detect exports `applyVerificationOutcome` so verify SUCCESS/FAIL can share the same matcher later.
-- Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
+- Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts` plus engine-owned migrations (`lib/warnings/schema.ts`, `lib/autopilot/schema.ts`, `lib/command/schema.ts`).
 
 ## Stack
 
@@ -99,14 +101,15 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | `/simulate` | Business Simulator — what-if baseline vs simulation, delta, WHY paths |
 | `/exceptions/:id` | Evidence + impact + dependency |
 | `/exceptions/:id/plan` | Recovery + policy + approve |
-| `/command` | Outcome commands + grounded questions |
+| `/command` | Routes questions into the live engines |
 | `/goals` · `/goals/:id` | Cross-business goal + structured plan |
 | `/graph` | Commitment graph |
 | `/warnings` · `/warnings/:id` | Early warning — AT RISK, not missed |
+| `/autopilot` · `/autopilot/:id` | Autopilot classifications and traces |
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /api/ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /api/ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation` · `GET /api/autopilot` · `POST /api/autopilot/evaluate` · `POST /api/autopilot/handle-safe`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `POST /api/demo/shipment-earlier` · `GET /api/health`
 

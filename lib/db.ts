@@ -211,6 +211,8 @@ function migrate(db: DatabaseSync) {
   migrateWarningTables(db);
   const { migrateCommandTables } = require("./command/schema") as typeof import("./command/schema");
   migrateCommandTables(db);
+  const { migrateAutopilotTables } = require("./autopilot/schema") as typeof import("./autopilot/schema");
+  migrateAutopilotTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
@@ -289,6 +291,8 @@ function wireEngineHooks(db: DatabaseSync) {
   ensureDetectHooks(db);
   const { ensureWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
   ensureWarningHooks(db);
+  const { ensureAutopilotHooks } = require("./autopilot/hooks") as typeof import("./autopilot/hooks");
+  ensureAutopilotHooks(db);
 }
 
 export function getDb(): DatabaseSync {
@@ -316,6 +320,12 @@ export function resetDbFile() {
     releaseWarningHooks();
   } catch {
     /* warnings module may not be loaded yet */
+  }
+  try {
+    const { releaseAutopilotHooks } = require("./autopilot/hooks") as typeof import("./autopilot/hooks");
+    releaseAutopilotHooks();
+  } catch {
+    /* autopilot module may not be loaded yet */
   }
   const path = dbPath();
   if (globalForDb.evopulseDb) {

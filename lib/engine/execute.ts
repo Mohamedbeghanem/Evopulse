@@ -5,6 +5,7 @@ import { EVENT_TYPES, eventsFor } from "../events";
 import { id, IDS } from "../ids";
 import type { ActionRow, PlanRow } from "../types";
 import { markExceptionAwaitingVerification, VerificationService } from "../learning";
+import { recheckActionPolicy } from "./policy";
 
 export function approvePlan(db: DatabaseSync, planId: string, now: string, actor = "operator") {
   const plan = one<PlanRow>(db, "SELECT * FROM plans WHERE id = ?", [planId]);
@@ -12,6 +13,9 @@ export function approvePlan(db: DatabaseSync, planId: string, now: string, actor
   if (plan.status === "blocked") {
     throw new Error("Blocked plans cannot be approved wholesale. Approve an allowed alternative action.");
   }
+
+  const actions = all<ActionRow>(db, "SELECT * FROM actions WHERE plan_id = ?", [planId]);
+  for (const action of actions) recheckActionPolicy(db, action);
 
   run(db, "UPDATE plans SET status = ? WHERE id = ?", ["approved", planId]);
   run(
@@ -30,8 +34,12 @@ export function approvePlan(db: DatabaseSync, planId: string, now: string, actor
 }
 
 export function executeAction(db: DatabaseSync, actionId: string, now: string, actor = "operator") {
-  const action = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
-  if (!action) throw new Error("Action not found");
+  const found = one<ActionRow>(db, "SELECT * FROM actions WHERE id = ?", [actionId]);
+  if (!found) throw new Error("Action not found");
+  if (found.status === "executed") {
+    throw new Error("Action already executed.");
+  }
+  const action = recheckActionPolicy(db, found);
   if (action.policy_outcome === "BLOCKED") {
     throw new Error(action.policy_reason || "Action is blocked by policy.");
   }
