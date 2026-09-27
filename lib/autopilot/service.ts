@@ -3,7 +3,7 @@ import { all, one, run } from "../db";
 import { calculateGraphImpact } from "../engine/impact";
 import { evaluatePolicy, loadPolicies, recheckActionPolicy } from "../engine/policy";
 import { buildRecoveryPlan } from "../engine/recovery";
-import { executeAction } from "../engine/execute";
+import { executeAction, executePlan } from "../engine/execute";
 import { IDS } from "../ids";
 import type { ActionRow, ExceptionRow, PlanRow } from "../types";
 import { EarlyWarningEngine, type WarningRow } from "../warnings";
@@ -220,6 +220,16 @@ export class ExceptionAutopilotService {
       [`apr_${actionId}`, action.plan_id, actionId, "approved", now, actor],
     );
     this.patchMeta(row.id, { human: "APPROVE", actor }, now);
+    // Approval leads to execution through the existing engine path — the same one the 320K plan uses.
+    // Exception plans run wholesale (executePlan); blocked or goal plans run only the approved action.
+    const plan = action.plan_id
+      ? one<PlanRow>(this.db, "SELECT * FROM plans WHERE id = ?", [action.plan_id])
+      : undefined;
+    if (plan && plan.status !== "blocked" && !plan.goal_id) {
+      executePlan(this.db, plan.id, now, actor);
+    } else {
+      executeAction(this.db, actionId, now, actor);
+    }
     return this.evaluateSituation(now);
   }
 
@@ -313,7 +323,14 @@ export class ExceptionAutopilotService {
     const impact =
       exception.id === IDS.excDelay
         ? calculateGraphImpact(this.db, IDS.shipment)
-        : { affected_orders: [], associated_revenue: 320000, affected_customers: [], affected_expected_cash: 0 };
+        : exception.kind === "delivery_delay" && exception.opportunity_id
+          ? calculateGraphImpact(this.db, exception.opportunity_id)
+          : {
+              affected_orders: [],
+              associated_revenue: Number(safeJson(exception.impact_json).revenueAssociated) || 0,
+              affected_customers: [],
+              affected_expected_cash: 0,
+            };
     const classified = classifySituation({
       hasException: true,
       exceptionKind: exception.kind,
@@ -357,7 +374,7 @@ export class ExceptionAutopilotService {
         affected_orders: "affected_orders" in impact ? impact.affected_orders.length : 0,
         affected_expected_cash: "affected_expected_cash" in impact ? impact.affected_expected_cash : 0,
       },
-      evidence: this.evidenceFor(exception, plan, actions, classified),
+      evidence: this.evidenceFor(exception, plan, actions, classified, impact.associated_revenue),
       resolvedAt: classified.classification === "HANDLED" ? now : null,
     });
     return this.toCard(this.find("exception", exception.id)!);
@@ -434,6 +451,12 @@ export class ExceptionAutopilotService {
   }) {
     const existing = this.find(input.situationType, input.situationId);
     const id = existing?.id || `apd_${input.situationType}_${input.situationId}`;
+    // A human REJECT / TAKE_OVER is sticky: re-evaluation keeps the situation with the human
+    // until it is verified resolved or the human approves.
+    const human = existing ? safeJson(existing.metadata).human : undefined;
+    if ((human === "REJECT" || human === "TAKE_OVER") && input.classification !== "HANDLED") {
+      input = { ...input, classification: "NEEDS_YOU", reasonCode: "HIGH_IMPACT_HUMAN_JUDGMENT" };
+    }
     if (existing) {
       run(
         this.db,
@@ -540,11 +563,15 @@ export class ExceptionAutopilotService {
     plan: PlanRow | undefined,
     actions: ActionRow[],
     classified: ClassifyResult,
+    associatedRevenue: number,
   ) {
     return {
       observed: exception.title,
       detected: exception.kind,
-      impact: exception.id === IDS.excDelay ? "Cascade impact from the existing graph engine." : "320,000 DZD opportunity associated.",
+      impact:
+        exception.id === IDS.excDelay
+          ? "Cascade impact from the existing graph engine."
+          : `${associatedRevenue.toLocaleString("en-US")} DZD associated.`,
       plan: plan?.title || "No plan yet",
       policy: actions.map((action) => `${action.type}:${action.policy_outcome}`).join(", "),
       explanation: classified.explanation,
