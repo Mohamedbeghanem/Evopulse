@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1024" />
+  <title>Pulse · EvoPulse Control OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink-950: #080a0d;
+      --ink-900: #0c1016;
+      --ink-800: #131922;
+      --ink-700: #1b2330;
+      --ink-600: #253042;
+      --paper: #efe7d6;
+      --sand: #c8b896;
+      --mute: #8a8476;
+      --need: #f0a202;
+      --miss: #e85d4c;
+      --ok: #3dba8b;
+      --ice: #7eb6d9;
+      --line: rgba(239, 231, 214, 0.12);
+      --line-strong: rgba(239, 231, 214, 0.22);
+      --need-line: rgba(240, 162, 2, 0.55);
+      --serif: "Instrument Serif", Georgia, serif;
+      --sans: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --rail: 208px;
+      --inspect: 380px;
+      --proto: 44px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--ink-950);
+      color: var(--paper);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
+      color-scheme: dark;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    button:focus-visible,
+    a:focus-visible,
+    [tabindex="0"]:focus-visible {
+      outline: 2px solid var(--need);
+      outline-offset: 2px;
+    }
+
+    .skip {
+      position: absolute;
+      left: 12px;
+      top: -40px;
+      z-index: 20;
+      padding: 8px 12px;
+      background: var(--paper);
+      color: var(--ink-950);
+    }
+    .skip:focus { top: 12px; }
+
+    .os {
+      display: grid;
+      grid-template-columns: var(--rail) minmax(0, 1fr) var(--inspect);
+      grid-template-rows: 1fr var(--proto);
+      min-height: 100vh;
+      min-width: 1024px;
+    }
+
+    .rail {
+      grid-column: 1;
+      grid-row: 1;
+      border-right: 1px solid var(--line);
+      padding: 28px 22px 20px;
+      display: flex;
+      flex-direction: column;
+      background: var(--ink-950);
+    }
+    .mark {
+      font-family: var(--serif);
+      font-size: 26px;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .mark-sub {
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .nav {
+      margin-top: 42px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav a,
+    .nav span[aria-current="page"] {
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0 10px;
+      text-decoration: none;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--sand);
+      border-left: 2px solid transparent;
+    }
+    .nav span[aria-current="page"] {
+      color: var(--paper);
+      border-left-color: var(--need);
+    }
+    .nav a:hover { color: var(--paper); }
+    .nav a.is-future { color: var(--mute); }
+    .rail-foot {
+      margin-top: auto;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--mute);
+      letter-spacing: 0.08em;
+      line-height: 1.6;
+    }
+
+    .stage {
+      grid-column: 2;
+      grid-row: 1;
+      overflow: auto;
+      padding: 36px 44px 56px;
+      background:
+        radial-gradient(900px 420px at 8% -20%, rgba(240, 162, 2, 0.05), transparent 50%),
+        var(--ink-950);
+    }
+
+    .clock {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .headline {
+      margin: 18px 0 0;
+      max-width: 18ch;
+      font-family: var(--serif);
+      font-size: 56px;
+      font-weight: 400;
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+    .tally {
+      margin: 28px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .tally li {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      min-height: 36px;
+      font-size: 20px;
+      color: var(--sand);
+    }
+    .tally b {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 22px;
+      min-width: 1.4ch;
+      color: var(--paper);
+    }
+    .tally .is-need b { color: var(--need); }
+    .tally .is-watch b { color: var(--ice); }
+    .tally .is-done b { color: var(--ok); }
+
+    .board { margin-top: 48px; }
+    .section { margin-top: 32px; }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-head h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .section-head .count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--mute);
+    }
+
+    .rows { display: flex; flex-direction: column; }
+    .row {
+      display: grid;
+      grid-template-columns: 148px minmax(0, 1fr) auto;
+      gap: 18px;
+      width: 100%;
+      text-align: left;
+      padding: 16px 10px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      border-left: 2px solid transparent;
+      min-height: 72px;
+    }
+    .row:hover { background: rgba(239, 231, 214, 0.02); }
+    .row[aria-selected="true"] {
+      border-left-color: var(--need);
+      background: rgba(240, 162, 2, 0.04);
+    }
+    .row-kicker {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sand);
+      padding-top: 4px;
+    }
+    .row-kicker.is-need { color: var(--need); }
+    .row-kicker.is-approve { color: var(--need); }
+    .row-kicker.is-block { color: var(--miss); }
+    .row-kicker.is-watch { color: var(--ice); }
+    .row-kicker.is-done { color: var(--ok); }
+    .row-title {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 24px;
+      line-height: 1.15;
+    }
+    .row-meta {
+      margin: 6px 0 0;
+      color: var(--sand);
+      font-size: 13px;
+    }
+    .row-money {
+      font-family: var(--mono);
+      font-size: 18px;
+      text-align: right;
+      white-space: nowrap;
+      padding-top: 4px;
+      color: var(--paper);
+      font-variant-numeric: tabular-nums;
+    }
+    .row-money span {
+      display: block;
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .disclosure {
+      grid-column: 2 / -1;
+      display: none;
+      padding: 4px 0 8px;
+    }
+    .row[aria-selected="true"] + .disclosure,
+    .row.is-open + .disclosure { display: block; }
+    .disclosure dl {
+      margin: 0;
+      display: grid;
+      gap: 6px;
+    }
+    .disclosure .pair {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 12px;
+      color: var(--sand);
+      font-size: 13px;
+    }
+    .disclosure dt {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--mute);
+      padding-top: 2px;
+    }
+
+    .empty {
+      padding: 18px 12px;
+      color: var(--mute);
+      font-size: 14px;
+    }
+    .banner {
+      margin-top: 36px;
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+      color: var(--sand);
+      max-width: 46ch;
+    }
+    .banner.is-error { color: var(--miss); }
+    .banner.is-load { color: var(--ice); }
+
+    .inspect {
+      grid-column: 3;
+      grid-row: 1;
+      border-left: 1px solid var(--line);
+      padding: 28px 26px 32px;
+      overflow: auto;
+      background: var(--ink-900);
+    }
+    .inspect-kicker {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .inspect h2 {
+      margin: 14px 0 0;
+      font-family: var(--serif);
+      font-size: 32px;
+      line-height: 1.1;
+    }
+    .inspect-status {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--need);
+    }
+    .inspect-status.is-watch { color: var(--ice); }
+    .inspect-status.is-done { color: var(--ok); }
+    .inspect-status.is-block { color: var(--miss); }
+    .facts {
+      margin: 24px 0 0;
+      padding: 0;
+      border-top: 1px solid var(--line);
+    }
+    .facts .fact {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .facts dt {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+    .facts dd { margin: 0; color: var(--paper); }
+    .quote {
+      margin: 18px 0 0;
+      padding: 0;
+      font-family: var(--serif);
+      font-size: 22px;
+      line-height: 1.25;
+      color: var(--paper);
+    }
+    .actions {
+      margin-top: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn {
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--need-line);
+      color: var(--ink-950);
+      background: var(--need);
+      text-align: left;
+      font-weight: 500;
+    }
+    .btn-ghost {
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--line-strong);
+      color: var(--paper);
+      text-align: left;
+    }
+    .btn-ghost:hover { border-color: var(--paper); }
+    .ask {
+      margin-top: 8px;
+      min-height: 40px;
+      text-align: left;
+      color: var(--sand);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .ask-out {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--sand);
+      font-size: 13px;
+    }
+    .ask-out.is-on { display: block; }
+    .close-inspect {
+      display: none;
+      min-height: 36px;
+      color: var(--sand);
+    }
+
+    .proto {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      border-top: 1px solid var(--line);
+      background: var(--ink-900);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mute);
+      overflow: auto;
+    }
+    .proto strong { color: var(--sand); font-weight: 500; }
+    .proto button {
+      min-height: 28px;
+      padding: 0 8px;
+      color: var(--sand);
+      border: 1px solid transparent;
+    }
+    .proto button[aria-pressed="true"] {
+      color: var(--paper);
+      border-color: var(--line-strong);
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 10, 13, 0.55);
+      z-index: 8;
+    }
+
+    @media (max-width: 1360px) {
+      :root { --rail: 180px; --inspect: 320px; }
+      .stage { padding: 32px 32px 48px; }
+      .headline { font-size: 48px; }
+      .row { grid-template-columns: 132px minmax(0, 1fr) auto; }
+    }
+
+    @media (max-width: 1100px) {
+      :root { --rail: 160px; --inspect: 360px; }
+      .os {
+        grid-template-columns: var(--rail) minmax(0, 1fr);
+      }
+      .inspect {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: var(--proto);
+        width: min(400px, 46vw);
+        z-index: 9;
+        transform: translateX(104%);
+        transition: transform 160ms ease;
+      }
+      .os.is-inspect .inspect { transform: none; }
+      .os.is-inspect .overlay { display: block; }
+      .close-inspect { display: inline-flex; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#board">Skip to attention</a>
+  <div class="os" id="os">
+    <aside class="rail" aria-label="Control OS">
+      <div class="mark">EvoPulse</div>
+      <div class="mark-sub">Control OS · Aurora</div>
+      <nav class="nav" aria-label="Primary">
+        <span aria-current="page">Pulse</span>
+        <a class="is-future" href="#command" data-future="command">Command</a>
+        <a class="is-future" href="#timeline" data-future="timeline">Timeline</a>
+        <a class="is-future" href="#business" data-future="business">Business</a>
+        <a class="is-future" href="#goals" data-future="goals">Goals</a>
+      </nav>
+      <p class="rail-foot">Expected vs actual.<br />Nothing falls through.</p>
+    </aside>
+
+    <main class="stage">
+      <p class="clock" id="clock">Sun 27 Sep 2026 · 09:14 Africa/Tunis</p>
+      <h1 class="headline" id="headline">Your business is running.</h1>
+      <ul class="tally" id="tally"></ul>
+      <p class="banner" id="banner" hidden></p>
+      <div class="board" id="board"></div>
+    </main>
+
+    <aside class="inspect" id="inspect" aria-label="Inspector"></aside>
+    <div class="overlay" id="overlay" hidden></div>
+
+    <div class="proto" role="region" aria-label="Prototype states">
+      <strong>Prototype</strong>
+      <button type="button" data-state="delayed" aria-pressed="true">Cascade + approval</button>
+      <button type="button" data-state="seeded">Cold start</button>
+      <button type="button" data-state="recovered">Verification pending</button>
+      <button type="button" data-state="blocked">Policy blocked</button>
+      <button type="button" data-state="empty">Empty</button>
+      <button type="button" data-state="loading">Loading</button>
+      <button type="button" data-state="error">Error</button>
+    </div>
+  </div>
+
+  <script>
+    const money = (n) => n.toLocaleString("en-US") + " DZD";
+
+    const DATA = {
+      delay: {
+        id: "exc_shipment_delay",
+        section: "needs",
+        attention: "NEEDS_YOU",
+        label: "NEEDS YOU",
+        secondary: "AT RISK — NOT MISSED",
+        title: "Atlas Supply · SH-204 Monday → Wednesday",
+        summary: "3 orders · 3 customers · 850,000 DZD associated revenue · 540,000 DZD expected cash timing.",
+        amount: 850000,
+        amountNote: "associated revenue",
+        quote: "Your shipment will arrive Wednesday instead of Monday.",
+        source: "Supplier conversation",
+        expected: "Monday 28 Sep 09:00",
+        actual: "Wednesday 30 Sep 09:00",
+        detected: "Sun 27 Sep 2026 · 09:14",
+        evidenceAt: "Sun 27 Sep 2026 · 09:13",
+        confidence: "96%",
+        kind: "delivery_delay",
+        storedAttention: "NEEDS_YOU",
+        expectation: "Shipment SH-204 arrives Monday · AT_RISK",
+        chain: "Atlas Supply → SH-204 → RK-7 → 3 orders → 3 customers → invoices → expected cash",
+        objects: [
+          "Atlas Supply",
+          "Shipment SH-204",
+          "Pallet racking kit RK-7",
+          "Order A — Oran Fresh · 320,000 DZD",
+          "Order B — Constantine Clinic · 280,000 DZD",
+          "Order C — Sétif Depot · 250,000 DZD",
+          "Oran Fresh Market",
+          "Constantine Clinic",
+          "Sétif Depot",
+          "Expected cash — week of 28 Sep · 540,000 DZD"
+        ],
+        facts: [
+          ["Orders", "Order A 320,000 · Order B 280,000 · Order C 250,000"],
+          ["Customers", "Oran Fresh Market · Constantine Clinic · Sétif Depot"],
+          ["Cash timing", "Invoice A 200,000 + B 180,000 + C 160,000 = 540,000 DZD"],
+          ["Warning", "AT RISK — NOT MISSED. Detect owns a miss only after the deadline."]
+        ],
+        primary: { label: "Open cascade", href: "../../../../../app/impact/exc_shipment_delay" },
+        secondary: { label: "Open Time Machine", href: "#timeline" },
+        ask: "Atlas Supply moved SH-204 Monday → Wednesday. 3 orders · 3 customers · 850,000 DZD associated revenue · 540,000 DZD expected cash timing. These are graph facts — not a claim that the money is lost."
+      },
+      proposal: {
+        id: "exc_proposal_missed",
+        section: "needs",
+        attention: "NEEDS_APPROVAL",
+        label: "NEEDS APPROVAL",
+        secondary: null,
+        title: "Revised 320,000 DZD proposal never sent",
+        summary: "Atlas Retail Group · Amine Khelifi. Recovery is ready. External send stays behind approval.",
+        amount: 320000,
+        amountNote: "proposal value",
+        quote: "Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.",
+        source: "Customer conversation",
+        expected: "Revised proposal sent Thursday 24 Sep 18:00",
+        actual: "No proposal-sent event before Thursday 18:00",
+        detected: "Sun 27 Sep 2026 · 08:18",
+        evidenceAt: "Wed 23 Sep 2026 · 16:42",
+        confidence: "94%",
+        kind: "missed_commitment",
+        storedAttention: "NEEDS_YOU",
+        expectation: "Revised 320,000 DZD proposal sent Thursday · MISSED",
+        chain: "Our Thursday send ← Friday decision (blocked)",
+        objects: [
+          "Atlas Retail Group",
+          "Amine Khelifi · Purchasing Director",
+          "Atlas Q4 warehouse fit-out · 320,000 DZD",
+          "Prepare revised proposal · AUTO",
+          "Draft apology / follow-up · APPROVAL_REQUIRED",
+          "Monday 28 Sep 10:00 checkpoint · AUTO"
+        ],
+        facts: [
+          ["Plan", "Recover the 320K Atlas decision · approval_required"],
+          ["Policy", "external_message_requires_approval = true"],
+          ["One object", "This is the situation. Not a separate Exception, Approval, and Autopilot row."]
+        ],
+        primary: { label: "Review and approve recovery", href: "#recovery" },
+        secondary: { label: "Read evidence", href: "#evidence" },
+        ask: "320,000 DZD needs you. Our commitment missed — revised proposal never sent. The Friday decision is blocked because the Thursday proposal never left."
+      },
+      monitoring: {
+        id: "exc_proposal_missed",
+        section: "watch",
+        attention: "MONITORING",
+        label: "MONITORING",
+        secondary: null,
+        title: "Atlas 320,000 DZD recovery — verification pending",
+        summary: "Recovery executed. Customer response is expected. Send alone does not mark this handled.",
+        amount: 320000,
+        amountNote: "proposal value",
+        quote: "Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.",
+        source: "Verification engine",
+        expected: "customer.response before the Monday 28 Sep 10:00 checkpoint",
+        actual: "PENDING — awaiting_verification",
+        detected: "Sun 27 Sep 2026 · 08:18",
+        evidenceAt: "After approve & execute",
+        confidence: "94%",
+        kind: "missed_commitment",
+        storedAttention: "MONITORING",
+        expectation: "Customer decision · AT_RISK at Monday checkpoint",
+        chain: "Executed recovery → pending customer.response",
+        objects: [
+          "Revised Atlas proposal v2 — 320,000 DZD · prepared",
+          "Verification · customer.response · PENDING"
+        ],
+        facts: [
+          ["Rule", "EXECUTION ≠ RESOLUTION"],
+          ["Status", "awaiting_verification → MONITORING, not HANDLED"]
+        ],
+        primary: { label: "Keep watching checkpoint", href: "#timeline" },
+        secondary: { label: "Open Command", href: "#command" },
+        ask: "The 320K recovery was executed. A customer-response verification is pending — send alone does not mark the exception solved."
+      },
+      handled: {
+        id: "exc_proposal_missed",
+        section: "done",
+        attention: "HANDLED",
+        label: "HANDLED",
+        secondary: null,
+        title: "Atlas 320,000 DZD miss — verified by customer reply",
+        summary: "Customer replied. Verification resolved SUCCESS. This situation is closed.",
+        amount: 320000,
+        amountNote: "proposal value",
+        quote: "I'll sign today if you give me 10%.",
+        source: "Verification + customer reply",
+        expected: "customer.response",
+        actual: "SUCCESS — customer replied Sun 27 Sep 2026 · 11:05",
+        detected: "Sun 27 Sep 2026 · 08:18",
+        evidenceAt: "Sun 27 Sep 2026 · 11:05",
+        confidence: "94%",
+        kind: "missed_commitment",
+        storedAttention: "HANDLED",
+        expectation: "Original miss resolved",
+        chain: "Reply closed the miss. The 10% request is a new situation.",
+        objects: ["Atlas Q4 warehouse fit-out · 320,000 DZD"],
+        facts: [
+          ["Status", "resolved · HANDLED"],
+          ["Note", "The 10% request is not this object."]
+        ],
+        primary: { label: "See the blocked request", href: "#blocked" },
+        secondary: { label: "Open Timeline", href: "#timeline" },
+        ask: "The missed-proposal situation is HANDLED. The live object is now the 10% policy block."
+      },
+      discount: {
+        id: "exc_discount_blocked",
+        section: "needs",
+        attention: "BLOCKED",
+        label: "BLOCKED",
+        secondary: null,
+        title: "Discount request exceeds policy — 10% BLOCKED",
+        summary: "Governed autonomy. Policy discount_max=5% refused 10%. Alternatives: 5% (304,000 DZD) or Net-14.",
+        amount: 320000,
+        amountNote: "proposal value",
+        quote: "I'll sign today if you give me 10%.",
+        source: "Customer conversation",
+        expected: "Any commercial concession stays at or under discount_max=5%",
+        actual: "10% requested to sign today",
+        detected: "Sun 27 Sep 2026 · 11:05",
+        evidenceAt: "Sun 27 Sep 2026 · 11:05",
+        confidence: "93%",
+        kind: "policy_blocked",
+        storedAttention: "NEEDS_YOU",
+        expectation: "Policy bound, not an app error",
+        chain: "AI proposed 10% · software blocked it · alternatives wait",
+        objects: [
+          "Apply 10% discount · BLOCKED",
+          "Alternative — offer 5% (304,000 DZD) · APPROVAL_REQUIRED",
+          "Alternative — Net-14 + priority slot · APPROVAL_REQUIRED",
+          "Draft policy-safe reply · APPROVAL_REQUIRED"
+        ],
+        facts: [
+          ["Policy", "discount_max = 5"],
+          ["Reason", "Policy discount_max=5% blocks a 10% discount."],
+          ["One object", "Do not also open a separate Exception or Autopilot card for this request."]
+        ],
+        primary: { label: "Review policy-safe alternatives", href: "#recovery" },
+        secondary: { label: "Read policy", href: "#policy" },
+        ask: "10% discount is BLOCKED by policy discount_max=5%. An alternative recovery (5% or Net-14) is waiting."
+      }
+    };
+
+    const STATES = {
+      delayed: {
+        clock: "Sun 27 Sep 2026 · 09:14 Africa/Tunis",
+        headline: "Your business is running.",
+        items: ["delay", "proposal"],
+        select: "delay"
+      },
+      seeded: {
+        clock: "Sun 27 Sep 2026 · 08:18 Africa/Tunis",
+        headline: "Your business is running.",
+        items: ["proposal"],
+        select: "proposal"
+      },
+      recovered: {
+        clock: "Sun 27 Sep 2026 · 08:18 Africa/Tunis",
+        headline: "Your business is running.",
+        items: ["monitoring"],
+        select: "monitoring"
+      },
+      blocked: {
+        clock: "Sun 27 Sep 2026 · 11:05 Africa/Tunis",
+        headline: "Your business is running.",
+        items: ["discount", "handled"],
+        select: "discount"
+      },
+      empty: {
+        clock: "Sun 27 Sep 2026 · 08:18 Africa/Tunis",
+        headline: "Your business is running.",
+        items: [],
+        select: null
+      },
+      loading: {
+        clock: "Reading clock…",
+        headline: "Your business is running.",
+        items: [],
+        select: null,
+        banner: { text: "Listening for expected versus actual. Attention is not guessed.", cls: "is-load" }
+      },
+      error: {
+        clock: "Clock unread",
+        headline: "Your business is running.",
+        items: [],
+        select: null,
+        banner: { text: "Pulse could not read attention. No engine was changed. Try again from this screen.", cls: "is-error" }
+      }
+    };
+
+    const os = document.getElementById("os");
+    const tallyEl = document.getElementById("tally");
+    const boardEl = document.getElementById("board");
+    const inspectEl = document.getElementById("inspect");
+    const clockEl = document.getElementById("clock");
+    const headlineEl = document.getElementById("headline");
+    const bannerEl = document.getElementById("banner");
+    const overlay = document.getElementById("overlay");
+
+    let view = "delayed";
+    let selectedId = "delay";
+    let askOn = false;
+
+    function tone(attention) {
+      if (attention === "MONITORING") return "is-watch";
+      if (attention === "HANDLED") return "is-done";
+      if (attention === "BLOCKED") return "is-block";
+      if (attention === "NEEDS_APPROVAL") return "is-approve";
+      return "is-need";
+    }
+
+    function itemsFor(state) {
+      return STATES[state].items.map((key) => ({ key, ...DATA[key] }));
+    }
+
+    function counts(items) {
+      return {
+        needs: items.filter((i) => i.section === "needs").length,
+        watch: items.filter((i) => i.section === "watch").length,
+        done: items.filter((i) => i.section === "done").length
+      };
+    }
+
+    function renderTally(c) {
+      tallyEl.innerHTML =
+        `<li class="is-need"><b>${c.needs}</b> need you</li>` +
+        `<li class="is-watch"><b>${c.watch}</b> monitoring</li>` +
+        `<li class="is-done"><b>${c.done}</b> handled automatically</li>`;
+    }
+
+    function rowHtml(item) {
+      const selected = item.key === selectedId;
+      return `
+        <button class="row${selected ? "" : ""}" type="button" role="option" aria-selected="${selected}" data-key="${item.key}">
+          <div class="row-kicker ${tone(item.attention)}">${item.label}${item.secondary ? `<br />${item.secondary}` : ""}</div>
+          <div>
+            <h3 class="row-title">${item.title}</h3>
+            <p class="row-meta">${item.summary}</p>
+          </div>
+          <div class="row-money">${money(item.amount)}<span>${item.amountNote}</span></div>
+        </button>
+        <div class="disclosure" ${selected ? "" : "hidden"}>
+          <dl>
+            ${item.facts.map((f) => `<div class="pair"><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join("")}
+          </dl>
+        </div>`;
+    }
+
+    function sectionHtml(title, items, empty) {
+      return `
+        <section class="section" aria-labelledby="${title}">
+          <div class="section-head">
+            <h2 id="${title}">${title.replace("-", " ")}</h2>
+            <span class="count">${items.length}</span>
+          </div>
+          ${items.length ? `<div class="rows" role="listbox" aria-label="${title}">${items.map(rowHtml).join("")}</div>` : `<p class="empty">${empty}</p>`}
+        </section>`;
+    }
+
+    function renderBoard(items) {
+      const needs = items.filter((i) => i.section === "needs");
+      const watch = items.filter((i) => i.section === "watch");
+      const done = items.filter((i) => i.section === "done");
+      boardEl.innerHTML =
+        sectionHtml("needs-you", needs, "Nothing needs you. Pulse is quiet.") +
+        sectionHtml("monitoring", watch, "Nothing is being watched. Verification starts after a human-approved action.") +
+        sectionHtml("handled", done, "Nothing handled automatically yet. Execution still waits on verification.");
+    }
+
+    function renderInspect(item) {
+      if (!item) {
+        inspectEl.innerHTML = `
+          <div class="inspect-kicker">
+            <span>Inspect</span>
+            <button class="close-inspect" type="button" data-close>Close</button>
+          </div>
+          <h2>No situation selected</h2>
+          <p class="row-meta" style="margin-top:12px">Pulse lists attention objects. Select a row to see evidence, expected versus actual, and the next safe action.</p>`;
+        return;
+      }
+      inspectEl.innerHTML = `
+        <div class="inspect-kicker">
+          <span>Inspect · ${item.kind.replaceAll("_", " ")}</span>
+          <button class="close-inspect" type="button" data-close>Close</button>
+        </div>
+        <h2>${item.title}</h2>
+        <p class="inspect-status ${tone(item.attention)}">${item.label}${item.secondary ? " · " + item.secondary : ""}</p>
+        <blockquote class="quote">“${item.quote}”</blockquote>
+        <dl class="facts">
+          <div class="fact"><dt>Source</dt><dd>${item.source}</dd></div>
+          <div class="fact"><dt>Expected</dt><dd>${item.expected}</dd></div>
+          <div class="fact"><dt>Actual</dt><dd>${item.actual}</dd></div>
+          <div class="fact"><dt>Timestamp</dt><dd>${item.evidenceAt}</dd></div>
+          <div class="fact"><dt>Detected</dt><dd>${item.detected}</dd></div>
+          <div class="fact"><dt>Confidence</dt><dd>${item.confidence}</dd></div>
+          <div class="fact"><dt>Stored</dt><dd>${item.storedAttention.replaceAll("_", " ")}</dd></div>
+          <div class="fact"><dt>Expectation</dt><dd>${item.expectation}</dd></div>
+          <div class="fact"><dt>Chain</dt><dd>${item.chain}</dd></div>
+          <div class="fact"><dt>Value</dt><dd>${money(item.amount)} · ${item.amountNote}</dd></div>
+        </dl>
+        <dl class="facts">
+          ${item.objects.map((o) => `<div class="fact"><dt>Object</dt><dd>${o}</dd></div>`).join("")}
+        </dl>
+        <div class="actions">
+          <button class="btn" type="button" data-primary>${item.primary.label}</button>
+          <button class="btn-ghost" type="button" data-secondary>${item.secondary.label}</button>
+          <button class="ask" type="button" data-ask>Ask EvoPulse about this…</button>
+          <div class="ask-out${askOn ? " is-on" : ""}" id="ask-out">${item.ask}</div>
+        </div>`;
+    }
+
+    function applyState(name, select) {
+      view = name;
+      const state = STATES[name];
+      const items = itemsFor(name);
+      selectedId = select !== undefined ? select : (state.select || (items[0] && items[0].key) || null);
+      askOn = false;
+      clockEl.textContent = state.clock;
+      headlineEl.textContent = state.headline;
+      if (state.banner) {
+        bannerEl.hidden = false;
+        bannerEl.className = "banner " + state.banner.cls;
+        bannerEl.textContent = state.banner.text;
+      } else {
+        bannerEl.hidden = true;
+        bannerEl.textContent = "";
+      }
+      renderTally(counts(items));
+      renderBoard(items);
+      renderInspect(items.find((i) => i.key === selectedId) || null);
+      document.querySelectorAll(".proto button[data-state]").forEach((b) => {
+        b.setAttribute("aria-pressed", b.dataset.state === name ? "true" : "false");
+      });
+      const narrow = window.matchMedia("(max-width: 1100px)").matches;
+      os.classList.toggle("is-inspect", Boolean(selectedId) && narrow);
+      overlay.hidden = !(selectedId && narrow);
+    }
+
+    function selectRow(key) {
+      selectedId = key;
+      askOn = false;
+      const items = itemsFor(view);
+      renderBoard(items);
+      renderInspect(items.find((i) => i.key === key) || null);
+      const narrow = window.matchMedia("(max-width: 1100px)").matches;
+      os.classList.toggle("is-inspect", Boolean(key) && narrow);
+      overlay.hidden = !(key && narrow);
+    }
+
+    function closeInspect() {
+      os.classList.remove("is-inspect");
+      overlay.hidden = true;
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-key]");
+      if (btn) selectRow(btn.dataset.key);
+    });
+
+    inspectEl.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close]")) closeInspect();
+      if (e.target.closest("[data-ask]")) {
+        askOn = !askOn;
+        const out = document.getElementById("ask-out");
+        if (out) out.classList.toggle("is-on", askOn);
+      }
+      if (e.target.closest("[data-primary]")) {
+        const item = itemsFor(view).find((i) => i.key === selectedId);
+        if (item && item.id === "exc_discount_blocked") {
+          /* stay on this object — alternatives are already in inspector */
+          return;
+        }
+        if (item && item.primary.href === "#blocked") {
+          applyState("blocked");
+        }
+      }
+    });
+
+    overlay.addEventListener("click", closeInspect);
+
+    document.querySelector(".proto").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-state]");
+      if (btn) applyState(btn.dataset.state);
+    });
+
+    document.querySelector(".nav").addEventListener("click", (e) => {
+      const link = e.target.closest("[data-future]");
+      if (!link) return;
+      e.preventDefault();
+      const name = link.dataset.future;
+      bannerEl.hidden = false;
+      bannerEl.className = "banner";
+      bannerEl.textContent = name.toUpperCase() + " is another Control OS screen. Pulse does not invent engines here.";
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeInspect();
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const items = itemsFor(view);
+      if (!items.length) return;
+      const idx = Math.max(0, items.findIndex((i) => i.key === selectedId));
+      const next = e.key === "ArrowDown" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
+      selectRow(items[next].key);
+      e.preventDefault();
+    });
+
+    window.addEventListener("resize", () => {
+      const narrow = window.matchMedia("(max-width: 1100px)").matches;
+      os.classList.toggle("is-inspect", Boolean(selectedId) && narrow);
+      overlay.hidden = !(selectedId && narrow);
+    });
+
+    applyState("delayed");
+  </script>
+</body>
+</html>
