@@ -3,6 +3,8 @@ import { AuthError, AuthService, getWorkspace, type OnboardingStep, type PublicW
 import { DiscoveryService } from "../discovery/service";
 import { IntegrationService } from "../integrations/service";
 import type { DatabaseSync } from "node:sqlite";
+import { getMeta, runWithDb } from "../db";
+import { pulseSummary } from "../engine/pulse";
 import { PROTECTION_OPTIONS } from "./types";
 
 export { PROTECTION_OPTIONS } from "./types";
@@ -98,18 +100,26 @@ export const OnboardingService = {
     return created.goal;
   },
 
-  firstPulse(workspaceId: string) {
+  firstPulse(workspaceId: string, db?: DatabaseSync) {
     const workspace = AuthService.updateWorkspace(workspaceId, {});
     const facts = DiscoveryService.list(workspaceId);
-    const connections = IntegrationService.list(workspaceId).filter((item) => item.connected);
+    const connections = IntegrationService.connectedCount(workspaceId, db);
     const observed = facts.filter((fact) => fact.count > 0);
+    // With a workspace DB (e.g. after a CSV import) the numbers come from the real Pulse projection.
+    let needsYou = 0;
+    let monitoring = workspace.protections.length;
+    if (db && observed.length) {
+      const summary = runWithDb(db, () => pulseSummary(db, getMeta(db, "demo_now") || new Date().toISOString())).attention.summary;
+      needsYou = summary.needsYou + summary.needsApproval;
+      monitoring = Math.max(summary.monitoring, monitoring);
+    }
     return {
       workspace,
-      connections: connections.length,
+      connections,
       facts,
-      needsYou: 0,
-      monitoring: workspace.protections.length,
-      opportunity: connections.length ? 1 : 0,
+      needsYou,
+      monitoring,
+      opportunity: connections ? 1 : 0,
       empty: observed.length === 0,
     };
   },

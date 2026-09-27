@@ -7,6 +7,8 @@ import { Button, Input } from "@/components/ui/primitives";
 import { PULSE_INTRO } from "@/lib/pulse-avatar/states";
 import { PROTECTION_OPTIONS } from "@/lib/onboarding/types";
 import type { ConnectorView } from "@/lib/integrations/service";
+import type { ConnectorView as RegistryConnectorView } from "@/lib/connectors/types";
+import { ImportPanel } from "@/components/connectors/ImportPanel";
 import type { DiscoveryFact } from "@/lib/discovery/service";
 
 async function post(path: string, body: unknown) {
@@ -157,10 +159,11 @@ export function MeetStep() {
   );
 }
 
-export function ConnectStep({ connectors }: { connectors: ConnectorView[] }) {
+export function ConnectStep({ connectors, registry = [] }: { connectors: ConnectorView[]; registry?: RegistryConnectorView[] }) {
   const router = useRouter();
   const [items, setItems] = useState(connectors);
   const [busy, setBusy] = useState<string | null>(null);
+  const [imported, setImported] = useState(0);
 
   async function connect(id: string) {
     setBusy(id);
@@ -174,13 +177,58 @@ export function ConnectStep({ connectors }: { connectors: ConnectorView[] }) {
     if (data.connectors) setItems(data.connectors);
   }
 
+  function next() {
+    void post("/api/onboarding", { step: "connect" }).then((data) => {
+      router.push(data.next || "/onboarding/discovery");
+      router.refresh();
+    });
+  }
+
+  const others = registry.filter((item) => item.connectorId !== "csv-import");
+  const manual = items.filter((item) => item.status !== "COMING_SOON");
+  const soon = items.filter((item) => item.status === "COMING_SOON");
+
   return (
     <div>
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-mute">Connect</p>
-      <h1 className="mt-3 font-serif text-4xl text-paper">Connect your business.</h1>
-      <p className="mt-3 text-sand">Only available connections can be turned on. Everything else is coming soon — we will not fake it.</p>
+      <h1 className="mt-3 font-serif text-4xl text-paper">Connect your data.</h1>
+      <p className="mt-3 text-sand">
+        Start with a spreadsheet. Import customers, orders and invoices; Pulse watches their deadlines with the same engines as everything else.
+        Nothing here is faked, and you can skip.
+      </p>
+
+      <section className="mt-6 rounded-lg border border-hairline p-4" aria-labelledby="import-heading">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="import-heading" className="text-paper">
+            CSV / Excel import
+          </h2>
+          <span className={`font-mono text-[10px] uppercase ${imported ? "text-ok" : "text-mute"}`}>
+            {imported ? `${imported} rows imported` : "Ready"}
+          </span>
+        </div>
+        <div className="mt-3">
+          <ImportPanel onImported={(result) => setImported((n) => n + result.imported)} />
+        </div>
+      </section>
+
       <ul className="mt-6 space-y-2">
-        {items.map((item) => (
+        {others.map((item) => (
+          <li key={item.installId} className="flex items-center justify-between gap-3 rounded-md border border-hairline px-3 py-3" data-connector={item.connectorId}>
+            <div>
+              <p className="text-paper">{item.label}</p>
+              <p className="text-sm text-sand">{item.summary}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className={`font-mono text-[10px] uppercase ${item.state === "connected" ? "text-ok" : item.state === "error" ? "text-miss" : "text-mute"}`}>
+                {item.state === "not_configured" ? "Not configured" : item.state === "disabled" ? "Ready" : item.state}
+              </span>
+              <a href="/connectors" target="_blank" rel="noreferrer" className="text-sm text-need hover:text-paper">
+                Configure
+              </a>
+            </div>
+          </li>
+        ))}
+        {manual.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-hairline px-3 py-3">
             <div>
               <p className="text-paper">{item.name}</p>
@@ -188,9 +236,7 @@ export function ConnectStep({ connectors }: { connectors: ConnectorView[] }) {
                 {item.category} · {item.summary}
               </p>
             </div>
-            {item.status === "COMING_SOON" ? (
-              <span className="font-mono text-[10px] uppercase text-mute">Coming soon</span>
-            ) : item.connected ? (
+            {item.connected ? (
               <span className="font-mono text-[10px] uppercase text-ok">Connected</span>
             ) : (
               <Button variant="ghost" disabled={busy === item.id} onClick={() => void connect(item.id)}>
@@ -200,26 +246,12 @@ export function ConnectStep({ connectors }: { connectors: ConnectorView[] }) {
           </li>
         ))}
       </ul>
+      {soon.length ? (
+        <p className="mt-4 text-xs text-mute">Coming soon, not faked: {soon.map((item) => item.name).join(", ")}.</p>
+      ) : null}
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button
-          onClick={() => {
-            void post("/api/onboarding", { step: "connect" }).then((data) => {
-              router.push(data.next || "/onboarding/discovery");
-              router.refresh();
-            });
-          }}
-        >
-          Discover what Pulse can see
-        </Button>
-        <Button
-          variant="quiet"
-          onClick={() => {
-            void post("/api/onboarding", { step: "connect" }).then((data) => {
-              router.push(data.next || "/onboarding/discovery");
-              router.refresh();
-            });
-          }}
-        >
+        <Button onClick={next}>{imported ? "Discover what Pulse can see" : "Continue"}</Button>
+        <Button variant="quiet" onClick={next}>
           Skip for now
         </Button>
       </div>

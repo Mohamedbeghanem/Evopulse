@@ -1,0 +1,4 @@
+Invoice Number,Customer,Order,Amount,Currency,Due Date,Status
+INV-2001,Oran Fresh Market,SO-1001,200000,DZD,2026-09-18,open
+INV-2002,Constantine Clinic,SO-1002,180000,DZD,2026-10-15,open
+INV-2003,Setif Depot,SO-1003,160000,DZD,2026-09-10,paid

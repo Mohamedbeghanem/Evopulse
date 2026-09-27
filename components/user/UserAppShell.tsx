@@ -16,12 +16,14 @@ const WORKSPACE = [
   { href: "/business", label: "Business", match: (path: string) => path.startsWith("/business") || path.startsWith("/graph") },
   { href: "/goals", label: "Goals", match: (path: string) => path.startsWith("/goals") },
   { href: "/approvals", label: "Approvals", match: (path: string) => path.startsWith("/approvals") },
+  { href: "/connectors", label: "Connectors", match: (path: string) => path.startsWith("/connectors") },
 ];
 
 const MORE = [
   { href: "/notifications", label: "Notifications" },
   { href: "/settings/workspace", label: "Workspace" },
   { href: "/settings/integrations", label: "Integrations" },
+  { href: "/connectors", label: "Connectors & Plugins" },
   { href: "/settings/team", label: "Team" },
   { href: "/settings/policies", label: "Policies" },
   { href: "/settings/profile", label: "Profile" },

@@ -40,7 +40,20 @@ export function evaluatePolicy(
     }
   }
 
+  // Connector writes (MCP write tools) leave EvoPulse. Fail closed: a discount above discount_max is
+  // still BLOCKED, everything else always needs a human, whatever the rest of the policy table says.
+  if (action.type === "connector_write") {
+    const args = (action.payload.args ?? {}) as Record<string, unknown>;
+    const requested = Number(args.percent ?? args.discount ?? args.discountPercent ?? 0);
+    const max = Number(policies.discount_max ?? 5);
+    if (requested > max) {
+      return { outcome: "BLOCKED", reason: `Policy discount_max=${max}% blocks a ${requested}% discount.` };
+    }
+    return { outcome: "APPROVAL_REQUIRED", reason: "Connector writes leave EvoPulse and need a human." };
+  }
+
   if (
+    action.type === "connector_outbound" ||
     action.type === "send_message" ||
     action.type === "send_simulated_message" ||
     action.type === "draft_message"
