@@ -7,6 +7,8 @@ import { executeAction } from "../engine/execute";
 import { IDS } from "../ids";
 import type { ActionRow, ExceptionRow, PlanRow } from "../types";
 import { EarlyWarningEngine, type WarningRow } from "../warnings";
+import { situationKey } from "../attention/identity";
+import { attentionRank, summarizeClassifications } from "../attention/types";
 import { classifySituation } from "./classify";
 import type {
   AutopilotCard,
@@ -179,21 +181,22 @@ export class ExceptionAutopilotService {
 
   summarize(now?: string): AutopilotSummary {
     const eventsProcessed = all<{ c: number }>(this.db, "SELECT COUNT(*) as c FROM events")[0]?.c || 0;
-    const rows = this.listDecisions().filter((row) => row.situation_type !== "action");
-    const count = (state: AutopilotState) => rows.filter((row) => row.classification === state).length;
-    const attention = count("NEEDS_YOU") + count("NEEDS_APPROVAL") + count("BLOCKED") + count("MONITORING");
-    const normal = Math.max(0, eventsProcessed - attention);
-    return {
-      eventsProcessed,
-      normal,
-      monitoring: count("MONITORING"),
-      prepared: count("PREPARED"),
-      autoHandled: this.listDecisions().filter((row) => row.classification === "AUTO_HANDLED").length,
-      needsApproval: count("NEEDS_APPROVAL"),
-      needsYou: count("NEEDS_YOU"),
-      blocked: count("BLOCKED"),
-      handled: count("HANDLED"),
-    };
+    const exceptions = all<ExceptionRow>(this.db, "SELECT * FROM exceptions");
+    const warnings = EarlyWarningEngine.for(this.db).list();
+    const groups = new Map<string, AutopilotState>();
+    for (const row of this.listDecisions()) {
+      if (row.situation_type === "action" || row.classification === "NORMAL") continue;
+      const exception = row.exception_id ? exceptions.find((item) => item.id === row.exception_id) : undefined;
+      const warning = row.warning_id ? warnings.find((item) => item.id === row.warning_id) : undefined;
+      const key = situationKey(exceptions, warnings, exception, warning, row.id);
+      const current = groups.get(key);
+      if (!current || attentionRank(row.classification) < attentionRank(current)) {
+        groups.set(key, row.classification);
+      }
+    }
+    const summary = summarizeClassifications(eventsProcessed, [...groups.values()]);
+    summary.autoHandled = this.listDecisions().filter((row) => row.classification === "AUTO_HANDLED").length;
+    return summary;
   }
 
   approve(decisionId: string, now: string, actor = "operator") {
@@ -256,27 +259,42 @@ export class ExceptionAutopilotService {
   }
 
   commandAnswer(question: string, now: string) {
-    const snapshot = this.evaluateSituation(now);
+    const { projectAttention } = require("../attention") as typeof import("../attention");
+    const projection = projectAttention(this.db, now);
     const q = question.toLowerCase();
     if (/what needs me|need me/.test(q)) {
       return {
-        answer: `${snapshot.summary.needsYou} need you. ${snapshot.summary.needsApproval} need approval. ${snapshot.summary.blocked} blocked by policy.`,
-        cards: snapshot.cards.filter((card: AutopilotCard) =>
-          ["NEEDS_YOU", "NEEDS_APPROVAL", "BLOCKED"].includes(card.classification),
-        ),
-        summary: snapshot.summary,
+        answer: `${projection.summary.needsYou} need you. ${projection.summary.needsApproval} need approval. ${projection.summary.blocked} blocked by policy.`,
+        cards: projection.needsMe,
+        summary: projection.summary,
       };
     }
     if (/monitoring/.test(q)) {
-      return { answer: `${snapshot.summary.monitoring} situations are being monitored.`, cards: snapshot.cards.filter((c: AutopilotCard) => c.classification === "MONITORING"), summary: snapshot.summary };
+      return {
+        answer: `${projection.summary.monitoring} situations are being monitored.`,
+        cards: projection.watching,
+        summary: projection.summary,
+      };
     }
     if (/handle|handled automatically|safely handle/.test(q)) {
-      return { answer: `${snapshot.summary.autoHandled} safe internal actions were auto-handled.`, cards: snapshot.cards.filter((c: AutopilotCard) => c.classification === "AUTO_HANDLED"), summary: snapshot.summary };
+      return {
+        answer: `${projection.summary.autoHandled} safe internal actions were auto-handled.`,
+        cards: projection.handled,
+        summary: projection.summary,
+      };
     }
     if (/blocked/.test(q)) {
-      return { answer: `${snapshot.summary.blocked} actions blocked by current policy.`, cards: snapshot.cards.filter((c: AutopilotCard) => c.classification === "BLOCKED"), summary: snapshot.summary };
+      return {
+        answer: `${projection.summary.blocked} actions blocked by current policy.`,
+        cards: projection.needsMe.filter((item) => item.classification === "BLOCKED"),
+        summary: projection.summary,
+      };
     }
-    return { answer: "Your business is running. Autopilot classified current situations.", cards: snapshot.cards, summary: snapshot.summary };
+    return {
+      answer: "Your business is running. Autopilot classified current situations.",
+      cards: projection.items,
+      summary: projection.summary,
+    };
   }
 
   private recordExceptionDecision(exception: ExceptionRow, now: string): AutopilotCard | null {

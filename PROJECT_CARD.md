@@ -62,7 +62,7 @@ Cold start Pulse → exception → recovery Approve → demo bar **Later message
 | Problem & User Value | 20 | 320K forgotten promise, not another CRM |
 | Functional Execution | 20 | Full loop; `npm test`; actions change state |
 | Quality of AI Use | 20 | Extract + recover; software owns policy/state |
-| Testing & Reliability | 15 | Offline fallback, seed, 11 tests |
+| Testing & Reliability | 15 | Offline fallback, seed, `npm test` |
 | User Experience & Demo | 15 | Clickable 90s path, Time Machine |
 | Responsible AI & Data | 10 | Evidence, approval, synthetic data, Brev unused |
 

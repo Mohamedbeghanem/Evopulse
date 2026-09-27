@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { CommandRouter } from "../lib/command";
 import { getDb, getMeta, resetDbFile, run } from "../lib/db";
 import { ingestSeedDiscount } from "../lib/engine/ingest";
+import { pulseSummary } from "../lib/engine/pulse";
 import { triggerSupplierDelay } from "../lib/engine/supplier";
 import { IDS } from "../lib/ids";
 import { EarlyWarningEngine } from "../lib/warnings";
@@ -23,6 +24,7 @@ describe("command center", { concurrency: 1 }, () => {
     const command = router();
     assert.equal(command.classifyIntent("What changed today?"), "BUSINESS_CHANGES");
     assert.equal(command.classifyIntent("What needs me?"), "ATTENTION");
+    assert.equal(command.classifyIntent("What are you monitoring?"), "STATUS");
     assert.equal(command.classifyIntent("What am I about to miss?"), "FUTURE_RISK");
     assert.equal(command.classifyIntent("Why is 850K at risk?"), "CAUSAL_EXPLANATION");
     assert.equal(command.classifyIntent("What if Atlas is another 3 days late?"), "SIMULATION");
@@ -50,6 +52,17 @@ describe("command center", { concurrency: 1 }, () => {
     assert.ok(items.every((item) => item.kind === "NEEDS_YOU" || item.kind === "NEEDS_APPROVAL" || item.kind === "BLOCKED"));
     assert.equal(result.sourceSystems.includes("AUTOPILOT"), true);
     assert.notEqual(result.data.autopilot, "not_merged");
+    const pulse = pulseSummary(getDb(), getMeta(getDb(), "demo_now"));
+    const pulseKeys = pulse.attention.needsMe.map((item) => `${item.id}:${item.classification}`).sort();
+    const commandKeys = items.map((item) => `${(item as { situationId?: string }).situationId}:${item.kind}`).sort();
+    assert.deepEqual(commandKeys, pulseKeys);
+  });
+
+  it("monitoring command returns canonical watching state", () => {
+    const result = router().route("What are you monitoring?");
+    assert.equal(result.intent, "STATUS");
+    assert.equal(result.status, "MONITORING");
+    assert.equal(result.sourceSystems.includes("AUTOPILOT"), true);
   });
 
   it("returns live early-warning buffers and excludes resolved warnings", () => {

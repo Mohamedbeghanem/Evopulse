@@ -6,6 +6,7 @@ import { calculateGraphImpact } from "../engine/impact";
 import { evaluatePolicy, loadPolicies } from "../engine/policy";
 import { businessTwin } from "../engine/twin";
 import { eventsFor } from "../events";
+import { projectAttention } from "../attention";
 import { ExceptionAutopilotService } from "../autopilot";
 import { createGoal } from "../goals/service";
 import { IDS, id } from "../ids";
@@ -99,32 +100,27 @@ function changes(db: DatabaseSync, ctx: IntentContext): CommandResult {
 }
 
 function attention(db: DatabaseSync, ctx: IntentContext): CommandResult {
-  const snapshot = ExceptionAutopilotService.for(db).evaluateSituation(ctx.now);
-  const rank: Record<string, number> = { BLOCKED: 0, NEEDS_YOU: 1, NEEDS_APPROVAL: 2 };
-  const cards = snapshot.cards
-    .filter((card) => ["NEEDS_YOU", "NEEDS_APPROVAL", "BLOCKED"].includes(card.classification))
-    .sort((a, b) => (rank[a.classification] ?? 9) - (rank[b.classification] ?? 9));
-  const items = cards.map((card) => ({
-    kind: card.classification,
-    id: card.exceptionId || card.warningId || card.id,
-    title: card.title,
-    detail: card.needsFromYou,
-    reasonCode: card.reasonCode,
+  const projection = projectAttention(db, ctx.now);
+  const items = projection.needsMe.map((item) => ({
+    kind: item.classification,
+    id: item.sourceExceptionId || item.sourceWarningId || item.id,
+    title: item.title,
+    detail: item.needsFromYou,
+    reasonCode: item.reasonCode,
+    situationId: item.id,
   }));
   return base(ctx, {
     intent: ctx.intent === "AUTOPILOT" ? "AUTOPILOT" : "ATTENTION",
     answerType: "ATTENTION",
-    status: snapshot.summary.blocked
+    status: projection.summary.blocked
       ? "BLOCKED"
-      : snapshot.summary.needsApproval
+      : projection.summary.needsApproval
         ? "APPROVAL_REQUIRED"
-        : items.length
-          ? "OK"
-          : "OK",
+        : "OK",
     summary: items.length
-      ? `${snapshot.summary.needsYou} need you · ${snapshot.summary.needsApproval} need approval · ${snapshot.summary.blocked} blocked`
+      ? `${projection.summary.needsYou} need you · ${projection.summary.needsApproval} need approval · ${projection.summary.blocked} blocked`
       : "Nothing needs you.",
-    data: { items, autopilot: snapshot.summary },
+    data: { items, autopilot: projection.summary },
     evidence: items.map((item) => ({
       statement: `${item.kind}: ${item.title}`,
       sourceSystem: "AUTOPILOT" as const,
@@ -132,43 +128,39 @@ function attention(db: DatabaseSync, ctx: IntentContext): CommandResult {
     })),
     links: [{ href: "/", label: "Open pulse" }],
     sourceSystems: ["AUTOPILOT", "POLICY", "DETECT"],
-    approvalRequired: snapshot.summary.needsApproval > 0,
-    exceptionId: cards.find((card) => card.exceptionId)?.exceptionId || undefined,
+    approvalRequired: projection.summary.needsApproval > 0,
+    exceptionId: projection.needsMe.find((item) => item.sourceExceptionId)?.sourceExceptionId || undefined,
   });
 }
 
 function monitoring(db: DatabaseSync, ctx: IntentContext): CommandResult {
-  const engine = EarlyWarningEngine.for(db);
-  engine.evaluateAll(ctx.now);
-  const warnings = engine.getActiveWarnings().filter((row) => row.status === "ACTIVE" || row.status === "MONITORING");
-  const pending = VerificationService.for(db).getPendingVerifications();
-  const risk = warnings.map((row) => {
-    const summary = engine.summarize(row);
-    return { channel: "risk", id: row.id, title: summary.title, state: summary.buffer_state, status: summary.status };
-  });
-  const checks = pending.map((row) => ({
-    channel: "verification",
-    id: row.id,
-    title: row.expected_event_type,
-    state: row.status,
-    exceptionId: row.exception_id,
-  }));
+  const projection = projectAttention(db, ctx.now);
+  const watching = projection.watching;
   return base(ctx, {
     intent: "STATUS",
     answerType: "WARNING",
     status: "MONITORING",
-    summary: `Monitoring ${risk.length + checks.length} situations`,
-    data: { riskMonitoring: risk, verificationMonitoring: checks },
-    evidence: [
-      ...risk.map((item) => ({ statement: `${item.title} · ${item.state}`, sourceSystem: "EARLY_WARNING" as const, sourceId: item.id })),
-      ...checks.map((item) => ({ statement: `Awaiting ${item.title}`, sourceSystem: "VERIFICATION" as const, sourceId: item.id })),
-    ],
+    summary: watching.length ? `Monitoring ${watching.length} situations` : "Nothing is in MONITORING.",
+    data: {
+      items: watching.map((item) => ({
+        kind: item.classification,
+        id: item.sourceExceptionId || item.sourceWarningId || item.id,
+        title: item.title,
+        reasonCode: item.reasonCode,
+        situationId: item.id,
+      })),
+    },
+    evidence: watching.map((item) => ({
+      statement: `${item.title} · ${item.reasonCode}`,
+      sourceSystem: item.sourceWarningId ? "EARLY_WARNING" : "AUTOPILOT",
+      sourceId: item.sourceWarningId || item.sourceExceptionId || item.id,
+    })),
     links: [
       { href: "/warnings", label: "View warnings" },
-      { href: "/timeline", label: "View timeline" },
+      { href: "/", label: "Open pulse" },
     ],
-    sourceSystems: ["EARLY_WARNING", "VERIFICATION"],
-    warningId: warnings[0]?.id,
+    sourceSystems: ["AUTOPILOT", "EARLY_WARNING", "VERIFICATION"],
+    warningId: watching.find((item) => item.sourceWarningId)?.sourceWarningId || undefined,
   });
 }
 
@@ -356,7 +348,7 @@ function policy(db: DatabaseSync, ctx: IntentContext): CommandResult {
     status: grouped.BLOCKED.length ? "BLOCKED" : grouped.APPROVAL_REQUIRED.length ? "APPROVAL_REQUIRED" : "OK",
     summary: "Safe now",
     data: {
-      autopilot: ExceptionAutopilotService.for(db).evaluateSituation(ctx.now).summary,
+      autopilot: projectAttention(db, ctx.now).summary,
       safe: grouped.AUTO.map(brief),
       approval: grouped.APPROVAL_REQUIRED.map(brief),
       blocked: grouped.BLOCKED.map(brief),
@@ -460,7 +452,7 @@ function audit(db: DatabaseSync, ctx: IntentContext, intent: CommandIntent): Com
     answerType: "AUDIT_TRACE",
     status: blocked && aboutBlock ? "BLOCKED" : "OK",
     summary: aboutBlock ? "The 10% discount stays blocked by policy." : "Recorded decision trace",
-    data: { trace, autopilot: ExceptionAutopilotService.for(db).evaluateSituation(ctx.now).summary },
+    data: { trace, autopilot: projectAttention(db, ctx.now).summary },
     evidence: trace.map((step) => ({ statement: `${step.step}: ${step.detail}`, sourceSystem: "POLICY" as const })),
     links: [{ href: `/exceptions/${IDS.excDiscount}`, label: "View trace" }],
     sourceSystems: ["POLICY", "DETECT"],
