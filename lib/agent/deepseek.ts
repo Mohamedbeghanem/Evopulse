@@ -2,10 +2,11 @@ import type { DatabaseSync } from "node:sqlite";
 import { getMeta } from "../db";
 import { DeterministicRuntime } from "./deterministic";
 import { appendStep, createRun, loadOrCreateSession, loadRun, patchRun } from "./store";
-import { applyHumanDecision, finishRun, hostFrom, invokeTool, looksLikeInjection, splitPromptLayers } from "./executor";
+import { applyHumanDecision, finishRun, runApprovedConnectorWrites, hostFrom, invokeTool, looksLikeInjection, splitPromptLayers } from "./executor";
 import { selectPlaybook } from "./playbooks";
 import { resolveConfiguredProvider, type ModelProvider } from "./provider";
 import { listBusinessToolSchemas } from "./tools";
+import { listPluginToolSchemas } from "../connectors/agent-tools";
 import type { AgentRun, AgentRuntime, AgentRunRequest, ApprovalDecision } from "./types";
 
 const cancelled = new Set<string>();
@@ -83,7 +84,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
 
   async resumeAfterApproval(runId: string, decision: ApprovalDecision): Promise<AgentRun> {
     const now = getMeta(this.db, "demo_now") || new Date().toISOString();
-    return applyHumanDecision(this.db, runId, decision, now);
+    return runApprovedConnectorWrites(this.db, applyHumanDecision(this.db, runId, decision, now), now);
   }
 
   private async loop(runId: string, provider: ModelProvider, now: string): Promise<AgentRun> {
@@ -104,7 +105,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
           system: layers.system,
           user: layers.user,
           businessData: layers.businessData,
-          tools: listBusinessToolSchemas(),
+          tools: [...listBusinessToolSchemas(), ...listPluginToolSchemas(this.db)],
           history,
         },
         AbortSignal.timeout(8_000),
@@ -128,7 +129,7 @@ export class DeepSeekHarnessRuntime implements AgentRuntime {
         if (result.status === "failed" && result.data.loopLimit) {
           return finishRun(host, { summary: result.error || "Loop limit", intent: playbook.intent }, "failed", "FAILED", result.error);
         }
-        if (call.name === "request_action_approval" && result.requiresApproval) {
+        if ((call.name === "request_action_approval" || call.name.startsWith("plugin__")) && result.requiresApproval) {
           return finishRun(
             host,
             {

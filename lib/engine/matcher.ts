@@ -20,6 +20,8 @@ import {
   refreshExpectations,
 } from "./expectations";
 import { calculateGraphImpact, calculateImpact } from "./impact";
+// P0: connector-sourced expectations must not inherit the Atlas 320K fallback impact.
+import { connectorExpectationImpact } from "../connectors/impact";
 
 /**
  * Event-type aliases for matching. Control stores `customer.response`;
@@ -256,7 +258,9 @@ export class ExpectedEventMatcher {
           urgency: "high" as const,
           notes: graph.notes,
         }
-      : calculateImpact(this.db);
+      : exp.source_type === "connector"
+        ? connectorExpectationImpact(this.db, exp)
+        : calculateImpact(this.db);
     const evidence: EvidencePack = {
       source: commitment ? "Customer conversation" : "Expectation engine",
       quote: commitment?.evidence || "",
@@ -287,7 +291,7 @@ export class ExpectedEventMatcher {
         title,
         kind,
         exp.id,
-        useGraph && exp.entity_id ? exp.entity_id : IDS.opportunity,
+        (useGraph || exp.source_type === "connector") && exp.entity_id ? exp.entity_id : IDS.opportunity,
         isOurs ? "NEEDS_YOU" : "MONITORING",
         isOurs ? "critical" : "high",
         "high",

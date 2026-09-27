@@ -144,6 +144,11 @@ Forbidden capabilities (registered only so they can be denied): `mutate_policy`,
 
 `approve_action` is never a model tool. A human presses Approve. The runtime resumes.
 
+**Plugin tools** (connectors / MCP, see [CONNECTORS.md](./CONNECTORS.md)) are namespaced `plugin__<install>__<tool>`
+and resolved after the core registry. READ plugin tools run and return untrusted data; WRITE plugin tools are
+`HUMAN_REQUIRED`: they create a `connector_write` action that Policy evaluates, a human approves, and Policy
+rechecks right before the call.
+
 ## Laws the adapter must not break
 
 - **Simulation.** What-if goes through `simulate_change`. Live dates are not rewritten.

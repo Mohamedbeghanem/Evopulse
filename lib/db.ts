@@ -223,6 +223,8 @@ function migrate(db: DatabaseSync) {
   migrateAutopilotTables(db);
   const { migrateAgentTables } = require("./agent/schema") as typeof import("./agent/schema");
   migrateAgentTables(db);
+  const { migrateConnectorTables } = require("./connectors/schema") as typeof import("./connectors/schema");
+  migrateConnectorTables(db);
 }
 
 /** Adaptive Autonomy tables (lib/autonomy). Additive only. */
