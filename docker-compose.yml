@@ -6,8 +6,11 @@ services:
     environment:
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
+      DB_PATH: /data/evopulse.db
+      CONTROL_DB_PATH: /data/control.db
+      WORKSPACE_DB_DIR: /data/workspaces
     volumes:
-      - evopulse-data:/app/data
+      - evopulse-data:/data
 
 volumes:
   evopulse-data:

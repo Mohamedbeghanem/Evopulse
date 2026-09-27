@@ -1,0 +1,28 @@
+# Render Blueprint — New → Blueprint → pick this repo. Disks require a paid instance type (starter or above).
+services:
+  - type: web
+    name: evopulse
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/health
+    # SQLite is single-writer: one instance only (a disk cannot be shared across instances).
+    numInstances: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: DB_PATH
+        value: /data/evopulse.db
+      - key: CONTROL_DB_PATH
+        value: /data/control.db
+      - key: WORKSPACE_DB_DIR
+        value: /data/workspaces
+    disk:
+      name: evopulse-data
+      mountPath: /data
+      sizeGB: 1
