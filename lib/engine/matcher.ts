@@ -233,6 +233,12 @@ export class ExpectedEventMatcher {
       [exp.id],
     );
     if (existing) return undefined;
+    // The 320K miss uses a fixed exception id. Once that situation was resolved (e.g. verified by the
+    // customer's reply) the clock sweep must not re-raise it: that duplicates the situation and the
+    // INSERT below would violate the primary key and abort the caller (ingest, autopilot hooks).
+    if (exp.id === IDS.expectOurs && one(this.db, "SELECT id FROM exceptions WHERE id = ?", [IDS.excMissed])) {
+      return undefined;
+    }
 
     const commitment = exp.commitment_id
       ? one<CommitmentRow>(this.db, "SELECT * FROM commitments WHERE id = ?", [exp.commitment_id])
