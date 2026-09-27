@@ -1332,6 +1332,9 @@
       });
 
       if (location.hash === "#approve" || /run=protect/.test(location.search)) runProtect(true);
+      if (/act=execute/.test(location.search)) {
+        document.querySelector("[data-execute]").click();
+      }
     </script>
   </body>
 </html>
