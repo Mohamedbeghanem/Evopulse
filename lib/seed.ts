@@ -19,6 +19,7 @@ import { seedSyntheticLearningData, wipeLearningTables } from "./learning";
 import { wipeAutopilotTables } from "./autopilot";
 import { wipeWarningTables } from "./warnings";
 import { wipeAgentTables } from "./agent/schema";
+import { expandDistributionWorld } from "./company/world";
 
 function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
   db.prepare(sql).run(...params);
@@ -41,12 +42,15 @@ export function seedWorld(db: DatabaseSync) {
 
   run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["demo_now", now]);
   run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["demo_phase", "seeded"]);
+  run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["workspace_mode", "entry"]);
+  run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["company_template", "distribution"]);
+  run(db, "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["company_name", "Atlas Medical Distribution"]);
 
   run(db, `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`, [
     IDS.company,
     "company",
-    "Atlas Retail Group",
-    JSON.stringify({ city: "Algiers", sector: "retail" }),
+    "Atlas Medical Distribution",
+    JSON.stringify({ city: "Algiers", sector: "medical-equipment-distribution" }),
     "2026-08-12T09:00:00+01:00",
   ]);
   run(db, `INSERT OR REPLACE INTO entities (id, type, name, payload, created_at) VALUES (?, ?, ?, ?, ?)`, [
@@ -356,6 +360,7 @@ export function seedWorld(db: DatabaseSync) {
   });
 
   seedSupplierGraph(db);
+  expandDistributionWorld(db);
 }
 
 export function wipeAndSeed(db: DatabaseSync) {

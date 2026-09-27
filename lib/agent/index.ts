@@ -1,6 +1,7 @@
 export { DeepSeekHarnessRuntime } from "./deepseek";
 export { DeterministicRuntime } from "./deterministic";
 export { getAgentRuntime, resolveRuntimeMode, safeAgentRuntime } from "./runtime";
+export { loadLatestRun } from "./store";
 export { migrateAgentTables, wipeAgentTables } from "./schema";
 export { listBusinessToolSchemas, getToolPermission, TOOL_DEFINITIONS } from "./tools";
 export { looksLikeInjection, splitPromptLayers } from "./executor";

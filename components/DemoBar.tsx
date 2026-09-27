@@ -29,7 +29,7 @@ export function DemoBar() {
       <div className="flex flex-wrap items-center gap-3 px-4 py-2 text-xs lg:px-8">
         <span className="font-mono text-need">DEMO</span>
         <span className="text-mute">
-          Algeria · team 2–5 · Brev not used · Sun 27 Sep 2026 · Atlas 320K seeded
+          Algeria · Atlas Medical Distribution · Sun 27 Sep 2026
         </span>
         <span className="ml-auto flex flex-wrap gap-2">
           <button

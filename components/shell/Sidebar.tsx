@@ -39,6 +39,18 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <button
           type="button"
           className="flex min-h-[34px] w-full items-center justify-between rounded-md bg-ink-600 px-3 text-sm text-paper"
+          onClick={async () => {
+            onClose();
+            await fetch("/api/company/new", { method: "POST" });
+            window.location.assign("/");
+          }}
+        >
+          + New company
+          <span className="font-mono text-[10px] text-mute">+</span>
+        </button>
+        <button
+          type="button"
+          className="flex min-h-[34px] w-full items-center justify-between rounded-md border border-hairline px-3 text-sm text-sand hover:text-paper"
           onClick={() => {
             onClose();
             router.push("/command");

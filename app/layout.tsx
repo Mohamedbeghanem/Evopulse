@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
+import { workspaceMode } from "@/lib/company";
+import { getDb } from "@/lib/db";
 import "./globals.css";
 
 const serif = Instrument_Serif({
@@ -21,6 +23,9 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// The shell reads workspace mode (entry vs running) from the database, so no route may be prerendered.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "EvoPulse — Nothing falls through",
   description: "AI-native Business Control System. Expected vs actual, with evidence.",
@@ -30,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
-        <AppShell>{children}</AppShell>
+        <AppShell workspaceMode={workspaceMode(getDb())}>{children}</AppShell>
       </body>
     </html>
   );
