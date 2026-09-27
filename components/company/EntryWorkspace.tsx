@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PulseAvatar } from "@/components/pulse/PulseAvatar";
 import { Button } from "@/components/ui/primitives";
@@ -170,6 +171,11 @@ export function EntryWorkspace() {
         </Button>
       </div>
       {error ? <p className="mt-6 text-sm text-miss">{error}</p> : null}
+      <nav aria-label="Account" className="mt-10 flex flex-wrap justify-center gap-4 text-sm text-mute">
+        <Link href="/welcome" className="hover:text-paper">About EvoPulse</Link>
+        <Link href="/login" className="hover:text-paper">Sign in</Link>
+        <Link href="/signup" className="hover:text-paper">Create an account</Link>
+      </nav>
     </div>
   );
 }

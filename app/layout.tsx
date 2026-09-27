@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
-import { AppShell } from "@/components/AppShell";
+import { ProductChrome } from "@/components/session/ProductChrome";
+import { resolveRequestContext } from "@/lib/auth";
 import { workspaceMode } from "@/lib/company";
 import { getDb } from "@/lib/db";
+import { toPlain } from "@/lib/plain";
 import "./globals.css";
 
 const serif = Instrument_Serif({
@@ -23,19 +25,27 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
-// The shell reads workspace mode (entry vs running) from the database, so no route may be prerendered.
+// The shell reads workspace mode (entry vs running) and the session, so no route may be prerendered.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "EvoPulse — Nothing falls through",
-  description: "AI-native Business Control System. Expected vs actual, with evidence.",
+  description: "Your business is running. EvoPulse makes sure nothing falls through.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const ctx = await resolveRequestContext();
   return (
     <html lang="en">
       <body className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}>
-        <AppShell workspaceMode={workspaceMode(getDb())}>{children}</AppShell>
+        <ProductChrome
+          mode={ctx.user ? ctx.mode : "anon"}
+          user={toPlain(ctx.user)}
+          workspace={toPlain(ctx.workspace)}
+          workspaceMode={workspaceMode(getDb())}
+        >
+          {children}
+        </ProductChrome>
       </body>
     </html>
   );

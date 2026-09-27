@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getDb, getMeta } from "@/lib/db";
+import { withWorkspace } from "@/lib/auth";
+import { getMeta } from "@/lib/db";
 import { createGoal, listGoalSummaries } from "@/lib/goals";
 
-export async function GET() {
-  const db = getDb();
-  return NextResponse.json({ goals: listGoalSummaries(db) });
-}
+export const GET = withWorkspace(async (ctx) => {
+  return NextResponse.json({ goals: listGoalSummaries(ctx.db) });
+});
 
-export async function POST(req: Request) {
+export const POST = withWorkspace(async (ctx, req) => {
   const body = (await req.json().catch(() => ({}))) as {
     utterance?: string;
     goalType?: string;
@@ -16,11 +16,10 @@ export async function POST(req: Request) {
     constraints?: Record<string, unknown>;
     plan?: boolean;
   };
-  const db = getDb();
-  const now = getMeta(db, "demo_now");
+  const now = getMeta(ctx.db, "demo_now");
   try {
     const result = createGoal(
-      db,
+      ctx.db,
       {
         utterance: body.utterance,
         goalType: body.goalType,
@@ -36,4 +35,4 @@ export async function POST(req: Request) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "failed" }, { status: 400 });
   }
-}
+});

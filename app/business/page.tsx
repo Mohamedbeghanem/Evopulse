@@ -3,13 +3,13 @@ import { InspectorPanel } from "@/components/shell/InspectorPanel";
 import { Workspace } from "@/components/shell/Workspace";
 import { PageHeader } from "@/components/ui/chrome";
 import { StatusBadge } from "@/components/ui/badges";
-import { getDb } from "@/lib/db";
+import { withPageContext } from "@/lib/auth/page";
 import { businessTwin } from "@/lib/engine/twin";
 
 export const dynamic = "force-dynamic";
 
-export default function BusinessPage() {
-  const twin = businessTwin(getDb());
+export default async function BusinessPage() {
+  const twin = await withPageContext((ctx) => businessTwin(ctx.db));
   return (
     <Workspace
       mode="operational"

@@ -12,7 +12,7 @@ Record this cold. Do not type. Seed is already at the miss.
 
 | Sec | Shot | Say / show | Rubric |
 | --- | --- | --- | --- |
-| 0–8 | `/` Pulse, cold start | “320,000 DZD needs you. Atlas asked for a revised proposal Thursday. We never sent it.” | **Problem & User Value (20)** — forgotten commitment, not another CRM |
+| 0–8 | `/demo` Pulse, cold start | “320,000 DZD needs you. Atlas asked for a revised proposal Thursday. We never sent it.” | **Problem & User Value (20)** — forgotten commitment, not another CRM |
 | 8–20 | Click the exception | Quote on screen: *“Send the revised 320,000 DZD proposal tomorrow and I'll give you my decision Friday.”* Point at Expected vs Actual, 94% confidence, source. | **Quality of AI Use (20)** + **Responsible AI (10)** — evidence, no hidden chain-of-thought |
 | 20–32 | Dependency chain | “Our promise and their promise. Their Friday decision **depends on** our Thursday send. One miss, two broken expectations.” | **Functional Execution (20)** — primitives from PLAN §3 |
 | 32–48 | `/exceptions/exc_proposal_missed/plan` | Three actions: prepare proposal, draft follow-up, Monday checkpoint. Badge **APPROVAL_REQUIRED** because `external_message_requires_approval=true`. Click **Approve & execute**. Autopilot moves to MONITORING — execution is not HANDLED until verification succeeds. | **Functional Execution (20)** + **UX & Demo (15)** — human gate, state actually changes |

@@ -1,3 +1,12 @@
+export const USER_COMMAND_PROMPTS = [
+  "What's happening?",
+  "What needs me?",
+  "What changed today?",
+  "What should I worry about?",
+  "What can you handle?",
+  "Show me my customers affected this week.",
+] as const;
+
 export const COMMAND_PROMPTS = [
   "What changed today?",
   "What needs me?",

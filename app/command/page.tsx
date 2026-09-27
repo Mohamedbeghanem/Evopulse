@@ -10,7 +10,7 @@ import { PolicyBadge, StatusBadge } from "@/components/ui/badges";
 import { ActionBar, PageHeader } from "@/components/ui/chrome";
 import { Button } from "@/components/ui/primitives";
 import { avatarStateFromAgent } from "@/lib/company/avatar";
-import { COMMAND_PROMPTS } from "@/lib/ui/commands";
+import { COMMAND_PROMPTS, USER_COMMAND_PROMPTS } from "@/lib/ui/commands";
 
 type TraceStep = {
   id: string;
@@ -157,7 +157,8 @@ export default function CommandPage() {
           onChange={setMessage}
           onSubmit={(value) => void ask(value)}
           busy={busy}
-          suggestions={COMMAND_PROMPTS}
+          placeholder="Ask Pulse anything about your business..."
+          suggestions={[...USER_COMMAND_PROMPTS, ...COMMAND_PROMPTS]}
           onSuggestion={(value) => void ask(value)}
         />
       </div>

@@ -5,7 +5,7 @@ import { Workspace } from "@/components/shell/Workspace";
 import { EventRow } from "@/components/ui/rows";
 import { PageHeader } from "@/components/ui/chrome";
 import { formatDay } from "@/lib/clock";
-import { getDb } from "@/lib/db";
+import { withPageContext } from "@/lib/auth/page";
 import { eventsFor } from "@/lib/events";
 import { buildTimeline } from "@/lib/engine/timeline";
 import { IDS } from "@/lib/ids";
@@ -13,10 +13,11 @@ import { tapeKindForEvent } from "@/lib/ui/event-kind";
 
 export const dynamic = "force-dynamic";
 
-export default function TimelinePage() {
-  const db = getDb();
-  const timeline = buildTimeline(db);
-  const stream = eventsFor(db).list({ limit: 80 });
+export default async function TimelinePage() {
+  const { timeline, stream } = await withPageContext((ctx) => ({
+    timeline: buildTimeline(ctx.db),
+    stream: eventsFor(ctx.db).list({ limit: 80 }),
+  }));
 
   return (
     <Workspace
