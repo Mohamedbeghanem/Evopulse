@@ -135,6 +135,9 @@ Banner: Pulse could not read attention. Prototype only — engines are untouched
 Locked Inspector pattern from Causal Explorer (`components/CausalExplorer.tsx`): source, evidence quote, expected, actual, timestamp, confidence, chain, value, affected objects.
 
 - Selecting a row fills the Inspector. One situation only.
+- Locked fields stay visible: source, expected, actual, timestamp, confidence, value.
+- **Open cascade** / **Review and approve recovery** sit under the quote so the primary action is on screen.
+- Chain, affected objects, and one-object notes sit behind **Show chain and objects**.
 - At 1440 and 1280 the Inspector is a right column.
 - At 1024 it overlays the canvas and can be dismissed (Close / Escape / overlay).
 - **Ask EvoPulse about this…** reveals one grounded sentence from `lib/engine/ask.ts` / impact notes. It does not open a composer.

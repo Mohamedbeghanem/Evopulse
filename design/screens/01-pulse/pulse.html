@@ -261,34 +261,6 @@
       text-transform: uppercase;
       color: var(--mute);
     }
-    .disclosure {
-      grid-column: 2 / -1;
-      display: none;
-      padding: 4px 0 8px;
-    }
-    .row[aria-selected="true"] + .disclosure,
-    .row.is-open + .disclosure { display: block; }
-    .disclosure dl {
-      margin: 0;
-      display: grid;
-      gap: 6px;
-    }
-    .disclosure .pair {
-      display: grid;
-      grid-template-columns: 160px minmax(0, 1fr);
-      gap: 12px;
-      color: var(--sand);
-      font-size: 13px;
-    }
-    .disclosure dt {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--mute);
-      padding-top: 2px;
-    }
-
     .empty {
       padding: 18px 12px;
       color: var(--mute);
@@ -368,10 +340,20 @@
       color: var(--paper);
     }
     .actions {
-      margin-top: 26px;
+      margin-top: 22px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+    .more { display: none; }
+    .more.is-on { display: block; }
+    .more-btn {
+      margin-top: 16px;
+      min-height: 40px;
+      color: var(--sand);
+      text-align: left;
+      text-decoration: underline;
+      text-underline-offset: 4px;
     }
     .btn {
       min-height: 44px;
@@ -559,8 +541,8 @@
           ["Cash timing", "Invoice A 200,000 + B 180,000 + C 160,000 = 540,000 DZD"],
           ["Warning", "AT RISK — NOT MISSED. Detect owns a miss only after the deadline."]
         ],
-        primary: { label: "Open cascade", href: "../../../../../app/impact/exc_shipment_delay" },
-        secondary: { label: "Open Time Machine", href: "#timeline" },
+        primary: { label: "Open cascade", href: "#cascade" },
+        secondaryAction: { label: "Open Time Machine", href: "#timeline" },
         ask: "Atlas Supply moved SH-204 Monday → Wednesday. 3 orders · 3 customers · 850,000 DZD associated revenue · 540,000 DZD expected cash timing. These are graph facts — not a claim that the money is lost."
       },
       proposal: {
@@ -598,7 +580,7 @@
           ["One object", "This is the situation. Not a separate Exception, Approval, and Autopilot row."]
         ],
         primary: { label: "Review and approve recovery", href: "#recovery" },
-        secondary: { label: "Read evidence", href: "#evidence" },
+        secondaryAction: { label: "Read evidence", href: "#evidence" },
         ask: "320,000 DZD needs you. Our commitment missed — revised proposal never sent. The Friday decision is blocked because the Thursday proposal never left."
       },
       monitoring: {
@@ -631,7 +613,7 @@
           ["Status", "awaiting_verification → MONITORING, not HANDLED"]
         ],
         primary: { label: "Keep watching checkpoint", href: "#timeline" },
-        secondary: { label: "Open Command", href: "#command" },
+        secondaryAction: { label: "Open Command", href: "#command" },
         ask: "The 320K recovery was executed. A customer-response verification is pending — send alone does not mark the exception solved."
       },
       handled: {
@@ -661,7 +643,7 @@
           ["Note", "The 10% request is not this object."]
         ],
         primary: { label: "See the blocked request", href: "#blocked" },
-        secondary: { label: "Open Timeline", href: "#timeline" },
+        secondaryAction: { label: "Open Timeline", href: "#timeline" },
         ask: "The missed-proposal situation is HANDLED. The live object is now the 10% policy block."
       },
       discount: {
@@ -697,7 +679,7 @@
           ["One object", "Do not also open a separate Exception or Autopilot card for this request."]
         ],
         primary: { label: "Review policy-safe alternatives", href: "#recovery" },
-        secondary: { label: "Read policy", href: "#policy" },
+        secondaryAction: { label: "Read policy", href: "#policy" },
         ask: "10% discount is BLOCKED by policy discount_max=5%. An alternative recovery (5% or Net-14) is waiting."
       }
     };
@@ -799,12 +781,7 @@
             <p class="row-meta">${item.summary}</p>
           </div>
           <div class="row-money">${money(item.amount)}<span>${item.amountNote}</span></div>
-        </button>
-        <div class="disclosure" ${selected ? "" : "hidden"}>
-          <dl>
-            ${item.facts.map((f) => `<div class="pair"><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join("")}
-          </dl>
-        </div>`;
+        </button>`;
     }
 
     function sectionHtml(title, items, empty) {
@@ -847,26 +824,30 @@
         <h2>${item.title}</h2>
         <p class="inspect-status ${tone(item.attention)}">${item.label}${item.secondary ? " · " + item.secondary : ""}</p>
         <blockquote class="quote">“${item.quote}”</blockquote>
+        <div class="actions">
+          <button class="btn" type="button" data-primary>${item.primary.label}</button>
+          <button class="btn-ghost" type="button" data-secondary>${item.secondaryAction.label}</button>
+          <button class="ask" type="button" data-ask>Ask EvoPulse about this…</button>
+          <div class="ask-out${askOn ? " is-on" : ""}" id="ask-out">${item.ask}</div>
+        </div>
         <dl class="facts">
           <div class="fact"><dt>Source</dt><dd>${item.source}</dd></div>
           <div class="fact"><dt>Expected</dt><dd>${item.expected}</dd></div>
           <div class="fact"><dt>Actual</dt><dd>${item.actual}</dd></div>
           <div class="fact"><dt>Timestamp</dt><dd>${item.evidenceAt}</dd></div>
-          <div class="fact"><dt>Detected</dt><dd>${item.detected}</dd></div>
           <div class="fact"><dt>Confidence</dt><dd>${item.confidence}</dd></div>
-          <div class="fact"><dt>Stored</dt><dd>${item.storedAttention.replaceAll("_", " ")}</dd></div>
-          <div class="fact"><dt>Expectation</dt><dd>${item.expectation}</dd></div>
-          <div class="fact"><dt>Chain</dt><dd>${item.chain}</dd></div>
           <div class="fact"><dt>Value</dt><dd>${money(item.amount)} · ${item.amountNote}</dd></div>
         </dl>
-        <dl class="facts">
-          ${item.objects.map((o) => `<div class="fact"><dt>Object</dt><dd>${o}</dd></div>`).join("")}
-        </dl>
-        <div class="actions">
-          <button class="btn" type="button" data-primary>${item.primary.label}</button>
-          <button class="btn-ghost" type="button" data-secondary>${item.secondary.label}</button>
-          <button class="ask" type="button" data-ask>Ask EvoPulse about this…</button>
-          <div class="ask-out${askOn ? " is-on" : ""}" id="ask-out">${item.ask}</div>
+        <button class="more-btn" type="button" data-more aria-expanded="false">Show chain and objects</button>
+        <div class="more" id="more">
+          <dl class="facts">
+            <div class="fact"><dt>Detected</dt><dd>${item.detected}</dd></div>
+            <div class="fact"><dt>Stored</dt><dd>${item.storedAttention.replaceAll("_", " ")}</dd></div>
+            <div class="fact"><dt>Expectation</dt><dd>${item.expectation}</dd></div>
+            <div class="fact"><dt>Chain</dt><dd>${item.chain}</dd></div>
+            ${item.facts.map((f) => `<div class="fact"><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join("")}
+            <div class="fact"><dt>Affected</dt><dd>${item.objects.join(" · ")}</dd></div>
+          </dl>
         </div>`;
     }
 
@@ -924,6 +905,14 @@
         askOn = !askOn;
         const out = document.getElementById("ask-out");
         if (out) out.classList.toggle("is-on", askOn);
+      }
+      if (e.target.closest("[data-more]")) {
+        const more = document.getElementById("more");
+        const btn = e.target.closest("[data-more]");
+        const on = !more.classList.contains("is-on");
+        more.classList.toggle("is-on", on);
+        btn.setAttribute("aria-expanded", on ? "true" : "false");
+        btn.textContent = on ? "Hide chain and objects" : "Show chain and objects";
       }
       if (e.target.closest("[data-primary]")) {
         const item = itemsFor(view).find((i) => i.key === selectedId);
