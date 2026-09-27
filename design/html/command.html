@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse — Command</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aurora-canvas: #0A0C10;
+      --aurora-surface: #12151C;
+      --aurora-surface-2: #1A1E27;
+      --aurora-ink: #EDE6D6;
+      --aurora-muted: #8A8374;
+      --aurora-hairline: #2A2E38;
+      --aurora-primary: #C4A574;
+      --aurora-accent: #D4B483;
+      --aurora-attention: #E8A317;
+      --aurora-critical: #C45C4A;
+      --aurora-success: #6B9B7A;
+      --aurora-sim: #6B8CAE;
+      --aurora-focus: #E8D5A3;
+      --aurora-attention-dim: rgba(232, 163, 23, 0.14);
+      --aurora-success-dim: rgba(107, 155, 122, 0.12);
+      --aurora-critical-dim: rgba(196, 92, 74, 0.12);
+      --aurora-sim-dim: rgba(107, 140, 174, 0.14);
+      --aurora-primary-dim: rgba(196, 165, 116, 0.12);
+      --sidebar: 220px;
+      --header: 56px;
+      --gutter: 32px;
+      --radius-sm: 6px;
+      --radius-ctrl: 8px;
+      --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--aurora-canvas); color: var(--aurora-ink); font-family: var(--font); }
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--aurora-focus); outline-offset: 2px; }
+
+    .app { display: flex; min-height: 100%; }
+    .sidebar {
+      width: var(--sidebar); flex: 0 0 var(--sidebar);
+      background: var(--aurora-surface); border-right: 1px solid var(--aurora-hairline);
+      padding: 20px 16px; display: flex; flex-direction: column; gap: 24px;
+    }
+    .brand { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: var(--aurora-primary); padding: 4px 8px; }
+    .nav { display: flex; flex-direction: column; gap: 4px; }
+    .nav a {
+      display: flex; align-items: center; height: 36px; padding: 0 12px;
+      border-radius: var(--radius-ctrl); color: var(--aurora-muted); text-decoration: none; font-size: 14px;
+      border-left: 2px solid transparent;
+    }
+    .nav a:hover { background: var(--aurora-surface-2); color: var(--aurora-ink); }
+    .nav a.active { color: var(--aurora-ink); border-left-color: var(--aurora-primary); background: var(--aurora-primary-dim); }
+    .side-foot { margin-top: auto; font-size: 12px; color: var(--aurora-muted); padding: 0 8px; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      height: var(--header); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--gutter); border-bottom: 1px solid var(--aurora-hairline);
+      font-family: var(--mono); font-size: 12px; color: var(--aurora-muted);
+    }
+    .page { padding: 32px var(--gutter) 64px; }
+    .title { font-size: 22px; line-height: 28px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 16px; }
+    .lede { margin: 0 0 20px; color: var(--aurora-muted); font-size: 14px; }
+
+    .ask {
+      display: flex; gap: 8px; max-width: 720px; margin-bottom: 16px;
+    }
+    .ask input {
+      flex: 1; height: 48px; border-radius: var(--radius-ctrl);
+      border: 1px solid var(--aurora-hairline); background: var(--aurora-surface);
+      color: var(--aurora-ink); padding: 0 16px; font-size: 14px; font-family: inherit;
+    }
+    .ask input::placeholder { color: var(--aurora-muted); }
+    .btn {
+      height: 36px; padding: 0 16px; border-radius: var(--radius-ctrl); border: 1px solid transparent;
+      font-size: 13px; font-weight: 500;
+    }
+    .btn-primary { background: var(--aurora-primary); color: var(--aurora-canvas); }
+    .btn-ghost { background: transparent; color: var(--aurora-ink); border-color: var(--aurora-hairline); }
+    .ask .btn { height: 48px; }
+
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; max-width: 880px; margin-bottom: 32px; }
+    .chip {
+      height: 32px; padding: 0 12px; border-radius: var(--radius-ctrl);
+      border: 1px solid var(--aurora-hairline); background: transparent;
+      color: var(--aurora-ink); font-size: 12px;
+    }
+    .chip:hover, .chip[aria-pressed="true"] { background: var(--aurora-surface-2); border-color: var(--aurora-primary); }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 720px) 400px; gap: 32px; align-items: start; }
+    .user-row { text-align: right; margin-bottom: 24px; }
+    .user-row span {
+      display: inline-block; font-size: 14px; color: var(--aurora-ink);
+      border-bottom: 1px solid var(--aurora-hairline); padding-bottom: 4px;
+    }
+
+    .trace { position: relative; padding-left: 20px; }
+    .trace::before {
+      content: ""; position: absolute; left: 2px; top: 8px; bottom: 8px; width: 1px; background: var(--aurora-hairline);
+    }
+    .step {
+      position: relative; margin-bottom: 20px; opacity: 0; transform: translateY(4px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .step.visible { opacity: 1; transform: none; }
+    .step::before {
+      content: ""; position: absolute; left: -21px; top: 6px; width: 6px; height: 6px;
+      background: var(--aurora-muted); border-radius: 1px;
+    }
+    .step.current::before { background: var(--aurora-primary); }
+    .step.done::before { background: var(--aurora-success); }
+    .step.wait::before { background: var(--aurora-attention); }
+    .step.sim::before { background: var(--aurora-sim); }
+    .step.block::before { background: var(--aurora-critical); }
+    .kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-muted); margin: 0 0 4px; }
+    .step.current .kicker { color: var(--aurora-primary); }
+    .step.wait .kicker { color: var(--aurora-attention); }
+    .step.sim .kicker { color: var(--aurora-sim); }
+    .step.block .kicker { color: var(--aurora-critical); }
+    .step p { margin: 0; font-size: 14px; line-height: 22px; }
+
+    .rail { background: var(--aurora-surface); border: 1px solid var(--aurora-hairline); border-radius: 16px; padding: 20px; }
+    .rail h2 { font-size: 11px; letter-spacing: 0.12em; margin: 0 0 12px; color: var(--aurora-muted); }
+    .rail h3 { font-size: 16px; font-weight: 500; margin: 0 0 16px; }
+    .field { margin-bottom: 16px; }
+    .field span { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-muted); margin-bottom: 4px; }
+    .field p { margin: 0; font-size: 14px; line-height: 22px; }
+    .caption { font-size: 12px; color: var(--aurora-attention); margin: 16px 0 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .result { font-size: 13px; margin-top: 12px; color: var(--aurora-success); min-height: 20px; }
+
+    .policy {
+      margin-top: 16px; padding: 16px; border-radius: 12px;
+      border: 1px solid var(--aurora-hairline); box-shadow: inset 2px 0 0 var(--aurora-critical);
+    }
+    .policy h4 { margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; color: var(--aurora-critical); }
+    .policy dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; font-size: 14px; }
+    .policy dt { color: var(--aurora-muted); }
+    .policy dd { margin: 0; font-family: var(--mono); text-align: right; }
+    .hidden { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .step { transition: none; }
+    }
+    @media (max-width: 1280px) {
+      :root { --sidebar: 200px; --gutter: 24px; }
+      .workspace { grid-template-columns: 1fr 360px; gap: 24px; }
+    }
+    @media (max-width: 1024px) {
+      :root { --sidebar: 64px; --gutter: 16px; }
+      .brand { font-size: 9px; text-align: center; padding: 4px 0; }
+      .nav a { font-size: 0; justify-content: center; padding: 0; }
+      .nav a[href="pulse.html"]::before { content: "P"; font-size: 13px; }
+      .nav a[href="command.html"]::before { content: "C"; font-size: 13px; }
+      .nav a[href="#timeline"]::before { content: "T"; font-size: 13px; }
+      .nav a[href="#business"]::before { content: "B"; font-size: 13px; }
+      .nav a[href="#goals"]::before { content: "G"; font-size: 13px; }
+      .side-foot { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand">EVOPULSE</div>
+      <nav class="nav">
+        <a href="pulse.html">Pulse</a>
+        <a class="active" href="command.html" aria-current="page">Command</a>
+        <a href="#timeline">Timeline</a>
+        <a href="#business">Business</a>
+        <a href="#goals">Goals</a>
+      </nav>
+      <p class="side-foot">Nothing falls through.</p>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span>Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
+        <span id="run-state">Idle</span>
+      </header>
+      <main class="page">
+        <h1 class="title">Ask EvoPulse</h1>
+        <p class="lede">Operate the business through governed tools. Not a chat.</p>
+
+        <form class="ask" id="ask-form">
+          <input id="ask" type="text" autocomplete="off" placeholder="Ask anything about your business…" />
+          <button class="btn btn-primary" type="submit">Run</button>
+        </form>
+
+        <div class="suggestions" aria-label="Suggested commands">
+          <button class="chip" type="button" data-fill="What changed today?">What changed today?</button>
+          <button class="chip" type="button" data-fill="What needs me?">What needs me?</button>
+          <button class="chip" type="button" data-fill="What am I about to miss?">What am I about to miss?</button>
+          <button class="chip" type="button" data-fill="Why is 850K at risk?">Why is 850K at risk?</button>
+          <button class="chip" type="button" data-fill="What if Atlas is another 3 days late?">What if Atlas is another 3 days late?</button>
+          <button class="chip" type="button" data-protect aria-pressed="false">Protect everything at risk this week.</button>
+          <button class="chip" type="button" data-fill="Fix everything you're authorized to fix.">Fix everything you're authorized to fix.</button>
+        </div>
+
+        <div class="workspace">
+          <section aria-label="Operation trace">
+            <div class="user-row hidden" id="user-line"><span></span></div>
+            <ol class="trace" id="trace" aria-live="polite"></ol>
+          </section>
+
+          <aside class="rail hidden" id="approval" aria-labelledby="approve-title">
+            <h2>WHAT EVO PULSE WANTS TO DO</h2>
+            <h3 id="approve-title">Send the revised 320,000 DZD proposal to Atlas Retail.</h3>
+            <div class="field"><span>WHY</span><p>The opportunity is still open. Friday’s decision depends on the revised proposal. Outbound messages are not autonomous.</p></div>
+            <div class="field"><span>IMPACT</span><p>320,000 DZD recovery path. This is not the 850,000 DZD cascade figure.</p></div>
+            <div class="field"><span>POLICY</span><p>external_message_requires_approval = true</p></div>
+            <div class="field"><span>EVIDENCE</span><p>Observed: opportunity open. Source: customer conversation. Calculated: Autopilot NEEDS_APPROVAL. Assumption: a human is accountable for outbound copy.</p></div>
+            <div class="actions">
+              <button class="btn btn-primary" type="button" data-decision="Approved">Approve</button>
+              <button class="btn btn-ghost" type="button" data-decision="Editing">Edit</button>
+              <button class="btn btn-ghost" type="button" data-decision="Rejected">Reject</button>
+            </div>
+            <p class="caption">EvoPulse cannot approve itself.</p>
+            <p class="result" id="decision-result" role="status"></p>
+
+            <div class="policy">
+              <h4>ACTION BLOCKED BY POLICY</h4>
+              <dl>
+                <dt>Requested</dt><dd>10%</dd>
+                <dt>Allowed without exception</dt><dd>5%</dd>
+                <dt>Alternative</dt><dd>5% + Net-14</dd>
+              </dl>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const STEPS = [
+      { state: "INSPECTING", cls: "current", kicker: "INSPECTING BUSINESS", body: "2 situations require attention" },
+      { state: "INSPECTING", cls: "done", kicker: "TRACING DEPENDENCIES", body: "Atlas Supply → SH-204 → RK-7 → Orders A / B / C" },
+      { state: "INSPECTING", cls: "done", kicker: "ASSESSING IMPACT", body: "850,000 DZD associated revenue · 540,000 DZD cash timing" },
+      { state: "SIMULATING", cls: "sim", kicker: "SIMULATING OPTIONS", body: "Scenario prepared · not live business state" },
+      { state: "PLANNING", cls: "done", kicker: "BUILDING PLAN", body: "Protect the SH-204 cascade. Recover the 320,000 DZD proposal." },
+      { state: "CHECKING POLICY", cls: "block", kicker: "CHECKING POLICY", body: "1 safe · 3 approval · 1 blocked" },
+      { state: "EXECUTING", cls: "done", kicker: "EXECUTING SAFE ACTION", body: "Internal classification persisted. No outbound message sent." },
+      { state: "VERIFYING", cls: "done", kicker: "VERIFYING", body: "Safe step verified. Situations are not HANDLED until humans finish." },
+      { state: "WAITING FOR APPROVAL", cls: "wait", kicker: "WAITING FOR YOU", body: "3 approvals" },
+    ];
+
+    const input = document.getElementById("ask");
+    const form = document.getElementById("ask-form");
+    const trace = document.getElementById("trace");
+    const userLine = document.getElementById("user-line");
+    const approval = document.getElementById("approval");
+    const runState = document.getElementById("run-state");
+    const protectChip = document.querySelector("[data-protect]");
+    let timer = 0;
+
+    function reduced() {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function fill(text) {
+      input.value = text;
+      input.focus();
+    }
+
+    function runProtect() {
+      clearTimeout(timer);
+      const command = "Protect everything at risk this week.";
+      input.value = command;
+      protectChip.setAttribute("aria-pressed", "true");
+      userLine.classList.remove("hidden");
+      userLine.querySelector("span").textContent = command;
+      approval.classList.add("hidden");
+      trace.innerHTML = "";
+      runState.textContent = "INTERPRETING";
+
+      const delay = reduced() ? 0 : 420;
+      STEPS.forEach((step, i) => {
+        timer = setTimeout(() => {
+          const li = document.createElement("li");
+          li.className = "step " + step.cls;
+          li.innerHTML = `<p class="kicker">${step.kicker}</p><p>${step.body}</p>`;
+          trace.appendChild(li);
+          requestAnimationFrame(() => li.classList.add("visible"));
+          runState.textContent = step.state;
+          if (i === STEPS.length - 1) {
+            approval.classList.remove("hidden");
+            if (location.hash === "#approve") approval.scrollIntoView({ block: "nearest" });
+          }
+        }, delay * (i + 1));
+      });
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (/protect everything at risk/i.test(value)) runProtect();
+      else if (value) {
+        userLine.classList.remove("hidden");
+        userLine.querySelector("span").textContent = value;
+        trace.innerHTML = `<li class="step visible done"><p class="kicker">READY</p><p>Prototype stages the Protect command. Click “Protect everything at risk this week.”</p></li>`;
+      }
+    });
+
+    document.querySelectorAll("[data-fill]").forEach((btn) => {
+      btn.addEventListener("click", () => fill(btn.getAttribute("data-fill")));
+    });
+    protectChip.addEventListener("click", runProtect);
+
+    document.querySelectorAll("[data-decision]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const decision = btn.getAttribute("data-decision");
+        document.getElementById("decision-result").textContent =
+          decision === "Approved"
+            ? "Recorded as approved by you. EvoPulse did not self-approve."
+            : decision === "Editing"
+              ? "Edit mode — copy stays with the human."
+              : "Rejected. No outbound message.";
+      });
+    });
+
+    if (location.hash === "#approve") runProtect();
+  </script>
+</body>
+</html>

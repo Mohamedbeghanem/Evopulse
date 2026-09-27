@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse — Why is this at risk?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aurora-canvas: #0A0C10;
+      --aurora-surface: #12151C;
+      --aurora-surface-2: #1A1E27;
+      --aurora-ink: #EDE6D6;
+      --aurora-muted: #8A8374;
+      --aurora-hairline: #2A2E38;
+      --aurora-primary: #C4A574;
+      --aurora-accent: #D4B483;
+      --aurora-attention: #E8A317;
+      --aurora-critical: #C45C4A;
+      --aurora-success: #6B9B7A;
+      --aurora-sim: #6B8CAE;
+      --aurora-focus: #E8D5A3;
+      --aurora-attention-dim: rgba(232, 163, 23, 0.14);
+      --aurora-sim-dim: rgba(107, 140, 174, 0.14);
+      --aurora-primary-dim: rgba(196, 165, 116, 0.12);
+      --sidebar: 220px;
+      --header: 56px;
+      --gutter: 32px;
+      --radius-sm: 6px;
+      --radius-ctrl: 8px;
+      --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--aurora-canvas); color: var(--aurora-ink); font-family: var(--font); }
+    button { font-family: inherit; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--aurora-focus); outline-offset: 2px; }
+
+    .app { display: flex; min-height: 100%; }
+    .sidebar {
+      width: var(--sidebar); flex: 0 0 var(--sidebar);
+      background: var(--aurora-surface); border-right: 1px solid var(--aurora-hairline);
+      padding: 20px 16px; display: flex; flex-direction: column; gap: 24px;
+    }
+    .brand { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: var(--aurora-primary); padding: 4px 8px; }
+    .nav { display: flex; flex-direction: column; gap: 4px; }
+    .nav a {
+      display: flex; align-items: center; height: 36px; padding: 0 12px;
+      border-radius: var(--radius-ctrl); color: var(--aurora-muted); font-size: 14px;
+      border-left: 2px solid transparent;
+    }
+    .nav a:hover { background: var(--aurora-surface-2); color: var(--aurora-ink); }
+    .nav a.active { color: var(--aurora-ink); border-left-color: var(--aurora-primary); background: var(--aurora-primary-dim); }
+    .side-foot { margin-top: auto; font-size: 12px; color: var(--aurora-muted); padding: 0 8px; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      height: var(--header); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--gutter); border-bottom: 1px solid var(--aurora-hairline);
+      font-family: var(--mono); font-size: 12px; color: var(--aurora-muted);
+    }
+    .page { padding: 32px var(--gutter) 64px; max-width: 1184px; }
+    .kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-attention); margin: 0 0 8px; }
+    .title { font-size: 22px; line-height: 28px; font-weight: 500; margin: 0 0 8px; }
+    .sub { font-size: 14px; color: var(--aurora-muted); margin: 0 0 32px; }
+
+    .buffer {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+      margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--aurora-hairline);
+    }
+    .buffer div { padding: 0; }
+    .buffer span { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-muted); margin-bottom: 8px; }
+    .buffer b { font-family: var(--mono); font-size: 28px; line-height: 32px; font-weight: 500; letter-spacing: -0.03em; }
+    .buffer .short b { color: var(--aurora-attention); }
+    .buffer-note { grid-column: 1 / -1; font-size: 12px; color: var(--aurora-muted); }
+
+    .cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; }
+    .section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--aurora-muted); margin: 0 0 16px; }
+
+    .path { position: relative; padding-left: 20px; }
+    .path::before { content: ""; position: absolute; left: 2px; top: 10px; bottom: 10px; width: 1px; background: var(--aurora-hairline); }
+    .node {
+      display: block; width: 100%; text-align: left; position: relative;
+      background: transparent; border: 0; color: var(--aurora-muted);
+      padding: 10px 12px; margin-bottom: 4px; border-radius: var(--radius-ctrl);
+    }
+    .node::before {
+      content: ""; position: absolute; left: -21px; top: 16px; width: 6px; height: 6px;
+      background: var(--aurora-muted); border-radius: 1px;
+    }
+    .node:hover { background: var(--aurora-surface-2); color: var(--aurora-ink); }
+    .node[aria-selected="true"] { color: var(--aurora-ink); background: var(--aurora-surface); }
+    .node[aria-selected="true"]::before { background: var(--aurora-primary); }
+    .node small { display: block; font-size: 12px; color: var(--aurora-muted); margin-top: 2px; }
+    .node-detail {
+      margin-top: 16px; padding: 16px; background: var(--aurora-surface);
+      border: 1px solid var(--aurora-hairline); border-radius: 12px; font-size: 14px; line-height: 22px;
+    }
+
+    .impact-list { list-style: none; margin: 0 0 24px; padding: 0; }
+    .impact-list li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--aurora-hairline); font-size: 14px; }
+    .impact-list b { font-family: var(--mono); font-weight: 500; }
+    .note { font-size: 12px; color: var(--aurora-muted); margin: 0 0 24px; }
+
+    .evidence-toggle {
+      width: 100%; text-align: left; background: transparent; color: var(--aurora-ink);
+      border: 1px solid var(--aurora-hairline); border-radius: 12px; padding: 16px 20px;
+      display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+    }
+    .evidence { display: none; margin-top: 8px; }
+    .evidence.open { display: block; }
+    .evidence dl { margin: 0; }
+    .evidence div { padding: 12px 0; border-bottom: 1px solid var(--aurora-hairline); }
+    .evidence dt { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-muted); margin-bottom: 4px; }
+    .evidence dd { margin: 0; font-size: 14px; line-height: 22px; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
+    .btn { height: 36px; padding: 0 16px; border-radius: var(--radius-ctrl); border: 1px solid transparent; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; }
+    .btn-primary { background: var(--aurora-primary); color: var(--aurora-canvas); }
+    .btn-ghost { background: transparent; color: var(--aurora-ink); border-color: var(--aurora-hairline); }
+
+    .drawer-back { display: none; position: fixed; inset: 0; background: rgba(10, 12, 16, 0.72); }
+    .drawer-back.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; height: 100%; width: 400px; max-width: 100%;
+      background: var(--aurora-surface); border-left: 1px solid var(--aurora-hairline);
+      padding: 24px; transform: translateX(100%); transition: transform 280ms ease;
+    }
+    .drawer.open { transform: none; }
+    .sim-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-sim); margin: 0 0 8px; }
+    .sim-title { font-size: 22px; margin: 0 0 8px; }
+    .sim-note { font-size: 14px; color: var(--aurora-muted); margin: 0 0 24px; }
+    .delta { display: grid; gap: 12px; }
+    .delta div { padding: 12px; background: var(--aurora-sim-dim); border-radius: var(--radius-ctrl); }
+    .delta span { display: block; font-size: 10px; letter-spacing: 0.14em; font-weight: 600; color: var(--aurora-sim); margin-bottom: 8px; }
+    .delta b { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+
+    @media (max-width: 1280px) {
+      :root { --sidebar: 200px; --gutter: 24px; }
+      .buffer b { font-size: 22px; }
+    }
+    @media (max-width: 1024px) {
+      :root { --sidebar: 64px; --gutter: 16px; }
+      .brand { font-size: 9px; text-align: center; padding: 4px 0; }
+      .nav a { font-size: 0; justify-content: center; padding: 0; }
+      .nav a[href="pulse.html"]::before { content: "P"; font-size: 13px; }
+      .nav a[href="command.html"]::before { content: "C"; font-size: 13px; }
+      .nav a[href="#timeline"]::before { content: "T"; font-size: 13px; }
+      .nav a[href="#business"]::before { content: "B"; font-size: 13px; }
+      .nav a[href="#goals"]::before { content: "G"; font-size: 13px; }
+      .side-foot { display: none; }
+      .cols, .buffer { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand">EVOPULSE</div>
+      <nav class="nav">
+        <a class="active" href="pulse.html">Pulse</a>
+        <a href="command.html">Command</a>
+        <a href="#timeline">Timeline</a>
+        <a href="#business">Business</a>
+        <a href="#goals">Goals</a>
+      </nav>
+      <p class="side-foot">Nothing falls through.</p>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span>Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
+        <a href="pulse.html">Back to Pulse</a>
+      </header>
+      <main class="page">
+        <p class="kicker">AT RISK — NOT MISSED</p>
+        <h1 class="title">Order A delivery</h1>
+        <p class="sub">Deliver Order A to Oran Fresh Tuesday · Tue 29 Sep 10:00</p>
+
+        <section class="buffer" aria-label="Time buffer">
+          <div><span>AVAILABLE</span><b>−23h</b></div>
+          <div><span>REQUIRED</span><b>18h</b></div>
+          <div class="short"><span>SHORTFALL</span><b>−41h</b></div>
+          <p class="buffer-note">Tuesday has not passed. Warning layer — not a miss. Available is Wednesday 09:00 → Tuesday 10:00. Required is 6h processing + 4h preparation + 8h transport.</p>
+        </section>
+
+        <div class="cols">
+          <section aria-labelledby="path-title">
+            <h2 class="section-title" id="path-title">CAUSAL PATH</h2>
+            <div class="path" id="path">
+              <button class="node" type="button" aria-selected="false" data-detail="Supplier in Algiers. Revised the inbound slot. Not a customer failure.">
+                Atlas Supply
+                <small>supplies</small>
+              </button>
+              <button class="node" type="button" aria-selected="true" data-detail="Shipment SH-204. Expected Monday 28 Sep 09:00. Revised to Wednesday 30 Sep 09:00.">
+                Shipment SH-204
+                <small>contains · selected</small>
+              </button>
+              <button class="node" type="button" aria-selected="false" data-detail="Pallet racking kit RK-7. Inventory 3. Shared by Orders A, B, and C.">
+                Pallet racking kit RK-7
+                <small>required by</small>
+              </button>
+              <button class="node" type="button" aria-selected="false" data-detail="Order A 320,000 · Order B 280,000 · Order C 250,000 DZD. Associated revenue 850,000 DZD.">
+                Orders A / B / C
+                <small>belong to customers</small>
+              </button>
+              <button class="node" type="button" aria-selected="false" data-detail="Oran Fresh Market · Constantine Clinic · Sétif Depot. Three customers, one shipment.">
+                Oran Fresh · Constantine Clinic · Sétif Depot
+                <small>customers</small>
+              </button>
+            </div>
+            <p class="node-detail" id="node-detail" role="status">Shipment SH-204. Expected Monday 28 Sep 09:00. Revised to Wednesday 30 Sep 09:00.</p>
+          </section>
+
+          <div>
+            <section aria-labelledby="impact-title">
+              <h2 class="section-title" id="impact-title">IMPACT</h2>
+              <ul class="impact-list">
+                <li><span>Orders</span><b>3</b></li>
+                <li><span>Customers</span><b>3</b></li>
+                <li><span>Associated revenue</span><b>850,000 DZD</b></li>
+                <li><span>Expected cash timing</span><b>540,000 DZD</b></li>
+              </ul>
+              <p class="note">Associated is not lost. Cash timing is Invoices A+B+C (200+180+160). The primary attention object remains the SH-204 cascade — not five separate cards.</p>
+            </section>
+
+            <section aria-labelledby="evidence-title">
+              <h2 class="section-title" id="evidence-title">EVIDENCE</h2>
+              <button class="evidence-toggle" type="button" aria-expanded="false" id="ev-toggle">
+                What did EvoPulse observe?
+                <span>Show</span>
+              </button>
+              <div class="evidence" id="evidence">
+                <dl>
+                  <div>
+                    <dt>OBSERVED</dt>
+                    <dd>Atlas Supply: “Your shipment will arrive Wednesday instead of Monday.”</dd>
+                  </div>
+                  <div>
+                    <dt>SOURCE</dt>
+                    <dd>Supplier message · Sun 27 Sep 2026 · 09:13 Africa/Tunis</dd>
+                  </div>
+                  <div>
+                    <dt>CALCULATED</dt>
+                    <dd>Buffer −23h available / 18h required / −41h shortfall · AT_RISK</dd>
+                  </div>
+                  <div>
+                    <dt>ASSUMPTION</dt>
+                    <dd>Downstream durations: processing 6h, preparation 4h, transport 8h</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="button" data-simulate>Simulate</button>
+          <a class="btn btn-ghost" href="command.html">Ask EvoPulse</a>
+          <a class="btn btn-ghost" href="pulse.html">Back to Pulse</a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="drawer-back" id="sim-back" hidden></div>
+  <aside class="drawer" id="sim-drawer" hidden aria-labelledby="sim-title">
+    <p class="sim-kicker">SIMULATION · NOT LIVE BUSINESS STATE</p>
+    <h2 class="sim-title" id="sim-title">What if Atlas is another 3 days late?</h2>
+    <p class="sim-note">Does not write live Pulse, warnings, or cash. Isolation hash unchanged.</p>
+    <div class="delta">
+      <div><span>CURRENT</span><b>Invoice C in week of 28 Sep</b></div>
+      <div><span>SIMULATED</span><b>Invoice C next period</b></div>
+      <div><span>DELTA</span><b>160,000 DZD timing</b></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" data-close-sim>Close</button>
+    </div>
+  </aside>
+
+  <script>
+    const nodes = document.querySelectorAll(".node");
+    const detail = document.getElementById("node-detail");
+    nodes.forEach((node) => {
+      node.addEventListener("click", () => {
+        nodes.forEach((other) => other.setAttribute("aria-selected", other === node ? "true" : "false"));
+        detail.textContent = node.getAttribute("data-detail");
+      });
+    });
+
+    const ev = document.getElementById("evidence");
+    const evToggle = document.getElementById("ev-toggle");
+    evToggle.addEventListener("click", () => {
+      const open = ev.classList.toggle("open");
+      evToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      evToggle.querySelector("span").textContent = open ? "Hide" : "Show";
+    });
+
+    const back = document.getElementById("sim-back");
+    const drawer = document.getElementById("sim-drawer");
+    function openSim() {
+      back.hidden = false; drawer.hidden = false;
+      requestAnimationFrame(() => { back.classList.add("open"); drawer.classList.add("open"); });
+    }
+    function closeSim() {
+      back.classList.remove("open"); drawer.classList.remove("open");
+      setTimeout(() => { back.hidden = true; drawer.hidden = true; }, 280);
+    }
+    document.querySelectorAll("[data-simulate]").forEach((btn) => btn.addEventListener("click", openSim));
+    document.querySelectorAll("[data-close-sim]").forEach((btn) => btn.addEventListener("click", closeSim));
+    back.addEventListener("click", closeSim);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSim(); });
+  </script>
+</body>
+</html>

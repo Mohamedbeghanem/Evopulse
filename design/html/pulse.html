@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvoPulse — Pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --aurora-canvas: #0A0C10;
+      --aurora-surface: #12151C;
+      --aurora-surface-2: #1A1E27;
+      --aurora-ink: #EDE6D6;
+      --aurora-muted: #8A8374;
+      --aurora-hairline: #2A2E38;
+      --aurora-primary: #C4A574;
+      --aurora-accent: #D4B483;
+      --aurora-attention: #E8A317;
+      --aurora-critical: #C45C4A;
+      --aurora-success: #6B9B7A;
+      --aurora-sim: #6B8CAE;
+      --aurora-focus: #E8D5A3;
+      --aurora-attention-dim: rgba(232, 163, 23, 0.14);
+      --aurora-success-dim: rgba(107, 155, 122, 0.12);
+      --aurora-sim-dim: rgba(107, 140, 174, 0.14);
+      --aurora-primary-dim: rgba(196, 165, 116, 0.12);
+      --sidebar: 220px;
+      --header: 56px;
+      --gutter: 32px;
+      --max: 1120px;
+      --radius-sm: 6px;
+      --radius-ctrl: 8px;
+      --radius-card: 12px;
+      --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--aurora-canvas); color: var(--aurora-ink); font-family: var(--font); }
+    button, a { font-family: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--aurora-focus); outline-offset: 2px; }
+
+    .app { display: flex; min-height: 100%; }
+    .sidebar {
+      width: var(--sidebar); flex: 0 0 var(--sidebar);
+      background: var(--aurora-surface);
+      border-right: 1px solid var(--aurora-hairline);
+      padding: 20px 16px; display: flex; flex-direction: column; gap: 24px;
+    }
+    .brand {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.16em;
+      color: var(--aurora-primary); padding: 4px 8px;
+    }
+    .nav { display: flex; flex-direction: column; gap: 4px; }
+    .nav a {
+      display: flex; align-items: center; height: 36px; padding: 0 12px;
+      border-radius: var(--radius-ctrl); color: var(--aurora-muted);
+      text-decoration: none; font-size: 14px; border-left: 2px solid transparent;
+    }
+    .nav a:hover { background: var(--aurora-surface-2); color: var(--aurora-ink); }
+    .nav a.active { color: var(--aurora-ink); border-left-color: var(--aurora-primary); background: var(--aurora-primary-dim); }
+    .side-foot { margin-top: auto; font-size: 12px; line-height: 18px; color: var(--aurora-muted); padding: 0 8px; }
+
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      height: var(--header); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--gutter); border-bottom: 1px solid var(--aurora-hairline);
+      font-family: var(--mono); font-size: 12px; color: var(--aurora-muted);
+    }
+    .page { padding: 32px var(--gutter) 64px; max-width: calc(var(--max) + var(--gutter) * 2); }
+
+    .display { font-size: 32px; line-height: 40px; font-weight: 400; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .census { font-size: 14px; line-height: 22px; color: var(--aurora-muted); margin: 0 0 32px; }
+    .section { margin-bottom: 32px; }
+    .section-title {
+      margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+      color: var(--aurora-muted);
+    }
+
+    .stack { display: flex; flex-direction: column; gap: 8px; }
+    .item {
+      display: block; width: 100%; text-align: left; background: transparent;
+      border: 1px solid var(--aurora-hairline); border-radius: var(--radius-card);
+      padding: 20px; color: inherit; position: relative;
+    }
+    .item:hover { background: var(--aurora-surface-2); }
+    .item.selected { background: var(--aurora-surface); box-shadow: inset 2px 0 0 var(--aurora-primary); }
+    .item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .item-title { font-size: 16px; line-height: 22px; font-weight: 500; margin: 0; }
+    .item-cause { font-size: 14px; line-height: 22px; color: var(--aurora-muted); margin: 4px 0 0; }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .badge {
+      font-size: 10px; line-height: 14px; font-weight: 600; letter-spacing: 0.14em;
+      padding: 4px 8px; border-radius: var(--radius-sm);
+    }
+    .badge-attention { color: var(--aurora-attention); background: var(--aurora-attention-dim); }
+    .badge-success { color: var(--aurora-success); background: var(--aurora-success-dim); }
+    .badge-muted { color: var(--aurora-muted); background: var(--aurora-surface-2); }
+
+    .impact { margin-top: 16px; font-size: 14px; color: var(--aurora-ink); }
+    .metrics { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px; }
+    .metric { font-family: var(--mono); font-size: 28px; line-height: 32px; font-weight: 500; letter-spacing: -0.03em; }
+    .metric-cap { display: block; font-family: var(--font); font-size: 12px; line-height: 18px; font-weight: 400; letter-spacing: 0; color: var(--aurora-muted); margin-top: 4px; }
+    .buffer { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--aurora-hairline); }
+    .buffer b { display: block; font-family: var(--mono); font-size: 16px; font-weight: 500; }
+    .buffer span { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-muted); }
+    .buffer .short { color: var(--aurora-attention); }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .btn {
+      height: 36px; padding: 0 16px; border-radius: var(--radius-ctrl); border: 1px solid transparent;
+      font-size: 13px; font-weight: 500;
+    }
+    .btn-primary { background: var(--aurora-primary); color: var(--aurora-canvas); }
+    .btn-primary:hover { background: var(--aurora-accent); }
+    .btn-ghost { background: transparent; color: var(--aurora-ink); border-color: var(--aurora-hairline); }
+    .btn-ghost:hover { background: var(--aurora-surface-2); }
+
+    .compact .item-title { font-size: 14px; }
+    .compact-meta { font-size: 12px; color: var(--aurora-muted); margin-top: 4px; font-family: var(--mono); }
+
+    .disclosure { width: 100%; }
+    .disclosure > button.item { display: flex; justify-content: space-between; align-items: center; }
+    .handled { list-style: none; margin: 8px 0 0; padding: 0; display: none; }
+    .disclosure.open .handled { display: flex; flex-direction: column; gap: 4px; }
+    .handled li {
+      display: flex; justify-content: space-between; gap: 16px;
+      padding: 12px 20px; border: 1px solid var(--aurora-hairline); border-radius: var(--radius-card);
+      font-size: 14px;
+    }
+    .handled time { font-family: var(--mono); font-size: 12px; color: var(--aurora-muted); }
+
+    .drawer-back {
+      display: none; position: fixed; inset: 0; background: rgba(10, 12, 16, 0.72);
+    }
+    .drawer-back.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; height: 100%; width: 400px; max-width: 100%;
+      background: var(--aurora-surface); border-left: 1px solid var(--aurora-hairline);
+      padding: 24px; transform: translateX(100%); transition: transform 280ms ease; overflow: auto;
+    }
+    .drawer.open { transform: none; }
+    .sim-kicker { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: var(--aurora-sim); margin: 0 0 8px; }
+    .sim-title { font-size: 22px; margin: 0 0 8px; }
+    .sim-note { font-size: 14px; color: var(--aurora-muted); margin: 0 0 24px; }
+    .delta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .delta div { padding: 12px; background: var(--aurora-sim-dim); border-radius: var(--radius-ctrl); }
+    .delta span { display: block; font-size: 10px; letter-spacing: 0.14em; font-weight: 600; color: var(--aurora-sim); margin-bottom: 8px; }
+    .delta b { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+
+    @media (max-width: 1280px) {
+      :root { --sidebar: 200px; --gutter: 24px; }
+      .metric { font-size: 22px; line-height: 28px; }
+    }
+    @media (max-width: 1024px) {
+      :root { --sidebar: 64px; --gutter: 16px; }
+      .brand { letter-spacing: 0.08em; font-size: 9px; padding: 4px 0; text-align: center; }
+      .nav a { justify-content: center; padding: 0; font-size: 0; }
+      .nav a.active::after { content: ""; }
+      .nav a[href]::before { font-size: 11px; color: inherit; }
+      .nav a[href="pulse.html"]::before { content: "P"; font-size: 13px; }
+      .nav a[href="command.html"]::before { content: "C"; font-size: 13px; }
+      .nav a[href="#timeline"]::before { content: "T"; font-size: 13px; }
+      .nav a[href="#business"]::before { content: "B"; font-size: 13px; }
+      .nav a[href="#goals"]::before { content: "G"; font-size: 13px; }
+      .side-foot { display: none; }
+      .buffer, .metrics { gap: 16px; }
+      .actions .btn { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand">EVOPULSE</div>
+      <nav class="nav">
+        <a class="active" href="pulse.html" aria-current="page">Pulse</a>
+        <a href="command.html">Command</a>
+        <a href="#timeline">Timeline</a>
+        <a href="#business">Business</a>
+        <a href="#goals">Goals</a>
+      </nav>
+      <p class="side-foot">Nothing falls through.</p>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <span>Sun 27 Sep 2026 · 08:18 Africa/Tunis</span>
+        <span>WOW demo · delay observed</span>
+      </header>
+      <main class="page">
+        <h1 class="display">Your business is running.</h1>
+        <p class="census">2 need you · 2 monitoring · 3 handled automatically</p>
+
+        <section class="section" aria-labelledby="needs-you">
+          <h2 class="section-title" id="needs-you">NEEDS YOU</h2>
+          <div class="stack" role="list">
+            <article class="item selected" role="listitem" tabindex="0" data-id="cascade" aria-selected="true">
+              <div class="item-head">
+                <div>
+                  <h3 class="item-title">Atlas Supply · Shipment SH-204</h3>
+                  <p class="item-cause">Monday → Wednesday</p>
+                </div>
+                <div class="badges">
+                  <span class="badge badge-attention">NEEDS YOU</span>
+                  <span class="badge badge-attention">AT RISK — NOT MISSED</span>
+                </div>
+              </div>
+              <p class="impact">Atlas Supply revised Shipment SH-204. 3 orders · 3 customers.</p>
+              <div class="metrics">
+                <div>
+                  <div class="metric">850,000 DZD</div>
+                  <span class="metric-cap">associated revenue</span>
+                </div>
+                <div>
+                  <div class="metric">540,000 DZD</div>
+                  <span class="metric-cap">expected cash timing</span>
+                </div>
+              </div>
+              <div class="buffer" aria-label="Time buffer">
+                <div><span>AVAILABLE</span><b>−23h</b></div>
+                <div><span>REQUIRED</span><b>18h</b></div>
+                <div class="short"><span>SHORTFALL</span><b>−41h</b></div>
+              </div>
+              <div class="actions">
+                <a class="btn btn-primary" href="risk-why.html" style="display:inline-flex;align-items:center;text-decoration:none;">Review</a>
+                <button class="btn btn-ghost" type="button" data-simulate>Simulate</button>
+              </div>
+            </article>
+
+            <article class="item" role="listitem" tabindex="0" data-id="proposal" aria-selected="false">
+              <div class="item-head">
+                <div>
+                  <h3 class="item-title">Atlas Q4 warehouse fit-out</h3>
+                  <p class="item-cause">Revised proposal is ready. Customer-facing messages require a human.</p>
+                </div>
+                <div class="badges">
+                  <span class="badge badge-attention">NEEDS APPROVAL</span>
+                </div>
+              </div>
+              <div class="metrics">
+                <div>
+                  <div class="metric">320,000 DZD</div>
+                  <span class="metric-cap">proposal / recovery — not cascade loss</span>
+                </div>
+              </div>
+              <p class="item-cause" style="margin-top:12px;">Policy: external_message_requires_approval. EvoPulse cannot approve itself.</p>
+              <div class="actions">
+                <a class="btn btn-primary" href="command.html#approve" style="display:inline-flex;align-items:center;text-decoration:none;">Review &amp; Approve</a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section compact" aria-labelledby="monitoring">
+          <h2 class="section-title" id="monitoring">MONITORING</h2>
+          <div class="stack" role="list">
+            <article class="item" role="listitem" tabindex="0" data-id="cash">
+              <div class="item-head">
+                <div>
+                  <h3 class="item-title">Expected cash — week of 28 Sep</h3>
+                  <p class="compact-meta">540,000 DZD timing · still this week</p>
+                </div>
+                <span class="badge badge-muted">MONITORING</span>
+              </div>
+            </article>
+            <article class="item" role="listitem" tabindex="0" data-id="order-b">
+              <div class="item-head">
+                <div>
+                  <h3 class="item-title">Order B — Constantine Clinic</h3>
+                  <p class="compact-meta">280,000 DZD · Fri 2 Oct 17:00 · shares RK-7, still has calendar buffer</p>
+                </div>
+                <span class="badge badge-muted">MONITORING</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="handled">
+          <h2 class="section-title" id="handled">RECENTLY HANDLED</h2>
+          <div class="disclosure" id="handled-box">
+            <button class="item" type="button" aria-expanded="false" aria-controls="handled-list" id="handled-toggle">
+              <span>3 engine outcomes · not a second situation</span>
+              <span class="badge badge-success">HANDLED AUTOMATICALLY</span>
+            </button>
+            <ul class="handled" id="handled-list">
+              <li><span>Supplier delay classified — SH-204 Monday → Wednesday</span><time>09:13</time></li>
+              <li><span>Impact computed — 3 orders · 850,000 DZD associated</span><time>09:14</time></li>
+              <li><span>Warning recorded — Order A AT RISK — NOT MISSED</span><time>09:14</time></li>
+            </ul>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="drawer-back" id="sim-back" hidden></div>
+  <aside class="drawer" id="sim-drawer" aria-labelledby="sim-title" hidden>
+    <p class="sim-kicker">SIMULATION · NOT LIVE BUSINESS STATE</p>
+    <h2 class="sim-title" id="sim-title">What if Atlas is another 3 days late?</h2>
+    <p class="sim-note">Isolation hash unchanged. Live Pulse figures stay put. The +3-day case moves Invoice C timing — not the 540,000 DZD cash headline.</p>
+    <div class="delta">
+      <div><span>CURRENT</span><b>Invoice C in week of 28 Sep</b></div>
+      <div><span>SIMULATED</span><b>Invoice C next period</b></div>
+      <div><span>DELTA</span><b>160,000 DZD timing</b></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" data-close-sim>Close</button>
+    </div>
+  </aside>
+
+  <script>
+    const items = document.querySelectorAll(".item[data-id]");
+    items.forEach((el) => {
+      const select = () => {
+        items.forEach((other) => {
+          other.classList.toggle("selected", other === el);
+          other.setAttribute("aria-selected", other === el ? "true" : "false");
+        });
+      };
+      el.addEventListener("click", (event) => {
+        if (event.target.closest("a, button")) return;
+        select();
+      });
+      el.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select();
+        }
+      });
+    });
+
+    const box = document.getElementById("handled-box");
+    const toggle = document.getElementById("handled-toggle");
+    toggle.addEventListener("click", () => {
+      const open = box.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    const back = document.getElementById("sim-back");
+    const drawer = document.getElementById("sim-drawer");
+    function openSim() {
+      back.hidden = false; drawer.hidden = false;
+      requestAnimationFrame(() => { back.classList.add("open"); drawer.classList.add("open"); });
+    }
+    function closeSim() {
+      back.classList.remove("open"); drawer.classList.remove("open");
+      setTimeout(() => { back.hidden = true; drawer.hidden = true; }, 280);
+    }
+    document.querySelectorAll("[data-simulate]").forEach((btn) => btn.addEventListener("click", openSim));
+    document.querySelectorAll("[data-close-sim]").forEach((btn) => btn.addEventListener("click", closeSim));
+    back.addEventListener("click", closeSim);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSim(); });
+  </script>
+</body>
+</html>
