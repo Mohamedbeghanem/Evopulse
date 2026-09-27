@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 import { getAgentRuntime } from "@/lib/agent";
 import { toAskResponse } from "@/lib/agent/present";
-import { withWorkspace } from "@/lib/auth";
+import { withHumanActor } from "@/lib/auth";
 
-export const POST = withWorkspace(async (ctx, req, extra) => {
+export const POST = withHumanActor<{ approvalId?: string; actionId?: string }>("write", async (ctx, body, _req, extra) => {
   const { id } = await ((extra as { params: Promise<{ id: string }> } | undefined)?.params ?? Promise.resolve({ id: "" }));
-  const body = (await req.json().catch(() => ({}))) as { approvalId?: string; actionId?: string; actor?: string };
-  const runtime = getAgentRuntime(ctx.db);
   try {
-    const run = await runtime.resumeAfterApproval(id, {
+    const run = await getAgentRuntime(ctx.db).resumeAfterApproval(id, {
       approvalId: body.approvalId,
       actionId: body.actionId,
       decision: "reject",
-      actor: body.actor || ctx.user?.name || "operator",
+      actor: ctx.actor,
     });
     return NextResponse.json(toAskResponse(run, run.command));
   } catch (error) {

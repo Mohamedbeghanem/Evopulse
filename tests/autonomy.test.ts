@@ -601,20 +601,26 @@ describe("adaptive autonomy", { concurrency: 1 }, () => {
     assert.equal(overview.profiles.length, 8);
     assert.equal(overview.pause.paused, false);
 
-    assert.equal((await promote.POST(req({}), params("prepare_proposal"))).status, 403);
+    // The actor comes from the session (public demo here: the fixed demo human), never the body.
+    assert.equal((await promote.POST(req({ actor: "autopilot" }), params("prepare_proposal"))).status, 400);
     assert.equal((await promote.POST(req({ actor: "maya" }), params("send_message"))).status, 409);
     const ok = await promote.POST(req({ actor: "maya", toLevel: 3 }), params("prepare_proposal"));
     assert.equal(ok.status, 200);
     assert.equal((await ok.json()).profile.level, 3);
-    assert.equal((await promote.POST(req({ actor: "maya" }), params("nope"))).status, 404);
+    const promotedBy = getDb().prepare("SELECT actor FROM autonomy_changes WHERE kind = 'promotion' ORDER BY created_at DESC, rowid DESC LIMIT 1").get() as { actor: string };
+    assert.equal(promotedBy.actor, "Demo operator", "body actor 'maya' is ignored");
+    assert.equal((await promote.POST(req({}), params("nope"))).status, 404);
 
-    assert.equal((await suspend.POST(req({ actor: "maya" }), params("create_checkpoint"))).status, 200);
-    assert.equal((await reinstate.POST(req({ actor: "autopilot" }), params("create_checkpoint"))).status, 403);
-    assert.equal((await reinstate.POST(req({ actor: "maya" }), params("create_checkpoint"))).status, 200);
+    assert.equal((await suspend.POST(req({}), params("create_checkpoint"))).status, 200);
+    assert.equal((await reinstate.POST(req({ actor: "autopilot" }), params("create_checkpoint"))).status, 400);
+    assert.equal((await reinstate.POST(req({}), params("create_checkpoint"))).status, 200);
 
-    assert.equal((await pause.POST(req({ actor: "maya" }))).status, 200);
-    assert.equal((await resume.POST(req({}))).status, 403);
+    assert.equal((await pause.POST(req({}))).status, 200);
+    process.env.EVOPULSE_PUBLIC_DEMO = "false";
+    assert.equal((await resume.POST(req({}))).status, 401, "no session and no public demo → 401");
+    delete process.env.EVOPULSE_PUBLIC_DEMO;
     const resumed = await resume.POST(req({ actor: "maya" }));
+    assert.equal(resumed.status, 200);
     assert.equal((await resumed.json()).pause.paused, false);
   });
 });

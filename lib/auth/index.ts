@@ -38,3 +38,13 @@ export {
 } from "./types";
 
 export type { RequestContext } from "./http";
+export {
+  ActorClaimError,
+  DEMO_HUMAN_ACTOR,
+  looksLikeAiActor,
+  publicDemoEnabled,
+  refuseAiActorClaim,
+  sessionHumanActor,
+  withHumanActor,
+  type HumanRouteContext,
+} from "./actor";

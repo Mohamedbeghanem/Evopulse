@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
+import { withHumanActor } from "@/lib/auth";
 import { approvePromotion } from "@/lib/autonomy";
-import { errorResponse, readBody } from "@/lib/autonomy/http";
-import { getDb } from "@/lib/db";
+import { errorResponse } from "@/lib/autonomy/http";
 
-export async function POST(req: Request, ctx: { params: Promise<{ actionType: string }> }) {
-  const { actionType } = await ctx.params;
-  const body = await readBody(req);
+/** Human-only autonomy change. The actor is the signed-in person (or the demo human), never the body. */
+export const POST = withHumanActor<{ reason?: unknown; toLevel?: unknown }>("admin", async (ctx, body, _req, extra) => {
+  const { actionType } = await (extra as { params: Promise<{ actionType: string }> }).params;
   try {
-    const profile = approvePromotion(getDb(), actionType, { toLevel: body.toLevel, actor: body.actor, reason: body.reason });
+    const profile = approvePromotion(ctx.db, actionType, { toLevel: typeof body.toLevel === "number" ? body.toLevel : undefined, actor: ctx.actor, reason: typeof body.reason === "string" ? body.reason : undefined });
     return NextResponse.json({ profile });
   } catch (error) {
     return errorResponse(error);
   }
-}
+});

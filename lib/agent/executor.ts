@@ -19,7 +19,7 @@ import {
 } from "./store";
 import { getToolPermission, TOOL_DEFINITIONS, toolResultContract } from "./tools";
 import { pluginToolDefinition, PLUGIN_TOOL_PREFIX, workspaceIdFor } from "../connectors/agent-tools";
-import { approveConnectorAction, executeConnectorAction, isConnectorAction } from "../connectors/governance";
+import { approveConnectorAction, executeConnectorAction, isAiActor, isConnectorAction } from "../connectors/governance";
 import type {
   AgentApproval,
   AgentPhase,
@@ -264,6 +264,8 @@ export function applyHumanDecision(db: DatabaseSync, runId: string, decision: Ap
     throw new Error(`Approval ${approval.id} is no longer pending (${approval.status}).`);
   }
   const actor = decision.actor || "operator";
+  // Human-only: an AI / agent / system identity can never approve, reject or edit an approval.
+  if (isAiActor(actor)) throw new Error("AI cannot approve actions. A human must decide.");
   if (decision.decision === "edit") {
     updateApproval(db, approval.id, "edited", now, actor);
     patchRun(db, runId, { status: "waiting_for_approval", phase: "WAITING_FOR_APPROVAL" });

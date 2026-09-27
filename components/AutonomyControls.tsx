@@ -1,45 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-const APPROVER_KEY = "evopulse.autonomy.approver";
-
-/** The approver's name, remembered per browser. There is no auth; the server refuses engine/default names. */
-function readApprover(): string {
-  try {
-    return window.localStorage.getItem(APPROVER_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-function writeApprover(name: string) {
-  try {
-    window.localStorage.setItem(APPROVER_KEY, name);
-  } catch {
-    /* storage unavailable: the name is used for this page view only */
-  }
-}
-
-/** Small "Approving as" field. Promote, reinstate and resume send this name as the actor. */
+/**
+ * Who approves is decided on the server: the signed-in person, or the fixed demo human on the public demo.
+ * The browser never sends an actor name.
+ */
 export function ApproverField() {
-  const [name, setName] = useState("");
-  useEffect(() => setName(readApprover()), []);
-  return (
-    <label className="flex items-center gap-2 text-xs text-mute">
-      Approving as
-      <input
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-          writeApprover(e.target.value.trim());
-        }}
-        placeholder="Your name"
-        className="w-40 rounded-full border border-white/15 bg-ink-900 px-3 py-1.5 text-sm text-paper placeholder:text-mute"
-      />
-    </label>
-  );
+  return <p className="text-xs text-mute">Changes are recorded under your signed-in account (demo: “Demo operator”).</p>;
 }
 
 async function post(path: string, body: Record<string, unknown>) {
@@ -57,14 +26,9 @@ function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function run(path: string, body: Record<string, unknown>) {
-    const actor = readApprover();
-    if (!actor) {
-      setError("Enter your name in “Approving as” first.");
-      return;
-    }
     setBusy(true);
     setError(null);
-    const err = await post(path, { ...body, actor });
+    const err = await post(path, body);
     setBusy(false);
     if (err) setError(err);
     else router.refresh();

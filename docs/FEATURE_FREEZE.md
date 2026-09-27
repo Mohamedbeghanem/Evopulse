@@ -42,3 +42,13 @@ Emma asked for OpenManus to be made EvoPulse-native (2026-09-27). It is a TypeSc
 gateway, Policy engine, approvals and trace. No engine file was changed. The only edit inside
 `lib/agent/` is additive: `"manus"` was added to `AGENT_RUNTIME_MODES` so runs are labelled correctly.
 See [OPENMANUS.md](./OPENMANUS.md).
+
+## Security fix: human actor comes from the session (2026-09-27)
+
+Human-only routes (approve / reject / execute / send-draft / autonomy changes) no longer trust an `actor`
+in the request body or query. The actor is resolved server-side by `lib/auth/actor.ts` (`withHumanActor`):
+signed-in user → their name (write/admin role enforced, 401/403 otherwise); signed-out demo → the fixed
+`"Demo operator"` (disable anonymous demo with `EVOPULSE_PUBLIC_DEMO=false` → 401). Body/query claims naming
+an AI/agent/system identity are refused with 400; other claims are ignored. No engine file was changed. The
+only edit in `lib/agent/` is a small guard in `applyHumanDecision` (`lib/agent/executor.ts`) that refuses AI
+actors ("AI cannot approve actions"), as defense in depth on top of the existing Policy/approval checks.
