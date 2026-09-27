@@ -8,7 +8,8 @@ let hooked = false;
 
 export function handleWarningEvent(db: DatabaseSync, event: BusinessEvent) {
   if (!isUsable(db)) return;
-  const now = event.received_at || event.occurred_at || getMeta(db, "demo_now");
+  // Business time is the demo clock. An event's own timestamp must never advance it.
+  const now = getMeta(db, "demo_now") || event.received_at || event.occurred_at;
   EarlyWarningEngine.for(db).evaluateFromEvent(
     { id: event.id, type: event.type, entity_id: event.entity_id },
     now,
