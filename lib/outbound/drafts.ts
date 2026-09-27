@@ -76,7 +76,7 @@ export function draftsForAction(db: DatabaseSync, action: ActionRow): OutboundDr
       return [
         draft(action, intent, recipient, {
           subject: typeof payload.subject === "string" && payload.subject ? payload.subject : action.title,
-          body: `Hello ${firstName(recipient.name)},\n\n${body}\n\n— ${sender}`,
+          body: `Hello ${greetingName(recipient)},\n\n${body}\n\n— ${sender}`,
         }),
       ];
     }
@@ -131,6 +131,11 @@ function contactForException(db: DatabaseSync, exceptionId: string): Entity | nu
 
 function entity(db: DatabaseSync, entityId: string): Entity | null {
   return one<Entity>(db, "SELECT id, type, name, payload FROM entities WHERE id = ?", [entityId]) || null;
+}
+
+/** People are greeted by first name; companies by their full name. */
+function greetingName(entity: Entity) {
+  return entity.type === "contact" ? firstName(entity.name) : entity.name;
 }
 
 function firstName(name: string) {

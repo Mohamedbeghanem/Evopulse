@@ -214,3 +214,20 @@ describe("demo loop: inbox, outcomes, outbound drafts, demo path", () => {
     assert.equal(path.currentStepId, null);
   });
 });
+
+describe("inbox ordering", () => {
+  it("orders messages by instant even when offsets differ", () => {
+    const messages = listInbox(getDb());
+    const times = messages.map((m) => Date.parse(m.occurredAt));
+    assert.deepEqual(times, [...times].sort((a, b) => b - a));
+    assert.equal(messages[0].from, "Amine Khelifi", "the last delivered reply is on top");
+  });
+});
+
+describe("draft greetings", () => {
+  it("greets people by first name and companies by full name", () => {
+    const drafts = listDrafts(getDb());
+    assert.ok(drafts.some((d) => d.toEntityId === "ent_amine" && d.body.startsWith("Hello Amine,")));
+    assert.ok(drafts.some((d) => d.toEntityId === "ent_cust_a" && d.body.startsWith("Hello Oran Fresh Market,")));
+  });
+});

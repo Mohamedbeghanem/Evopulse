@@ -42,9 +42,11 @@ export function listInbox(db: DatabaseSync): InboxMessage[] {
     db,
     `SELECT id, type, source, source_id, actor_id, entity_type, entity_id, payload, occurred_at
      FROM events WHERE type IN (${INBOUND_TYPES.map(() => "?").join(",")})
-     ORDER BY occurred_at DESC, rowid DESC`,
+     ORDER BY rowid DESC`,
     INBOUND_TYPES,
   );
+  // Timestamps mix offsets ("Z" and "+01:00"), so order by instant, not by string.
+  rows.sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at));
   const ids = new Set(rows.map((row) => row.id));
   const verifications = all<{ id: string; exception_id: string; status: string; evidence: string }>(
     db,
@@ -168,13 +170,13 @@ function pendingVerificationIds(db: DatabaseSync) {
 
 /** Deterministic delivery time: five minutes after the later of demo "now" and the latest inbound message. */
 function nextInboundTime(db: DatabaseSync) {
-  const latest = one<{ at: string | null }>(
+  const times = all<{ at: string }>(
     db,
-    `SELECT MAX(occurred_at) AS at FROM events WHERE type IN (${INBOUND_TYPES.map(() => "?").join(",")})`,
+    `SELECT occurred_at AS at FROM events WHERE type IN (${INBOUND_TYPES.map(() => "?").join(",")})`,
     INBOUND_TYPES,
-  )?.at;
+  ).map((row) => row.at);
   const now = getMeta(db, "demo_now");
-  const base = [now, latest].filter(Boolean).map((value) => Date.parse(value as string)).filter(Number.isFinite);
+  const base = [now, ...times].filter(Boolean).map((value) => Date.parse(value as string)).filter(Number.isFinite);
   const ms = base.length ? Math.max(...base) : Date.parse("2026-09-27T09:14:00+01:00");
   return new Date(ms + 5 * 60_000).toISOString();
 }

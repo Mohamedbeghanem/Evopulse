@@ -10,7 +10,7 @@ export function OutcomePanel({ outcome }: { outcome: PulseOutcome }) {
   return (
     <section id="outcome" className="mt-10 space-y-4" aria-label="Outcome" data-testid="outcome-panel">
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Outcome · before → after</p>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-lg border border-hairline p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mute">Before · exposure detected</p>
           <ul className="mt-3 space-y-3">
