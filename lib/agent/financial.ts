@@ -8,11 +8,12 @@ const FORBIDDEN_MONEY_CLAIMS = [
 ];
 
 export function constrainFinancialLanguage(text: string): string {
-  let next = text;
+  const preserved = "not a claim that the money is lost";
+  let next = text.replace(new RegExp(preserved, "gi"), "__PRESERVE_NOT_LOST__");
   for (const rule of FORBIDDEN_MONEY_CLAIMS) {
     next = next.replace(rule.pattern, rule.replacement);
   }
-  return next;
+  return next.replace(/__PRESERVE_NOT_LOST__/g, preserved);
 }
 
 export function assertsCanonicalMoneyLabels(payload: unknown): { associatedRevenue?: number; expectedCashTiming?: number } {
