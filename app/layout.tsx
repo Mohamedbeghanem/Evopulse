@@ -23,6 +23,9 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// The shell reads workspace mode (entry vs running) from the database, so no route may be prerendered.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "EvoPulse — Nothing falls through",
   description: "AI-native Business Control System. Expected vs actual, with evidence.",

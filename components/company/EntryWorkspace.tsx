@@ -15,7 +15,7 @@ type Surface = "home" | "create" | "generating";
 
 export function EntryWorkspace() {
   const [surface, setSurface] = useState<Surface>("home");
-  const [prompt, setPrompt] = useState(CREATE_COMPANY_PREFILL);
+  const [prompt, setPrompt] = useState<string>(CREATE_COMPANY_PREFILL);
   const [template, setTemplate] = useState<CompanyTemplateId>("distribution");
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
