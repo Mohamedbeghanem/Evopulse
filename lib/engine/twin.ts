@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, getMeta, one } from "../db";
+import { EarlyWarningEngine } from "../warnings";
 import { calculateGraphImpact } from "./impact";
 import { IDS } from "../ids";
 import type { ExceptionRow, ExpectationRow } from "../types";
@@ -27,6 +28,7 @@ export function businessTwin(db: DatabaseSync) {
   );
   const delay = exceptions.find((e) => e.id === IDS.excDelay && e.status !== "resolved");
   const impact = delayed ? calculateGraphImpact(db, IDS.shipment) : null;
+  const activeWarnings = EarlyWarningEngine.for(db).getActiveWarnings();
   const shipExp = one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ?", [IDS.expectShip]);
   const deliverExp = one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ?", [IDS.expectDeliverA]);
 
@@ -53,7 +55,9 @@ export function businessTwin(db: DatabaseSync) {
     id: "OPERATIONS",
     status: delayed ? "AT_RISK" : "STABLE",
     headline: delayed
-      ? `1 critical dependency broken · ${impact?.affected_orders.length ?? 0} orders affected`
+      ? `${activeWarnings.length} active early warning · ${impact?.affected_orders.length ?? 0} affected orders · ${
+          activeWarnings.length
+        } customer commitment at risk`
       : "Shipment SH-204 still expected Monday",
     exceptions: delay ? 1 : 0,
     commitments: delayed ? 1 : 0,
@@ -70,7 +74,7 @@ export function businessTwin(db: DatabaseSync) {
     id: "CASH",
     status: delayed ? "MONITORING" : "STABLE",
     headline: delayed
-      ? `${(impact?.affected_expected_cash ?? 0).toLocaleString("en-US")} DZD expected cash timing affected`
+      ? `${(impact?.affected_expected_cash ?? 0).toLocaleString("en-US")} DZD expected timing connected to active cascade`
       : "No cash-timing exception",
     exceptions: delayed ? 1 : 0,
     commitments: 0,

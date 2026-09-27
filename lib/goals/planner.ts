@@ -30,6 +30,38 @@ export function generateCandidateActions(context: GoalContext): CandidateAction[
       actions.push(...cashActions(risk));
     }
   }
+  if (context.earlyWarnings.length) {
+    const warning = context.earlyWarnings[0];
+    actions.push(
+      candidate({
+        type: "monitor",
+        domain: "operations",
+        targetType: "shipment",
+        targetId: IDS.shipment,
+        title: "Monitor revised shipment",
+        description:
+          "Watch the upstream arrival against the customer delivery buffer. The deadline has not failed yet.",
+        parameters: {
+          warningId: warning.id,
+          expectationId: warning.expectationId,
+          availableBufferMinutes: warning.availableBufferMinutes,
+          requiredBufferMinutes: warning.requiredBufferMinutes,
+        },
+        reason:
+          "An early warning is active. Monitoring the revised shipment is preventive — Detect still owns any later miss.",
+        evidence: {
+          kind: "CALCULATED_IMPACT",
+          reason: `${warning.title} is ${warning.bufferState} under current timing assumptions.`,
+          sourceEntityIds: [IDS.shipment, IDS.orderA, IDS.commitDeliverA],
+          path: ["Atlas Supply", "Shipment SH-204", "Order A — Oran Fresh", "Customer delivery"],
+        },
+        priority: 22,
+        risk: "low",
+        relatedExceptionId: "",
+        relatedRiskId: warning.id,
+      }),
+    );
+  }
   return actions;
 }
 

@@ -13,6 +13,7 @@ export const EVENT_TYPES = {
   SHIPMENT_EXPECTED: "shipment.expected",
   SHIPMENT_ARRIVED: "shipment.arrived",
   SHIPMENT_DELAYED: "shipment.delayed",
+  SHIPMENT_REVISED: "shipment.revised",
   ORDER_CREATED: "order.created",
   ORDER_DELIVERED: "order.delivered",
   CUSTOMER_DECISION: "customer.decision",

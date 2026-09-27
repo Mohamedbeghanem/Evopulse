@@ -4,6 +4,7 @@ import { formatDay, formatMoney } from "@/lib/clock";
 import { getDb, getMeta } from "@/lib/db";
 import { pulseSummary } from "@/lib/engine/pulse";
 import { IDS } from "@/lib/ids";
+import { formatHours } from "@/lib/warnings";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,33 @@ export default function PulsePage() {
           ) : null}
         </div>
       </section>
+
+      {pulse.comingNext?.length ? (
+        <section className="space-y-3">
+          <h2 className="font-serif text-3xl">Coming next</h2>
+          {pulse.comingNext.map((warning) => (
+            <article key={warning.id} className="rounded-2xl border border-need/30 bg-need/5 p-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge>AT RISK</Badge>
+                <Badge>NOT MISSED</Badge>
+              </div>
+              <h3 className="mt-3 font-serif text-2xl">{warning.title}</h3>
+              <p className="mt-2 text-sm text-sand">
+                {formatHours(warning.available_buffer_minutes)} available ·{" "}
+                {formatHours(warning.required_buffer_minutes)} required ·{" "}
+                {formatHours(Math.abs(warning.shortfall_minutes))} projected shortfall under current timing
+                assumptions.
+              </p>
+              <Link
+                href={`/warnings/${warning.id}`}
+                className="mt-4 inline-flex rounded-full border border-white/15 px-4 py-2 text-sm text-paper"
+              >
+                Why?
+              </Link>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 p-4">

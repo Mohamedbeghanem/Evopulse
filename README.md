@@ -75,6 +75,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - **Business Graph + Impact (product P3)** lives at `lib/graph/` and `lib/engine/impact.ts`. SQLite `graph_nodes` / `graph_edges`; traversal is relational. Impact sums seeded order/invoice amounts — it does not hardcode 850K / 540K.
 - **Business Simulator (what-if)** lives at `lib/simulation/`. It reads the Business Graph into a detached snapshot, clones the slice downstream of the scenario target, applies one change (e.g. supplier delay +3 days), and propagates it deterministically through real edges. Baseline and simulation use the same propagator. Nothing is written — a content hash of every table is taken before and after each run to prove it.
 - **Business Twin** lives at `lib/engine/twin.ts`. Domain state is derived from stored exceptions, commitments, and graph facts — no AI health scores.
+- **Early Warning (product P22)** lives at `lib/warnings/`. Deterministic buffer math (`available` vs `required`) decides AT RISK before a deadline is missed. Detect still owns MISSED. LLM does not classify the warning.
 - Replay (`POST /api/events/:id/replay` or `POST /api/events/replay`) re-notifies handlers only. It does not clone the event or re-run ingest / execute side effects. Handlers must be idempotent on `event.id`.
 - **Expectation + Pulse/Exception (product P5–P6)** lives at `lib/engine/expectations.ts` and `lib/engine/matcher.ts`. `ExpectedEventMatcher` consumes the Event Layer dispatcher (`registerEngineHook`). Software decides miss vs match from event type, entity scope, and the clock — never an LLM. Control’s `VerificationService` table is unchanged; Detect exports `applyVerificationOutcome` so verify SUCCESS/FAIL can share the same matcher later.
 - Pulse / Policy / Action engines stay in `lib/engine/`. Schema lives in `lib/db.ts`.
@@ -101,12 +102,13 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 | `/command` | Outcome commands + grounded questions |
 | `/goals` · `/goals/:id` | Cross-business goal + structured plan |
 | `/graph` | Commitment graph |
+| `/warnings` · `/warnings/:id` | Early warning — AT RISK, not missed |
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /api/ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay` · `GET /api/warnings` · `GET /api/warnings/:id` · `POST /api/warnings/evaluate` · `GET /api/warnings/:id/explanation`
 
-Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `GET /api/health`
+Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `POST /api/demo/shipment-earlier` · `GET /api/health`
 
 ## AI disclosure (submit this)
 

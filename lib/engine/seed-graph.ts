@@ -35,7 +35,15 @@ export function seedSupplierGraph(db: DatabaseSync) {
       IDS.orderA,
       "order",
       "Order A — Oran Fresh",
-      { amount: 320000, currency: "DZD", dueAt: DELIVER_A_ISO, leadDays: 1 },
+      {
+        amount: 320000,
+        currency: "DZD",
+        dueAt: DELIVER_A_ISO,
+        leadDays: 1,
+        processing_minutes: 360,
+        preparation_minutes: 240,
+        transport_minutes: 480,
+      },
     ],
     [
       IDS.orderB,

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { all, one } from "../db";
 import { IDS } from "../ids";
+import { EarlyWarningEngine } from "../warnings";
 import { businessTwin } from "./twin";
 import { detectFromClock } from "./matcher";
 import { canonicalExceptionType } from "./exception-types";
@@ -9,6 +10,7 @@ import type {
   EntityRow,
   EvidencePack,
   ExceptionRow,
+  ExpectationRow,
   Impact,
 } from "../types";
 
@@ -18,6 +20,14 @@ export function detectExceptions(db: DatabaseSync, now: string) {
 
 export function pulseSummary(db: DatabaseSync, now: string) {
   detectExceptions(db, now);
+  const warningEngine = EarlyWarningEngine.for(db);
+  for (const warning of warningEngine.getActiveWarnings()) {
+    if (!warning.expectation_id) continue;
+    const due = one<ExpectationRow>(db, "SELECT * FROM expectations WHERE id = ?", [warning.expectation_id]);
+    if (due && new Date(due.due_at).getTime() < new Date(now).getTime()) {
+      warningEngine.escalateToException(warning.expectation_id, now);
+    }
+  }
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions ORDER BY created_at DESC");
   const counts = {
     NEEDS_YOU: exceptions.filter((e) => e.attention === "NEEDS_YOU").length,
@@ -53,6 +63,7 @@ export function pulseSummary(db: DatabaseSync, now: string) {
     company,
     twin: businessTwin(db),
     supplierPhase: one<{ value: string }>(db, "SELECT value FROM meta WHERE key = ?", ["supplier_phase"])?.value || "stable",
+    comingNext: warningEngine.getActiveWarnings().map((row) => warningEngine.summarize(row)),
   };
 }
 

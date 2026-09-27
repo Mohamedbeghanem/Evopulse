@@ -207,6 +207,10 @@ function migrate(db: DatabaseSync) {
   migrateLearningTables(db);
   const { migrateGoalTables } = require("./goals/schema") as typeof import("./goals/schema");
   migrateGoalTables(db);
+  const { migrateWarningTables } = require("./warnings/schema") as typeof import("./warnings/schema");
+  migrateWarningTables(db);
+  const { migrateCommandTables } = require("./command/schema") as typeof import("./command/schema");
+  migrateCommandTables(db);
 }
 
 function migrateEventsTable(db: DatabaseSync) {
@@ -283,6 +287,8 @@ export function peekDb(): DatabaseSync | undefined {
 function wireEngineHooks(db: DatabaseSync) {
   const { ensureDetectHooks } = require("./engine/hooks") as typeof import("./engine/hooks");
   ensureDetectHooks(db);
+  const { ensureWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+  ensureWarningHooks(db);
 }
 
 export function getDb(): DatabaseSync {
@@ -305,6 +311,12 @@ export function getDb(): DatabaseSync {
 }
 
 export function resetDbFile() {
+  try {
+    const { releaseWarningHooks } = require("./warnings/hooks") as typeof import("./warnings/hooks");
+    releaseWarningHooks();
+  } catch {
+    /* warnings module may not be loaded yet */
+  }
   const path = dbPath();
   if (globalForDb.evopulseDb) {
     try {
