@@ -80,7 +80,7 @@ export default async function ImpactPage({ params }: { params: Promise<{ excepti
             <Row k="Relationship" v="required_by (via RK-7)" />
             <Row k="Source" v="Supplier message" />
             <Row k="Evidence" v={delay.message} />
-            <Row k="Value" v={formatMoney(280000)} />
+            <Row k="Value" v={formatMoney(impact.affected_orders.find((order) => order.id === IDS.orderB)?.amount ?? 0)} />
             <Row k="Confidence" v="96%" />
             <Row k="Timestamp" v={delay.change?.created_at || ""} />
           </dl>
@@ -93,6 +93,9 @@ export default async function ImpactPage({ params }: { params: Promise<{ excepti
           className="rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink-950"
         >
           Open exception
+        </Link>
+        <Link href="/explore" className="rounded-full border border-white/15 px-5 py-2.5 text-sm">
+          Causal explorer
         </Link>
         <Link href="/graph" className="rounded-full border border-white/15 px-5 py-2.5 text-sm">
           Full graph

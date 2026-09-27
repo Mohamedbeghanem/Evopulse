@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { SHIP_DELAYED_ISO, SHIP_EXPECTED_ISO } from "../lib/clock";
-import { getDb, getMeta, resetDbFile } from "../lib/db";
+import { getDb, getMeta, resetDbFile, run } from "../lib/db";
 import { calculateGraphImpact } from "../lib/engine/impact";
 import { executePlan } from "../lib/engine/execute";
 import { ingestSeedDiscount } from "../lib/engine/ingest";
@@ -82,6 +82,15 @@ describe("supplier cascade", { concurrency: 1 }, () => {
     assert.equal(result.exception?.status, "open");
     assert.equal(result.deliveryAtRisk && (result.deliveryAtRisk as { status: string }).status, "at_risk");
     assert.ok((result.impact.commitments_at_risk ?? 0) >= 1);
+    run(db, "UPDATE commitments SET status = ? WHERE id = ?", ["at_risk", IDS.commitOurs]);
+    const scoped = calculateGraphImpact(db, IDS.shipment);
+    assert.equal(scoped.commitments_at_risk, result.impact.commitments_at_risk);
+    const orderA = eventsFor(db).getById(IDS.evtOrderA);
+    const orderB = eventsFor(db).getById(IDS.evtOrderB);
+    const orderC = eventsFor(db).getById(IDS.evtOrderC);
+    assert.equal(orderA?.payload.amount, 320000);
+    assert.equal(orderB?.payload.amount, 280000);
+    assert.equal(orderC?.payload.amount, 250000);
 
     const types = new Set(eventsFor(db).list().map((e) => e.type));
     assert.ok(types.has(EVENT_TYPES.MESSAGE_RECEIVED));

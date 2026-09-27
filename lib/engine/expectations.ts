@@ -44,19 +44,16 @@ export function refreshExpectations(db: DatabaseSync, now: string) {
 
   for (const row of rows) {
     const commitment = commitments.get(row.commitment_id);
-    const fulfilled = commitment?.status === "fulfilled" || row.status === "FULFILLED";
-    const cancelled = commitment?.status === "cancelled";
+    const fulfilled = row.status === "FULFILLED";
+    const cancelled = commitment?.status === "cancelled" || row.status === "CANCELLED";
     const blocked = blockedPrereqs.has(row.id) || blockedPrereqs.has(row.commitment_id);
-    const revised = one(db, "SELECT id FROM expectation_changes WHERE expectation_id = ?", [row.id]);
-    const next = revised && !fulfilled && !cancelled
-      ? "AT_RISK"
-      : deriveExpectationStatus({
-          dueAt: row.due_at,
-          now,
-          fulfilled,
-          blocked: blocked && !fulfilled,
-          cancelled: Boolean(cancelled),
-        });
+    const next = deriveExpectationStatus({
+      dueAt: row.due_at,
+      now,
+      fulfilled,
+      blocked: blocked && !fulfilled,
+      cancelled,
+    });
     if (next !== row.status) {
       const actual =
         next === "MISSED"
