@@ -77,3 +77,13 @@ export function planOutcome(
   if (outcomes.includes("APPROVAL_REQUIRED")) return "APPROVAL_REQUIRED";
   return "AUTO";
 }
+
+/** Live policy recheck. Never trust a stored AUTO/BLOCKED label. */
+export function recheckActionPolicy(
+  db: DatabaseSync,
+  action: ProposedAction,
+): { outcome: PolicyOutcome; reason: string; policies: Record<string, string> } {
+  const policies = loadPolicies(db);
+  const decision = evaluatePolicy(action, policies);
+  return { ...decision, policies };
+}

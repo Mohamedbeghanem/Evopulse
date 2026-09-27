@@ -25,9 +25,9 @@ const config: Config = {
         ice: "#7eb6d9",
       },
       fontFamily: {
-        serif: ["var(--font-serif)", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-sans)", "Geist", "system-ui", "sans-serif"],
+        serif: ["var(--font-sans)", "Geist", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "Geist Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
         pulse: "0 0 0 0 rgba(240, 162, 2, 0.45)",

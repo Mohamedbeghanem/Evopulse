@@ -42,7 +42,12 @@ Optional keys (live JSON extraction only; heuristic fallback always wins if the 
 ```bash
 cp .env.example .env.local
 # OPENAI_API_KEY=...   or GROQ_API_KEY=...   or GEMINI_API_KEY=...
+# Optional Command Center intelligence: EVOPULSE_AGENT_PROVIDER=openrouter
+# OPENROUTER_API_KEY=...
+# OPENROUTER_MODEL=<configured-model>
 ```
+
+OpenRouter is a server-side AgentRuntime provider. It does not replace policy, impact, simulation, or verification. See [docs/OPENROUTER.md](./docs/OPENROUTER.md).
 
 ```bash
 npm test          # extraction, policy, expectation state, full 320K loop
@@ -84,6 +89,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 - Next.js 15 + React 19 + TypeScript + Tailwind
 - SQLite via Node 22 `node:sqlite` (tables in `lib/db.ts`; architecture in PLAN.md)
 - Extractor: OpenAI / Groq / Gemini JSON, **hard fallback** to deterministic heuristics for the seed messages
+- Command Center: governed `AgentRuntime` with optional OpenRouter model intelligence and deterministic fallback
 - No auth beyond an implicit operator stub
 - **NVIDIA Brev: not used** (optional window closed — we did not request Brev compute)
 
@@ -104,7 +110,7 @@ Shot list and rubric mapping: [DEMO.md](./DEMO.md).
 
 ## API
 
-`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /ask` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
+`POST /ingest` · `POST /extract` · `GET /pulse` · `GET /timeline` · `GET /exceptions` · `GET /exceptions/:id` · `GET /exceptions/:id/impact` · `POST /exceptions/:id/plan` · `POST /plans/:id/approve` · `POST /plans/:id/execute-safe` · `POST /actions/:id/execute` · `GET /graph/:entity` · `GET /graph/:entity/dependencies` · `GET /graph/:entity/impact` · `GET /business-state` · `GET/POST /api/simulations` · `POST /ask` · `POST /api/agent/run` · `POST /api/agent/cancel` · `POST /api/goals` · `GET /api/goals/:id` · `POST /api/goals/:id/plan` · `GET/POST /api/events` · `GET /api/events/:id` · `POST /api/events/:id/replay` · `POST /api/events/replay`
 
 Demo helpers: `POST /api/demo/reset` · `POST /api/demo/discount` · `POST /api/demo/supplier-delay` · `GET /api/health`
 

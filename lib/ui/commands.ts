@@ -10,11 +10,15 @@ export type CommandIntent =
 export const COMMAND_PROMPTS = [
   "What changed today?",
   "What needs me?",
+  "What are you monitoring?",
+  "What am I about to miss?",
   "Why is 850K at risk?",
   "What if Atlas another 3 days late?",
   "Protect everything at risk this week.",
   "What can you handle safely?",
   "Fix everything authorized.",
+  "What did we do last time?",
+  "Why did you block 10%?",
   "10% discount scenario.",
 ] as const;
 
@@ -36,7 +40,9 @@ export function classifyCommand(text: string): CommandIntent {
     return "goal";
   }
   if (
-    /what (changed|needs|requires)|why is|promises|revenue|attention|850|320|atlas|shipment|cash/.test(q)
+    /what (changed|needs|requires|are you monitoring|am i about to miss|did we do last)|why (is|did you block)|promises|revenue|attention|850|320|atlas|shipment|cash|monitor|miss|last time/.test(
+      q,
+    )
   ) {
     return "ask";
   }

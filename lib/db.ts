@@ -199,6 +199,19 @@ function migrate(db: DatabaseSync) {
 
     CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_node_id);
     CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_node_id);
+
+    CREATE TABLE IF NOT EXISTS agent_runs (
+      id TEXT PRIMARY KEY,
+      command TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      model TEXT,
+      state TEXT NOT NULL,
+      duration_ms INTEGER,
+      tool_names TEXT NOT NULL DEFAULT '[]',
+      completion_state TEXT,
+      metadata TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
   `);
   migrateEventsTable(db);
   migrateExpectationsTable(db);
