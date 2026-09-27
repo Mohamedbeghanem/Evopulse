@@ -1,6 +1,7 @@
 import type { CommandIntent, CommandLink, SourceSystem } from "../command/types";
 
-export const AGENT_RUNTIME_MODES = ["deterministic", "deepseek"] as const;
+// "manus": the OpenManus-native planning agent (lib/agents/manus). Same tables, same governed executor.
+export const AGENT_RUNTIME_MODES = ["deterministic", "deepseek", "manus"] as const;
 export type AgentRuntimeMode = (typeof AGENT_RUNTIME_MODES)[number];
 
 export const TOOL_PERMISSIONS = [

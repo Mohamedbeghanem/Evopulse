@@ -34,3 +34,11 @@ The agent runtime (`lib/agent/`) is an approved adapter **above** this loop. It 
 
 Emma approved connectors and a plugin / MCP registry (2026-09-27). They sit around the loop, write only into the
 existing tables, and route every write through Policy + human approval. See [CONNECTORS.md](./CONNECTORS.md).
+
+## Approved exception: OpenManus-native agent layer
+
+Emma asked for OpenManus to be made EvoPulse-native (2026-09-27). It is a TypeScript port in
+`lib/agents/manus/` that sits beside the agent runtime: it uses the same governed executor, OpenRouter
+gateway, Policy engine, approvals and trace. No engine file was changed. The only edit inside
+`lib/agent/` is additive: `"manus"` was added to `AGENT_RUNTIME_MODES` so runs are labelled correctly.
+See [OPENMANUS.md](./OPENMANUS.md).
