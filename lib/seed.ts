@@ -362,7 +362,13 @@ export function wipeAndSeed(db: DatabaseSync) {
     "entities",
     "meta",
   ];
-  for (const table of tables) db.exec(`DELETE FROM ${table}`);
+  for (const table of tables) {
+    try {
+      db.exec(`DELETE FROM ${table}`);
+    } catch {
+      /* table may not exist on a pre-graph database */
+    }
+  }
   seedWorld(db);
   seedSyntheticLearningData(db);
 }

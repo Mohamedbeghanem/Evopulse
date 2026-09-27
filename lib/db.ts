@@ -214,7 +214,10 @@ function migrateEventsTable(db: DatabaseSync) {
 }
 
 export function getDb(): DatabaseSync {
-  if (globalForDb.evopulseDb) return globalForDb.evopulseDb;
+  if (globalForDb.evopulseDb) {
+    migrate(globalForDb.evopulseDb);
+    return globalForDb.evopulseDb;
+  }
   const path = dbPath();
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
