@@ -3,6 +3,7 @@ import { all, getMeta, one } from "../db";
 import { calculateGraphImpact } from "./impact";
 import { IDS } from "../ids";
 import type { ExceptionRow, ExpectationRow } from "../types";
+import { isMissedCommitment } from "./exception-types";
 
 export type TwinDomain = {
   id: "SALES" | "OPERATIONS" | "CASH" | "CUSTOMERS" | "SUPPLIERS";
@@ -22,7 +23,7 @@ export function businessTwin(db: DatabaseSync) {
   const phase = getMeta(db, "demo_phase", "seeded");
   const exceptions = all<ExceptionRow>(db, "SELECT * FROM exceptions");
   const salesOpen = exceptions.filter(
-    (e) => e.attention === "NEEDS_YOU" && (e.kind === "commitment_missed" || e.kind === "policy_blocked"),
+    (e) => e.attention === "NEEDS_YOU" && (isMissedCommitment(e.kind) || e.kind === "policy_blocked"),
   );
   const delay = exceptions.find((e) => e.id === IDS.excDelay && e.status !== "resolved");
   const impact = delayed ? calculateGraphImpact(db, IDS.shipment) : null;
