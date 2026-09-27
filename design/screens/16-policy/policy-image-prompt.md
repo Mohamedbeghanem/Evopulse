@@ -1,15 +1,21 @@
 # Image prompt — 16 Policy
 
-Use if no image generator is available in-run. Render a still of `policy.html` at 1440×900.
+Still of `policy.html` at 1440×900. Locked Aurora Control OS.
 
 ## Prompt
 
-Same Aurora Control OS as 12 Approval: ink `#080a0d`, Instrument Serif + IBM Plex, no cards. Faint coral wash top-right (not red error chrome). Left rail: eyebrow “GOVERNED AUTONOMY”, serif headline “What software refuses”, coral outlined chip `BLOCKED`. Policy `discount_max = 5`. Requested `10% on 320,000 DZD` in paper mono. Caption: “AI proposed the close. Software refused. This is not an application error.” Atlas Q4 · Amine quote. Event `policy.blocked`. Rail law: “BLOCKED is the system working.”
+Same dark Control OS shell as 12. Sidebar Policies / Control is current (inset orange bar). Clock SUN 27 SEP · 11:05 +01.
 
-Right brief, hairline sections: REFUSED ACTION with serif lead “Apply 10% discount.” A two-column math pair — Requested `10%` coral vs Allowed ceiling `5%` paper — connected by tiny mono `discount_max`, not a gauge. Next section “INSIDE POLICY — STILL HUMAN-GATED” with 5% → 304,000 DZD and Net-14 + priority slot, each tagged `APPROVAL_REQUIRED` in amber. Policy ledger as a quiet three-column list of exact keys (`discount_max`, `financial_commitment_requires_approval`, `external_message_requires_approval`, …). Evidence quotation: “I'll sign today if you give me 10%.”
+Header: POLICIES / CONTROL, “What software refuses,” quiet mono chip `BLOCKED` (not red, not a crash). Lede: 10% outside authorization; BLOCKED is governed autonomy.
 
-Sticky bar: “10% is closed…” + dead coral outline “Cannot approve 10%” + paper pill “Take 5% to approval” + ghost “Take Net-14 to approval.” Clock “Sun 27 Sep 2026 · 11:05 +01”. Chrome “CONTROL OS · 16 POLICY”. No error illustration, no lock icon explosion, no discount slider, no CRM, no charts.
+FOCUSED brief: REFUSED ACTION “Apply 10% discount.” Two-column math Requested 10% quiet vs Allowed 5% ink, connector `discount_max`. Inside-policy rows: 5% → 304,000 DZD and Net-14 + slot, each `APPROVAL_REQUIRED` orange tag. Quiet ledger of five exact keys. Evidence quote “I'll sign today if you give me 10%.” Recessed: “BLOCKED is the system working.”
+
+Actions: quiet “Cannot approve 10%”, orange “Take 5% to approval”, ghost “Take Net-14 to approval.”
+
+Inspector titled discount_max: outcome BLOCKED, requested 10%, ceiling 5, event policy.blocked, act_apply_10.
+
+No 500 illustration, no lock explosion, no discount slider, no “save 32,000.”
 
 ## Negative
 
-500 page, broken robot, red full-screen fail, toggle to override policy, “save 32,000”, Kanban, settings form, chat.
+Error page, red full-bleed, override toggle, CRM, light theme, success confetti, chat.

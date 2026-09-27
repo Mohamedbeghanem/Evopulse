@@ -3,456 +3,254 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EvoPulse Control OS — Policy · What software refuses</title>
+  <title>EvoPulse Control OS — Policy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink-950: #080a0d;
-      --ink-900: #0c1016;
-      --ink-800: #131922;
-      --ink-700: #1b2330;
-      --ink-600: #253042;
-      --paper: #efe7d6;
-      --sand: #c8b896;
-      --mute: #8a8476;
-      --need: #f0a202;
-      --miss: #e85d4c;
-      --ok: #3dba8b;
-      --ice: #7eb6d9;
-      --line: rgba(239, 231, 214, 0.12);
-      --focus: #f0a202;
+      --aurora-canvas: #07090c;
+      --aurora-nav: #090c10;
+      --aurora-surface: #0e1217;
+      --aurora-surface-raised: #141a22;
+      --aurora-surface-active: #1a212b;
+      --aurora-recessed: #0a0d11;
+      --aurora-ink: #e8ecf1;
+      --aurora-secondary: #a3adba;
+      --aurora-muted: #7c8796;
+      --aurora-quiet: #8f9aa8;
+      --aurora-hairline: #1c232c;
+      --aurora-hairline-strong: #232b35;
+      --aurora-row-line: #1a2029;
+      --aurora-attention: #ff5a1f;
+      --aurora-attention-hot: #ff7a45;
+      --aurora-on-attention: #0a0c0f;
+      --aurora-watch: #f0b44c;
+      --aurora-auto: #7fb2e0;
+      --aurora-focus: #ff7a45;
+      --aurora-overlay: rgba(7, 9, 12, 0.72);
+      --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+      --text-body: 14px;
+      --text-display: 26px;
+      --leading-tight: 1.2;
+      --leading-body: 1.45;
+      --tracking-label: 0.12em;
+      --space-2: 8px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --radius-chip: 4px;
+      --radius-control: 6px;
+      --radius-panel: 10px;
+      --os-sidebar-width: 240px;
+      --os-inspector-width: 360px;
+      --os-header-height: 56px;
+      --os-nav-item-height: 34px;
+      --os-gutter-sidebar: 16px;
+      --os-gutter-workspace: 28px;
+      --os-gutter-inspector: 20px;
+      --workspace-focused: 840px;
+      --focus-ring: 0 0 0 2px var(--aurora-canvas), 0 0 0 4px var(--aurora-focus);
     }
-
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
-    body {
-      background: var(--ink-950);
-      color: var(--paper);
-      font-family: "IBM Plex Sans", system-ui, sans-serif;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(900px 480px at 92% -8%, rgba(232, 93, 76, 0.07), transparent 50%),
-        linear-gradient(180deg, #0c1016 0%, #080a0d 42%);
-      z-index: 0;
-    }
-
-    a { color: inherit; }
-    button { font: inherit; }
-    :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-
-    .skip {
-      position: absolute;
-      left: 12px;
-      top: -48px;
-      z-index: 20;
-      background: var(--paper);
-      color: var(--ink-950);
-      padding: 8px 12px;
-    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--aurora-canvas); color: var(--aurora-ink); font-family: var(--font-sans); font-size: var(--text-body); line-height: var(--leading-body); }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+    :focus { outline: none; }
+    :focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-control); }
+    .skip { position: absolute; left: 12px; top: -40px; z-index: 80; padding: 8px 12px; background: var(--aurora-surface-raised); border: 1px solid var(--aurora-hairline); border-radius: var(--radius-control); }
     .skip:focus { top: 12px; }
-
-    .os {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-    }
-
-    header.chrome {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px 24px;
-      padding: 18px 28px 14px;
-      border-bottom: 1px solid var(--line);
-    }
-    .brand { display: flex; align-items: baseline; gap: 14px; }
-    .brand strong {
-      font-family: "Instrument Serif", Georgia, serif;
-      font-weight: 400;
-      font-size: 1.55rem;
-      letter-spacing: -0.02em;
-    }
-    .brand span, .clock, .crumb {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--mute);
-    }
-    .crumb a { text-decoration: none; border-bottom: 1px solid transparent; }
-    .crumb a:hover { color: var(--paper); border-bottom-color: var(--sand); }
-
-    .shell {
-      display: grid;
-      grid-template-columns: minmax(280px, 34%) 1fr;
-      min-height: 0;
-    }
-
-    aside.rail {
-      padding: 36px 28px 120px;
-      border-right: 1px solid var(--line);
-    }
-    .eyebrow {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--mute);
-      margin: 0 0 14px;
-    }
-    h1 {
-      font-family: "Instrument Serif", Georgia, serif;
-      font-weight: 400;
-      font-size: clamp(2.1rem, 3.6vw, 3.35rem);
-      line-height: 1.08;
-      letter-spacing: -0.02em;
-      margin: 0 0 22px;
-    }
-    .state {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--miss);
-      border: 1px solid rgba(232, 93, 76, 0.45);
-      padding: 6px 10px;
-    }
-    .state[data-tone="need"] {
-      color: var(--need);
-      border-color: rgba(240, 162, 2, 0.45);
-    }
-    .state i {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .deal { margin-top: 36px; }
-    .deal dt {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--mute);
-      margin: 16px 0 4px;
-    }
-    .deal dd { margin: 0; color: var(--sand); }
-    .deal dd.money {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 1.35rem;
-      color: var(--paper);
-    }
-    .deal .note { margin-top: 6px; font-size: 0.85rem; color: var(--mute); }
-
-    .law {
-      margin-top: 40px;
-      padding-top: 22px;
-      border-top: 1px solid var(--line);
-      color: var(--sand);
-      font-size: 0.95rem;
-    }
-    .law strong { color: var(--paper); font-weight: 500; }
-
-    main.brief { padding: 36px 40px 140px; max-width: 840px; }
-    section.block { padding: 0 0 28px; }
-    section.block + section.block {
-      border-top: 1px solid var(--line);
-      padding-top: 28px;
-    }
-    h2 {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--mute);
-      margin: 0 0 14px;
-      font-weight: 500;
-    }
-    .lead {
-      font-family: "Instrument Serif", Georgia, serif;
-      font-size: clamp(1.55rem, 2.4vw, 2.05rem);
-      line-height: 1.2;
-      margin: 0 0 10px;
-    }
-    .copy { margin: 0; color: var(--sand); max-width: 64ch; }
-
-    .math {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 16px;
-      align-items: center;
-      margin: 18px 0 8px;
-    }
-    .math figure {
-      margin: 0;
-      padding: 16px 0;
-    }
-    .math .k {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--mute);
-    }
-    .math .v {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 1.7rem;
-      margin-top: 6px;
-    }
-    .math .v.miss { color: var(--miss); }
-    .math .rule {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      color: var(--mute);
-      text-align: center;
-    }
-
+    .os { display: flex; min-height: 100vh; background: var(--aurora-canvas); }
+    .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; width: var(--os-sidebar-width); min-width: var(--os-sidebar-width); height: 100vh; padding: 0 var(--os-gutter-sidebar) var(--space-5); border-right: 1px solid var(--aurora-hairline); background: var(--aurora-nav); }
+    .workspace { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 100vh; }
+    .inspector { display: flex; flex-direction: column; width: var(--os-inspector-width); min-width: var(--os-inspector-width); height: 100vh; position: sticky; top: 0; padding: 0 var(--os-gutter-inspector) var(--space-5); background: var(--aurora-nav); box-shadow: inset 1px 0 0 var(--aurora-hairline); }
+    .brand { display: flex; align-items: center; height: var(--os-header-height); gap: 10px; padding: 0 4px; }
+    .brand-mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--aurora-attention); color: var(--aurora-on-attention); font-size: 11px; font-weight: 700; }
+    .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .sidebar-launch { display: grid; gap: 6px; margin: 4px 0 var(--space-5); }
+    .control, .nav-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: var(--os-nav-item-height); padding: 0 10px; border-radius: var(--radius-control); color: var(--aurora-secondary); text-align: left; }
+    .control:hover, .nav-item:hover { background: var(--aurora-surface-raised); color: var(--aurora-ink); }
+    .control-primary { background: var(--aurora-surface-raised); color: var(--aurora-ink); box-shadow: inset 0 0 0 1px var(--aurora-hairline-strong); }
+    .control kbd { margin-left: auto; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; }
+    .nav-block + .nav-block { margin-top: var(--space-4); }
+    .nav-label { padding: 0 10px 6px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+    .nav-item[aria-current="page"] { background: var(--aurora-surface-active); color: var(--aurora-ink); box-shadow: inset 2px 0 0 var(--aurora-attention); }
+    .nav-item[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+    .sidebar-foot { margin-top: auto; display: grid; gap: 2px; padding-top: var(--space-4); }
+    .live { display: flex; align-items: center; gap: 8px; height: 28px; margin: 8px 4px 6px; padding: 0 10px; border: 1px solid #2a333f; border-radius: 14px; color: var(--aurora-secondary); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; }
+    .live i { width: 8px; height: 8px; border-radius: 4px; background: var(--aurora-attention); }
+    .clock { padding: 0 10px 8px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    .user-row { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 8px; }
+    .avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 14px; background: var(--aurora-surface-active); border: 1px solid #2a333f; font-family: var(--font-mono); font-size: 11px; }
+    .user-row small { display: block; color: var(--aurora-muted); font-size: 12px; }
+    .collapse { display: none; margin-left: auto; }
+    .os.sidebar-collapsed .sidebar { display: none; }
+    .reopen { display: none; }
+    .os.sidebar-collapsed .reopen { display: inline-flex; position: fixed; left: 8px; top: 12px; z-index: 30; width: 40px; height: 32px; align-items: center; justify-content: center; background: var(--aurora-surface-raised); border: 1px solid var(--aurora-hairline-strong); border-radius: var(--radius-control); }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; min-height: var(--os-header-height); padding: 14px var(--os-gutter-workspace) 10px; }
+    .kicker { margin: 0 0 6px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; }
+    .page-header h1 { margin: 0; font-size: var(--text-display); font-weight: 600; letter-spacing: -0.015em; line-height: var(--leading-tight); }
+    .lede { margin: 6px 0 0; color: var(--aurora-quiet); font-size: 13px; max-width: 64ch; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--aurora-quiet); }
+    .status i { width: 8px; height: 8px; border-radius: 4px; background: currentColor; }
+    .status--need { color: var(--aurora-attention-hot); }
+    .chip, .icon-btn, .btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border-radius: var(--radius-control); color: var(--aurora-ink); background: var(--aurora-surface-raised); border: 1px solid #2a333f; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-pri { background: var(--aurora-attention); border-color: var(--aurora-attention); color: var(--aurora-on-attention); font-weight: 600; }
+    .btn-quiet { color: var(--aurora-quiet); }
+    .workspace-body { flex: 1; padding: 8px var(--os-gutter-workspace) 28px; }
+    .focused { max-width: var(--workspace-focused); }
+    .banner { margin: 0 0 16px; padding: 12px 14px; background: var(--aurora-surface); border: 1px solid var(--aurora-hairline-strong); border-radius: var(--radius-panel); color: var(--aurora-secondary); font-size: 13px; }
+    .banner[data-tone="need"] { color: var(--aurora-attention-hot); }
+    .section { padding: 18px 0; border-top: 1px solid var(--aurora-row-line); }
+    .section h2 { margin: 0 0 10px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+    .lead { margin: 0 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .copy { margin: 0; color: var(--aurora-secondary); }
+    .math { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin: 16px 0 8px; }
+    .math .k { font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); letter-spacing: 0.12em; text-transform: uppercase; }
+    .math .v { font-family: var(--font-mono); font-size: 28px; margin-top: 4px; }
+    .math .v.quiet { color: var(--aurora-quiet); }
+    .math .rule { font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--aurora-row-line); }
+    .row h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .row p { margin: 4px 0 0; color: var(--aurora-secondary); font-size: 13px; }
+    .tag { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; padding: 3px 6px; border-radius: 3px; border: 1px solid var(--aurora-hairline-strong); color: var(--aurora-attention-hot); }
+    .tag.quiet { color: var(--aurora-quiet); }
     .ledger { margin: 0; }
-    .ledger div {
-      display: grid;
-      grid-template-columns: minmax(12rem, 0.9fr) 5rem 1fr;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(239, 231, 214, 0.06);
-    }
-    .ledger dt {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 0.86rem;
-      color: var(--paper);
-    }
-    .ledger .val {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      color: var(--need);
-    }
-    .ledger dd { margin: 0; color: var(--sand); font-size: 0.92rem; }
-
-    .alts { list-style: none; margin: 8px 0 0; padding: 0; }
-    .alts li {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px 20px;
-      padding: 16px 0;
-      border-bottom: 1px solid rgba(239, 231, 214, 0.06);
-    }
-    .alts h3 { margin: 0; font-size: 1.05rem; font-weight: 500; }
-    .alts p { margin: 4px 0 0; color: var(--sand); font-size: 0.92rem; }
-    .gate {
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      align-self: start;
-      padding: 5px 8px;
-      border: 1px solid var(--line);
-      color: var(--need);
-      white-space: nowrap;
-    }
-    .gate.block {
-      color: var(--miss);
-      border-color: rgba(232, 93, 76, 0.4);
-    }
-
-    blockquote.quote {
-      margin: 0;
-      font-family: "Instrument Serif", Georgia, serif;
-      font-size: 1.55rem;
-      line-height: 1.25;
-    }
-    .src {
-      margin: 12px 0 0;
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--mute);
-    }
-
-    footer.actions {
-      position: sticky;
-      bottom: 0;
-      z-index: 4;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      padding: 14px 28px 16px;
-      border-top: 1px solid var(--line);
-      background: rgba(8, 10, 13, 0.92);
-      backdrop-filter: blur(10px);
-    }
-    .actions .hint {
-      margin-right: auto;
-      font-size: 0.85rem;
-      color: var(--mute);
-      max-width: 48ch;
-    }
-    .btn {
-      border: 1px solid transparent;
-      padding: 11px 18px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-weight: 500;
-      font-size: 0.92rem;
-    }
-    .btn:disabled { opacity: 0.38; cursor: not-allowed; }
-    .btn-dead {
-      background: transparent;
-      color: var(--miss);
-      border-color: rgba(232, 93, 76, 0.35);
-    }
-    .btn-need {
-      background: var(--paper);
-      color: var(--ink-950);
-    }
-    .btn-need:hover:not(:disabled) { background: var(--need); }
-    .btn-ghost {
-      background: transparent;
-      color: var(--paper);
-      border-color: rgba(239, 231, 214, 0.22);
-    }
-
-    .banner {
-      display: none;
-      margin: 0 0 24px;
-      padding: 14px 16px;
-      border: 1px solid rgba(232, 93, 76, 0.35);
-      color: var(--sand);
-    }
-    .banner[data-show="true"] { display: block; }
-    .banner[data-tone="need"] { border-color: rgba(240, 162, 2, 0.35); color: var(--need); }
-    .banner[data-tone="ok"] { border-color: rgba(61, 186, 139, 0.35); color: var(--ok); }
-
-    .live { min-height: 0; margin: 0; }
-
+    .ledger div { display: grid; grid-template-columns: minmax(11rem, 1fr) 4.5rem 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--aurora-row-line); }
+    .ledger dt { font-family: var(--font-mono); font-size: 12px; }
+    .ledger .val { font-family: var(--font-mono); color: var(--aurora-auto); font-size: 12px; }
+    .ledger dd { margin: 0; color: var(--aurora-secondary); font-size: 13px; }
+    .quote { margin: 0; font-size: 16px; font-weight: 500; }
+    .src { margin: 8px 0 0; font-family: var(--font-mono); font-size: 11px; color: var(--aurora-muted); }
+    .gate { margin: 16px 0 0; padding: 12px 14px; background: var(--aurora-recessed); border-radius: var(--radius-panel); color: var(--aurora-secondary); font-size: 13px; }
+    .gate strong { color: var(--aurora-ink); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .inspector-head { min-height: var(--os-header-height); padding-top: 16px; }
+    .inspector-kicker { margin: 0 0 4px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; }
+    .inspector h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    .inspector-section { margin-top: var(--space-5); }
+    .inspector-section h3 { margin: 0 0 8px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; }
+    .fact { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--aurora-row-line); font-size: 13px; }
+    .fact span { color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    .source { display: block; background: var(--aurora-recessed); padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+    .source small { display: block; margin-top: 4px; color: var(--aurora-muted); font-family: var(--font-mono); font-size: 11px; }
+    .live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; }
     @media (max-width: 1280px) {
-      main.brief { padding: 32px 28px 140px; }
-      aside.rail { padding: 32px 22px 120px; }
-      .ledger div { grid-template-columns: 1fr; gap: 4px; }
+      .sidebar { width: 220px; min-width: 220px; }
+      .inspector { width: 320px; min-width: 320px; }
+      .page-header, .workspace-body { padding-left: 24px; padding-right: 24px; }
+      .ledger div { grid-template-columns: 1fr; gap: 2px; }
     }
     @media (max-width: 1024px) {
-      .shell { grid-template-columns: 1fr; }
-      aside.rail { border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 28px; }
-      main.brief { padding: 28px 22px 150px; max-width: none; }
+      .collapse { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; }
+      .inspector { position: fixed; right: 0; top: 0; z-index: 25; height: 100vh; width: 320px; }
+      .os.inspector-hidden .inspector { display: none; }
       .math { grid-template-columns: 1fr; }
-      .math .rule { text-align: left; }
-      footer.actions { padding: 12px 18px 14px; }
-      .actions .hint { width: 100%; margin: 0 0 4px; }
+      .workspace-body { padding: 8px 20px 28px; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
-    }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   </style>
 </head>
 <body>
   <a class="skip" href="#brief">Skip to policy decision</a>
-  <div class="os">
-    <header class="chrome">
+  <div class="os" data-frame="1440" data-active="policy">
+    <aside class="sidebar" aria-label="Control OS">
       <div class="brand">
-        <strong>EvoPulse</strong>
-        <span>Control OS · 16 Policy</span>
+        <span class="brand-mark" aria-hidden="true">e</span>
+        <span class="brand-name">EvoPulse</span>
+        <button class="collapse icon-btn" type="button" data-collapse aria-expanded="true" aria-label="Collapse sidebar">‹</button>
       </div>
-      <nav class="crumb" aria-label="Control OS surfaces">
-        <a href="../12-approval/approval.html">12 Approval</a>
+      <div class="sidebar-launch">
+        <button class="control control-primary" type="button" disabled>New command</button>
+        <button class="control" type="button" disabled>Ask your business <kbd>⌘K</kbd></button>
+      </div>
+      <nav class="nav-block" aria-label="Primary">
+        <div class="nav-label">Primary</div>
+        <span class="nav-item" aria-disabled="true">Pulse</span>
+        <span class="nav-item" aria-disabled="true">Command</span>
+        <span class="nav-item" aria-disabled="true">Timeline</span>
       </nav>
-      <p class="clock">Sun 27 Sep 2026 · 11:05 +01 · Africa/Tunis</p>
-    </header>
+      <nav class="nav-block" aria-label="Workspace">
+        <div class="nav-label">Workspace</div>
+        <span class="nav-item" aria-disabled="true">Business</span>
+        <span class="nav-item" aria-disabled="true">Goals</span>
+      </nav>
+      <div class="sidebar-foot">
+        <a class="nav-item" href="../16-policy/policy.html" aria-current="page">Policies / Control</a>
+        <span class="nav-item" aria-disabled="true">Settings</span>
+        <div class="live" aria-label="Live event clock"><i></i> LIVE</div>
+        <div class="clock">SUN 27 SEP · 11:05 +01</div>
+        <div class="user-row">
+          <span class="avatar" aria-hidden="true">MO</span>
+          <span>Mohamed<small>Operator</small></span>
+        </div>
+      </div>
+    </aside>
 
-    <div class="shell">
-      <aside class="rail" aria-labelledby="question">
-        <p class="eyebrow">Governed autonomy</p>
-        <h1 id="question">What software refuses</h1>
-        <p class="state" id="stateChip" data-tone="miss"><i aria-hidden="true"></i><span id="stateLabel">BLOCKED</span></p>
+    <button class="reopen" type="button" data-reopen aria-label="Open sidebar">☰</button>
 
-        <dl class="deal">
-          <dt>Policy in force</dt>
-          <dd>discount_max = 5</dd>
-          <dt>Requested</dt>
-          <dd class="money">10% on 320,000 DZD</dd>
-          <dd class="note">AI proposed the close. Software refused. This is not an application error.</dd>
-          <dt>Opportunity</dt>
-          <dd>Atlas Q4 warehouse fit-out · 320,000 DZD list</dd>
-          <dt>Customer</dt>
-          <dd>Amine Khelifi · “I'll sign today if you give me 10%.”</dd>
-          <dt>Event</dt>
-          <dd>policy.blocked · evt_policy_discount_10 · planner-v1</dd>
-        </dl>
+    <div class="workspace" id="workspace">
+      <header class="page-header">
+        <div>
+          <p class="kicker">POLICIES / CONTROL</p>
+          <h1>What software refuses</h1>
+          <p class="lede">10% is outside authorization. BLOCKED is governed autonomy — not an application error. Alternatives still need a human.</p>
+        </div>
+        <p class="status" id="stateChip"><i></i> <span id="stateLabel">BLOCKED</span></p>
+      </header>
 
-        <p class="law">
-          <strong>BLOCKED is the system working.</strong>
-          Policy sits between AI and execution. EvoPulse cannot override discount_max. Alternatives still need a human.
-        </p>
-      </aside>
-
-      <main class="brief" id="brief">
-        <div class="banner" id="banner" data-show="true" role="status" aria-live="polite">
-          Policy discount_max=5% blocks a 10% discount. 10% cannot be approved, edited into existence, or self-authorized.
+      <main class="workspace-body focused" id="brief">
+        <div class="banner" id="banner" role="status" aria-live="polite">
+          Policy discount_max=5% blocks a 10% discount. There is no approve control for act_apply_10.
         </div>
 
-        <section class="block" aria-labelledby="refused">
+        <section class="section" aria-labelledby="refused" style="border-top:0;padding-top:0">
           <h2 id="refused">Refused action</h2>
           <p class="lead">Apply 10% discount.</p>
-          <p class="copy">Customer asked for 10% to sign today. Policy forbids it. Outcome is BLOCKED — not failed, not pending, not a toast.</p>
+          <p class="copy">Customer asked for 10% to sign today. AI proposed it. Software refused. Outcome is BLOCKED — not failed, not pending, not a toast.</p>
           <div class="math" aria-label="Requested versus allowed">
-            <figure>
+            <div>
               <div class="k">Requested</div>
-              <div class="v miss">10%</div>
-            </figure>
+              <div class="v quiet">10%</div>
+            </div>
             <div class="rule">discount_max</div>
-            <figure>
+            <div>
               <div class="k">Allowed ceiling</div>
               <div class="v">5%</div>
-            </figure>
+            </div>
           </div>
-          <p class="src">Reason · Policy discount_max=5% blocks a 10% discount. · act_apply_10 · apply_discount</p>
+          <p class="src">act_apply_10 · apply_discount · Policy discount_max=5% blocks a 10% discount.</p>
         </section>
 
-        <section class="block" aria-labelledby="alts">
+        <section class="section" aria-labelledby="alts">
           <h2 id="alts">Inside policy — still human-gated</h2>
           <p class="lead">5% and/or Net-14.</p>
-          <p class="copy">Canonical recovery offers the 5% ceiling (320,000 → 304,000 DZD) and list price with Net-14 plus a pulled-forward slot. Both are financial commitments. Both are APPROVAL_REQUIRED. Neither is AUTO.</p>
-          <ul class="alts">
-            <li>
-              <div>
-                <h3>Alternative — offer 5% (policy max)</h3>
-                <p>320,000 → 304,000 DZD. Stays inside discount_max=5%. act_offer_5 · apply_discount</p>
-              </div>
-              <span class="gate">APPROVAL_REQUIRED</span>
-            </li>
-            <li>
-              <div>
-                <h3>Alternative — Net-14 + priority slot</h3>
-                <p>Keep list price 320,000 DZD, pull delivery forward one week, invoice Net-14. act_offer_terms · offer_alternative</p>
-              </div>
-              <span class="gate">APPROVAL_REQUIRED</span>
-            </li>
-            <li>
-              <div>
-                <h3>Draft policy-safe reply</h3>
-                <p id="replyText">Amine — I can meet you today. 10% is outside our authorization. I can do 5% (304,000 DZD) immediately, or keep 320,000 and pull the install slot forward a week with Net-14. Which path do you want?</p>
-              </div>
-              <span class="gate">APPROVAL_REQUIRED</span>
-            </li>
-          </ul>
+          <p class="copy">Canonical recovery. Both are financial commitments. Both are APPROVAL_REQUIRED. Neither is AUTO. 10% stays BLOCKED.</p>
+          <div class="row">
+            <div>
+              <h3>Alternative — offer 5% (policy max)</h3>
+              <p>320,000 → 304,000 DZD. Stays inside discount_max=5%. act_offer_5</p>
+            </div>
+            <span class="tag">APPROVAL_REQUIRED</span>
+          </div>
+          <div class="row">
+            <div>
+              <h3>Alternative — Net-14 + priority slot</h3>
+              <p>Keep list 320,000 DZD, pull delivery forward one week, invoice Net-14. act_offer_terms</p>
+            </div>
+            <span class="tag">APPROVAL_REQUIRED</span>
+          </div>
+          <div class="row">
+            <div>
+              <h3>Draft policy-safe reply</h3>
+              <p>Amine — I can meet you today. 10% is outside our authorization. I can do 5% (304,000 DZD) immediately, or keep 320,000 and pull the install slot forward a week with Net-14.</p>
+            </div>
+            <span class="tag">APPROVAL_REQUIRED</span>
+          </div>
         </section>
 
-        <section class="block" aria-labelledby="ledger">
+        <section class="section" aria-labelledby="ledger">
           <h2 id="ledger">Policy ledger</h2>
           <dl class="ledger">
             <div>
@@ -473,7 +271,7 @@
             <div>
               <dt>payment_over_500k_requires_approval</dt>
               <span class="val">true</span>
-              <dd>Large payments need a human — not triggered here</dd>
+              <dd>Large payments need a human — not triggered</dd>
             </div>
             <div>
               <dt>customer_data_deletion</dt>
@@ -483,83 +281,91 @@
           </dl>
         </section>
 
-        <section class="block" aria-labelledby="impact">
-          <h2 id="impact">Impact if 10% had executed</h2>
-          <p class="copy">
-            320,000 DZD list would become an unauthorized 10% concession. Software never computes that as “revenue saved.”
-            The live associated amount remains 320,000 DZD. The 5% path prices at 304,000 DZD only if a human approves it.
-          </p>
+        <section class="section" aria-labelledby="impact">
+          <h2 id="impact">Impact</h2>
+          <p class="copy">Associated opportunity remains 320,000 DZD. Unauthorized 10% is not priced as revenue saved. The 5% path is 304,000 DZD only if a human approves it.</p>
         </section>
 
-        <section class="block" aria-labelledby="evidence">
+        <section class="section" aria-labelledby="evidence">
           <h2 id="evidence">Evidence</h2>
           <blockquote class="quote">“I'll sign today if you give me 10%.”</blockquote>
-          <p class="src">Source · Customer conversation · Amine Khelifi · Sun 27 Sep 11:05 · demo ingest · confidence 93% · expected: concession ≤ discount_max=5%</p>
+          <p class="src">Customer conversation · Amine Khelifi · Sun 27 Sep 11:05 · expected concession ≤ discount_max=5% · 93%</p>
         </section>
+
+        <p class="gate"><strong>BLOCKED is the system working.</strong> Policy sits between AI and execution. EvoPulse cannot override discount_max. Next human surface is 12 Approval.</p>
+
+        <div class="actions">
+          <button class="btn btn-quiet" id="btnTen" type="button" aria-describedby="tenHelp">Cannot approve 10%</button>
+          <button class="btn btn-pri" id="btnFive" type="button">Take 5% to approval</button>
+          <button class="btn" id="btnTerms" type="button">Take Net-14 to approval</button>
+        </div>
       </main>
     </div>
 
-    <footer class="actions">
-      <p class="hint" id="actionHint">10% is closed. Choose a policy-safe path. A human still approves the send.</p>
-      <button class="btn btn-dead" id="btnTen" type="button" aria-describedby="tenHelp">Cannot approve 10%</button>
-      <button class="btn btn-need" id="btnFive" type="button">Take 5% to approval</button>
-      <button class="btn btn-ghost" id="btnTerms" type="button">Take Net-14 to approval</button>
-    </footer>
+    <aside class="inspector" aria-label="Fired rule">
+      <div class="inspector-head">
+        <p class="inspector-kicker">POLICY</p>
+        <h2>discount_max</h2>
+      </div>
+      <div class="inspector-section">
+        <h3>Decision</h3>
+        <div class="fact"><b>Outcome</b><span>BLOCKED</span></div>
+        <div class="fact"><b>Requested</b><span>10%</span></div>
+        <div class="fact"><b>Ceiling</b><span>5</span></div>
+        <div class="fact"><b>Event</b><span>policy.blocked</span></div>
+        <div class="fact"><b>Action</b><span>act_apply_10</span></div>
+      </div>
+      <div class="inspector-section">
+        <h3>Evidence</h3>
+        <p class="source">Customer conversation<small>I'll sign today if you give me 10%.</small></p>
+        <p class="source">Seeded rule<small>pol_discount · Maximum commercial discount percent</small></p>
+      </div>
+    </aside>
   </div>
 
-  <p id="tenHelp" class="live" hidden>The 10% action is BLOCKED by discount_max=5%. There is no approve control for it.</p>
-  <p class="live" id="live" role="status" aria-live="polite"></p>
+  <p id="tenHelp" class="live-region">The 10% action is BLOCKED by discount_max=5%. There is no approve control for it.</p>
+  <p class="live-region" id="live" role="status" aria-live="polite"></p>
 
   <script>
     (function () {
       var state = "BLOCKED";
-      var chip = document.getElementById("stateChip");
-      var label = document.getElementById("stateLabel");
       var banner = document.getElementById("banner");
       var live = document.getElementById("live");
-      var hint = document.getElementById("actionHint");
-      var btnTen = document.getElementById("btnTen");
-      var btnFive = document.getElementById("btnFive");
-      var btnTerms = document.getElementById("btnTerms");
+      var chip = document.getElementById("stateChip");
+      var label = document.getElementById("stateLabel");
+      var os = document.querySelector(".os");
 
       function say(text, tone) {
-        banner.dataset.show = "true";
-        banner.dataset.tone = tone || "miss";
+        banner.dataset.tone = tone || "";
         banner.textContent = text;
         live.textContent = text;
       }
 
-      btnTen.addEventListener("click", function () {
-        say(
-          "10% remains BLOCKED. discount_max=5% is software law. EvoPulse cannot approve, edit, or execute act_apply_10. This is governed autonomy, not an error.",
-          "miss"
-        );
+      document.getElementById("btnTen").addEventListener("click", function () {
+        say("10% remains BLOCKED. discount_max=5% is software law. EvoPulse cannot approve, edit, or execute act_apply_10. This is governed autonomy, not an error.");
         label.textContent = "BLOCKED";
-        chip.dataset.tone = "miss";
+        chip.className = "status";
         state = "BLOCKED";
       });
 
-      function take(path) {
-        if (state === "BLOCKED_SELECTED") return;
-        state = "BLOCKED_SELECTED";
+      function take(msg) {
+        state = "BLOCKED_ALT";
         label.textContent = "BLOCKED · ALT READY";
-        chip.dataset.tone = "need";
-        btnFive.disabled = true;
-        btnTerms.disabled = true;
-        hint.textContent = "Alternative selected. Open Approval — EvoPulse still cannot approve the send.";
-        say(path, "need");
+        chip.className = "status status--need";
+        document.getElementById("btnFive").disabled = true;
+        document.getElementById("btnTerms").disabled = true;
+        say(msg, "need");
       }
 
-      btnFive.addEventListener("click", function () {
-        take(
-          "Selected 5% (304,000 DZD). Policy outcome APPROVAL_REQUIRED because financial_commitment_requires_approval=true. Next surface is 12 Approval. 10% stays BLOCKED."
-        );
+      document.getElementById("btnFive").addEventListener("click", function () {
+        take("Selected 5% (304,000 DZD). APPROVAL_REQUIRED because financial_commitment_requires_approval=true. Open 12 Approval. 10% stays BLOCKED.");
+      });
+      document.getElementById("btnTerms").addEventListener("click", function () {
+        take("Selected Net-14 + priority slot at list 320,000 DZD. APPROVAL_REQUIRED — payment terms are a financial commitment. 10% stays BLOCKED.");
       });
 
-      btnTerms.addEventListener("click", function () {
-        take(
-          "Selected Net-14 + priority slot at list 320,000 DZD. Policy outcome APPROVAL_REQUIRED — payment terms are a financial commitment. 10% stays BLOCKED."
-        );
+      document.querySelectorAll("[data-collapse], [data-reopen]").forEach(function (el) {
+        el.addEventListener("click", function () { os.classList.toggle("sidebar-collapsed"); });
       });
     })();
   </script>
