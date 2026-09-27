@@ -8,6 +8,7 @@ const ATTENTION: Record<string, string> = {
   AUTO: "text-ice",
   AUTO_HANDLED: "text-ice",
   APPROVAL_REQUIRED: "text-need",
+  POLICY: "text-sand",
   PENDING: "text-ice",
   SUCCESS: "text-ice",
   FAILED: "text-miss",

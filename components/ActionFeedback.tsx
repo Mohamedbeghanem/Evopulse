@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/primitives";
 
 const STRATEGIES = [
   { value: "personalized_followup", label: "Personalized follow-up" },
@@ -24,6 +25,7 @@ export function ActionFeedback({
   const [message, setMessage] = useState<string | null>(null);
 
   async function submit(next: "ACCEPT" | "EDIT" | "REJECT") {
+    if (busy) return;
     setBusy(true);
     setMessage(null);
     const res = await fetch(`/api/actions/${actionId}/feedback`, {
@@ -43,70 +45,94 @@ export function ActionFeedback({
       return;
     }
     setDecision(next);
-    setMessage("Feedback recorded. It does not change live strategy defaults.");
+    setMessage("Feedback recorded. It does not change live strategy defaults. It is not an approval.");
     router.refresh();
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-ink-900/40 p-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-mute">Operator feedback</p>
-      <p className="mt-1 text-xs text-sand">ACCEPT · EDIT · REJECT — corrections are stored, not applied globally.</p>
+    <div className="mt-8 rounded-md border border-hairline bg-ink-800 p-4">
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-mute">Operator feedback</p>
+      <p className="mt-1 text-xs text-sand">
+        ACCEPT · EDIT · REJECT — corrections are stored, not applied globally. This is not an approve path.
+      </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
+        <Button
           type="button"
+          variant="primary"
           disabled={busy}
-          onClick={() => submit("ACCEPT")}
-          className="rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink-950 disabled:opacity-50"
+          aria-busy={busy}
+          aria-label="Accept recommended strategy"
+          onClick={() => void submit("ACCEPT")}
         >
-          Accept
-        </button>
-        <button
+          {busy && decision === "ACCEPT" ? "Recording accept…" : "Accept strategy"}
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           disabled={busy}
+          aria-busy={busy}
+          aria-label="Edit recommended strategy"
           onClick={() => setDecision("EDIT")}
-          className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-paper disabled:opacity-50"
         >
-          Edit
-        </button>
-        <button
+          Edit strategy
+        </Button>
+        <Button
           type="button"
+          variant="danger"
           disabled={busy}
-          onClick={() => submit("REJECT")}
-          className="rounded-full border border-miss/40 px-3 py-1.5 text-xs text-miss disabled:opacity-50"
+          aria-busy={busy}
+          aria-label="Reject recommended strategy"
+          onClick={() => void submit("REJECT")}
         >
-          Reject
-        </button>
+          {busy && decision === "REJECT" ? "Recording reject…" : "Reject strategy"}
+        </Button>
       </div>
       {decision === "EDIT" ? (
         <div className="mt-3 space-y-2">
+          <label className="block text-xs text-mute" htmlFor="strategy-select">
+            Replacement strategy
+          </label>
           <select
+            id="strategy-select"
             value={finalStrategy}
             onChange={(e) => setFinalStrategy(e.target.value)}
-            className="w-full rounded-lg border border-white/10 bg-ink-950 px-3 py-2 text-sm text-paper"
+            disabled={busy}
+            className="min-h-11 w-full rounded-md border border-hairline bg-ink-950 px-4 py-2.5 text-sm text-paper"
           >
-            {STRATEGIES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
+            {STRATEGIES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
               </option>
             ))}
           </select>
+          <label className="block text-xs text-mute" htmlFor="correction-reason">
+            Why this correction?
+          </label>
           <input
+            id="correction-reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Why this correction?"
-            className="w-full rounded-lg border border-white/10 bg-ink-950 px-3 py-2 text-sm text-paper"
-          />
-          <button
-            type="button"
             disabled={busy}
-            onClick={() => submit("EDIT")}
-            className="rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-ink-950 disabled:opacity-50"
+            placeholder="Why this correction?"
+            className="min-h-11 w-full rounded-md border border-hairline bg-ink-950 px-4 py-2.5 text-sm text-paper"
+          />
+          <Button
+            type="button"
+            variant="primary"
+            disabled={busy}
+            aria-busy={busy}
+            aria-label="Record strategy correction"
+            onClick={() => void submit("EDIT")}
           >
-            Record correction
-          </button>
+            {busy ? "Recording correction…" : "Record correction"}
+          </Button>
         </div>
       ) : null}
-      {message ? <p className="mt-2 text-xs text-sand">{message}</p> : null}
+      {message ? (
+        <p className="mt-2 text-xs text-sand" role="status">
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 }
