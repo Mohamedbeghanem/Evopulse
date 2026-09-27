@@ -21,9 +21,11 @@ USER
 
 ## DeepSeek Harness audit
 
-Read from source (`deepseek-ai/deepseek-harness` @ `477b4f420553e8a52c2fbccc464d7561b239c443`, version `0.1.7-rc.2`, MIT).
+Re-read from source on 2026-09-27 (`deepseek-ai/deepseek-harness` `master` @ `477b4f420553e8a52c2fbccc464d7561b239c443`, tag `dsh-v0.1.7-rc.2`, version `0.1.7-rc.2`, MIT). That SHA is still HEAD of `master`. Decision record: `docs/HARNESS_DECISION.md`.
 
-Harness is a developer-preview **coding-agent product**: Cordis plugins, session JSONL, an agent loop (`turn` / `step` / `tool/call` / `tool/result`), LLM adapters, and default capabilities for shell, filesystem, git, computer use, and browsers. Public APIs are pre-stable. Compatibility-breaking changes are expected. Safety docs warn it can execute model-generated commands.
+Harness is a developer-preview **coding-agent product**: Cordis plugins, session JSONL, an agent loop (`turn` / `step` / `tool/call` / `tool/result`), LLM adapters, and default capabilities for shell, filesystem, git, computer use, and browsers. Public APIs are pre-stable. Compatibility-breaking changes are expected. `SAFETY.md` says the project is not audited, can execute model-generated commands, and that sandbox/approvals do not guarantee isolation.
+
+Official launchers are named `dsh` profiles (`web`, `headless`, `sdk`, `sdk-minimal`, `acp`). Direct in-process plugin mounting is not a supported application launcher. The TypeScript / Python SDKs spawn `dsh --profile sdk` over JSON-RPC. npm `@deepseek-ai/dsh@0.1.7-rc.2` still depends on `dsh-tool-bash`, `dsh-tool-fs`, terminals, web fetch, credentials, and MCP. Minimal mode still ships bash + a file editor. **Privilege isolation to EvoPulse tools only: NO.**
 
 Stable enough to *learn from*:
 
@@ -33,18 +35,18 @@ Stable enough to *learn from*:
 - loop / repeat guards
 - replaceable model providers
 
-Not stable enough to embed:
+Not stable enough to embed (MODE A) or sidecar (MODE B):
 
 - in-process Cordis plugin tree
-- session format generations
-- desktop / web / shell / filesystem packages
-- `npx @deepseek-ai/dsh` as a sidecar inside the hackathon demo
+- session format generations (including model reasoning)
+- desktop / web / shell / filesystem / credentials packages
+- `npx @deepseek-ai/dsh` or `@deepseek-ai/dsh-sdk-client` as a subprocess inside the hackathon demo
 
-Official npm packages (`@deepseek-ai/dsh`, `@deepseek-ai/dsh-sdk-client`) drive a Harness subprocess. That subprocess is a software-development agent. EvoPulse must not expose shell, filesystem mutation, git, or SQL.
+**MODE C — current governed adapter.** Official npm packages drive a software-development agent. EvoPulse must not expose shell, filesystem mutation, git, SQL, env, credentials, network, or deploy.
 
 ## Integration method
 
-**Isolated adapter. No vendored Harness tree. No runtime dependency on `@deepseek-ai/dsh*`.**
+**MODE C isolated adapter. No vendored Harness tree. No runtime dependency on `@deepseek-ai/dsh*`.**
 
 | Piece | Role |
 | --- | --- |
@@ -53,7 +55,7 @@ Official npm packages (`@deepseek-ai/dsh`, `@deepseek-ai/dsh-sdk-client`) drive 
 | `DeterministicRuntime` | Default, offline, hackathon-safe operating path |
 | Tool registry | Narrow calls into existing engines |
 
-If Harness, the model, or the provider is disabled, missing, upgraded, or on fire, EvoPulse keeps working.
+If Harness, the model, or the provider is disabled, missing, upgraded, times out, throws, or requests an invalid tool, EvoPulse falls back to `DeterministicRuntime` and keeps working.
 
 ## Runtime interface
 
