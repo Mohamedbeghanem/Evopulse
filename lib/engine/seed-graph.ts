@@ -10,6 +10,10 @@ function run(db: DatabaseSync, sql: string, params: SQLInputValue[] = []) {
 
 const CREATED = "2026-09-12T10:00:00+01:00";
 
+/** Customer delivery deadlines and lead times (days after RK-7 is in stock). Read by the simulator. */
+const DELIVER_B_ISO = "2026-10-02T17:00:00+01:00";
+const DELIVER_C_ISO = "2026-10-06T17:00:00+01:00";
+
 export const SEED_MESSAGE_SUPPLIER = "Your shipment will arrive Wednesday instead of Monday.";
 
 /** Persisted supplier graph. Amounts live on entities — impact sums them. */
@@ -26,9 +30,24 @@ export function seedSupplierGraph(db: DatabaseSync) {
       { expectedAt: SHIP_EXPECTED_ISO, status: "expected", ref: "SH-204" },
     ],
     [IDS.product, "product", "Pallet racking kit RK-7", { sku: "RK-7", inventory: 3 }],
-    [IDS.orderA, "order", "Order A — Oran Fresh", { amount: 320000, currency: "DZD" }],
-    [IDS.orderB, "order", "Order B — Constantine Clinic", { amount: 280000, currency: "DZD" }],
-    [IDS.orderC, "order", "Order C — Sétif Depot", { amount: 250000, currency: "DZD" }],
+    [
+      IDS.orderA,
+      "order",
+      "Order A — Oran Fresh",
+      { amount: 320000, currency: "DZD", dueAt: DELIVER_A_ISO, leadDays: 1 },
+    ],
+    [
+      IDS.orderB,
+      "order",
+      "Order B — Constantine Clinic",
+      { amount: 280000, currency: "DZD", dueAt: DELIVER_B_ISO, leadDays: 1 },
+    ],
+    [
+      IDS.orderC,
+      "order",
+      "Order C — Sétif Depot",
+      { amount: 250000, currency: "DZD", dueAt: DELIVER_C_ISO, leadDays: 2 },
+    ],
     [IDS.customerA, "customer", "Oran Fresh Market", { city: "Oran" }],
     [IDS.customerB, "customer", "Constantine Clinic", { city: "Constantine" }],
     [IDS.customerC, "customer", "Sétif Depot", { city: "Sétif" }],

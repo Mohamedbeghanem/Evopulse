@@ -100,6 +100,9 @@ export default async function ImpactPage({ params }: { params: Promise<{ excepti
         <Link href="/graph" className="rounded-full border border-white/15 px-5 py-2.5 text-sm">
           Full graph
         </Link>
+        <Link href="/simulate" className="rounded-full border border-ice/50 px-5 py-2.5 text-sm text-ice">
+          What if it gets later? Simulate
+        </Link>
       </div>
     </div>
   );
